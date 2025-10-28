@@ -1,40 +1,56 @@
 import React from 'react';
-// Added PanelLeft, PanelRight for toggle
-import { User, Calendar, List, PlusSquare, PanelLeft, PanelRight } from 'lucide-react';
-// REMOVED EntryList, CalendarView imports
+import { User, Calendar, List, PlusSquare, PanelLeft, PanelRight } from 'lucide-react'; 
+import EntryList from './EntryList';
+import CalendarView from './CalendarView';
+import ThemedAvatar from './ThemedAvatar'; // Ensure this import is present
 
-// Receive isExpanded state and toggle function from App
 function Sidebar({
-    // REMOVED entries, onSelect, onDelete, activeEntryId props
-    onCreate, onShowSettings, className, settings,
-    currentView, onViewChange,
-    isExpanded, onToggleExpand
+    entries, onSelect, onDelete, onCreate, activeEntryId,
+    onShowSettings, className, settings, currentView, onViewChange,
+    isExpanded, onToggleExpand 
 }) {
 
-    // Determine width and visibility based on expanded state
-    const sidebarWidth = isExpanded ? 'w-64' : 'w-16'; // Adjusted expanded width
-    const contentVisibility = isExpanded ? 'inline' : 'hidden'; // Hide text when collapsed
+    const sidebarWidth = isExpanded ? 'w-64' : 'w-16'; 
+    const contentVisibility = isExpanded ? 'inline' : 'hidden'; 
+
+    // Style object for primary color
+    const primaryColorStyle = { backgroundColor: 'var(--color-primary-hex)' };
+    const primaryTextStyle = { color: 'var(--color-primary-hex)' };
+    
+    // Helper function to apply active style
+    const getActiveStyle = (viewName) => {
+        if (currentView !== viewName) return { color: '#94a3b8' }; // slate-400
+        if (isExpanded) {
+            return { color: 'var(--color-primary-hex)', fontWeight: '600' }; // Bold text, primary color
+        } else {
+            return { backgroundColor: '#334155', color: 'var(--color-primary-hex)' }; // slate-700 bg
+        }
+    };
+    
+    // Helper for active indicator
+    const activeIndicator = (viewName) => {
+         if (currentView !== viewName) return null;
+         if (isExpanded) {
+             return <div className="absolute left-0 top-1 bottom-1 w-1 rounded-r-md" style={primaryColorStyle}></div>;
+         }
+         return <div className="absolute inset-1.5 bg-slate-700 rounded-md z-[-1]"></div>; // Adjusted inset
+    };
 
     return (
-        // Added transition-all for smooth width change. Added z-30 for potential overlay interaction.
         <div className={`bg-slate-900 h-full flex flex-col border-r border-slate-700 overflow-hidden transition-all duration-300 ease-in-out flex-shrink-0 ${sidebarWidth} ${className} z-30 relative`}>
 
-            {/* Header Area - Toggle Button & Logo (when expanded) */}
-            {/* Adjusted padding and added space-x-2 */}
+            {/* Header Area */}
             <div className={`p-2 border-b border-slate-700 flex items-center flex-shrink-0 h-16 ${isExpanded ? 'justify-between px-3' : 'justify-center'}`}>
-                 {/* Display Logo when expanded */}
                  {isExpanded && (
                      <div className="flex items-center space-x-2">
-                         {/* Increased logo size */}
-                         <img src="/logo.svg" alt="Curiosity Logo" className="w-10 h-10" /> 
-                         <span className="font-semibold text-lg text-white">Curiosity</span>
+                         <img src="/logo.svg" alt="Curiosity Logo" className="w-10 h-10" />
+                         {/* Apply cursive font to logo text */}
+                         <span className="font-semibold text-lg text-white" style={{ fontFamily: 'var(--font-logo)' }}>Curiosity</span>
                      </div>
                  )}
-
-                 {/* Toggle Expand Button */}
                  <button
                     onClick={onToggleExpand}
-                    className="p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none"
                     aria-label={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
                     title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
                 >
@@ -42,13 +58,12 @@ function Sidebar({
                 </button>
             </div>
 
-             {/* Navigation Area - Always takes remaining space */}
-             <nav className="flex-grow flex flex-col items-center space-y-2 py-4 px-2 overflow-y-auto custom-scrollbar"> {/* Added px-2 */}
-                  {/* New Entry Button */}
+             {/* Navigation Area */}
+             <nav className="flex-grow flex flex-col items-center space-y-2 py-4 px-2 overflow-y-auto custom-scrollbar">
                  <button
                     onClick={onCreate}
-                    className={`w-full flex items-center text-teal-400 hover:bg-slate-700 hover:text-teal-300 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 rounded-md p-2 ${isExpanded ? 'justify-start px-4' : 'justify-center'}`}
-                    aria-label="New Entry"
+                    className={`w-full flex items-center rounded-md p-2 ${isExpanded ? 'justify-start px-4' : 'justify-center'} transition-colors`}
+                    style={primaryTextStyle}
                     title="New Entry"
                  >
                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
@@ -57,17 +72,13 @@ function Sidebar({
                      <span className={`ml-3 font-semibold ${!isExpanded && 'hidden'}`}>New Entry</span>
                  </button>
 
-                 {/* View Toggle Buttons */}
                   <button
-                     onClick={() => onViewChange('list')}
-                     className={`w-full flex items-center p-2 rounded-md relative focus:outline-none focus:ring-2 focus:ring-teal-500 ${currentView === 'list' ? 'text-teal-400' : 'text-gray-400 hover:text-white hover:bg-slate-700'} ${isExpanded ? 'justify-start px-4' : 'justify-center'}`}
-                     aria-label="List View"
+                     onClick={() => onViewChange('list')} 
+                     className={`w-full flex items-center p-2 rounded-md relative ${isExpanded ? 'justify-start px-4' : 'justify-center'} transition-colors`}
+                     style={getActiveStyle('list')}
                      title="List View"
                   >
-                     {/* Active Indicator: Left border when expanded, background when collapsed */}
-                     {currentView === 'list' && isExpanded && <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-400 rounded-r-md"></div>}
-                     {!isExpanded && currentView === 'list' && <div className="absolute inset-1 bg-slate-700 rounded-md z-[-1]"></div>}
-
+                     {activeIndicator('list')}
                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
                          <List size={22} />
                      </div>
@@ -75,14 +86,11 @@ function Sidebar({
                   </button>
                  <button
                     onClick={() => onViewChange('calendar')}
-                     className={`w-full flex items-center p-2 rounded-md relative focus:outline-none focus:ring-2 focus:ring-teal-500 ${currentView === 'calendar' ? 'text-teal-400' : 'text-gray-400 hover:text-white hover:bg-slate-700'} ${isExpanded ? 'justify-start px-4' : 'justify-center'}`}
-                     aria-label="Calendar View"
+                     className={`w-full flex items-center p-2 rounded-md relative ${isExpanded ? 'justify-start px-4' : 'justify-center'} transition-colors`}
+                     style={getActiveStyle('calendar')}
                      title="Calendar View"
                  >
-                     {/* Active Indicator: Left border when expanded, background when collapsed */}
-                     {currentView === 'calendar' && isExpanded && <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-400 rounded-r-md"></div>}
-                     {!isExpanded && currentView === 'calendar' && <div className="absolute inset-1 bg-slate-700 rounded-md z-[-1]"></div>}
-
+                     {activeIndicator('calendar')}
                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
                         <Calendar size={22} />
                      </div>
@@ -93,26 +101,19 @@ function Sidebar({
 
             {/* Footer - Settings Button */}
             <div className={`p-2 border-t border-slate-700 mt-auto flex items-center flex-shrink-0 ${isExpanded ? 'justify-start px-2 h-16' : 'justify-center py-3'}`}>
-                {/* Profile/Settings Button */}
                 <button
-                    onClick={onShowSettings}
-                    // Adjusted padding and removed fixed size when collapsed to rely on container
-                    className={`w-full flex items-center p-1 rounded-full text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 ${isExpanded ? '' : 'justify-center'}`}
-                    aria-label="Settings"
+                    onClick={onShowSettings} 
+                    className={`w-full flex items-center p-1 rounded-full relative transition-colors ${currentView === 'settings' ? '' : 'text-gray-400 hover:text-white'} ${isExpanded ? '' : 'justify-center'}`}
+                    style={getActiveStyle('settings')}
                     title="Settings"
                 >
-                     {/* Fixed size container for the icon/image */}
-                     <div className={`flex-shrink-0 rounded-full overflow-hidden ${isExpanded ? 'w-8 h-8' : 'w-9 h-9'} bg-slate-700 flex items-center justify-center`}>
-                        {settings && settings.profilePicUrl ? (
-                            <img src={settings.profilePicUrl}
-                                 alt="Profile"
-                                 className={`w-full h-full object-cover`} // Let the container define size
-                                 onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/36x36/4a5568/a0aec0?text=C"; }}
-                            />
-                        ) : (
-                            <User size={isExpanded ? 18 : 20} />
-                        )}
-                    </div>
+                     {activeIndicator('settings')}
+                     {/* Use ThemedAvatar component */}
+                     <ThemedAvatar 
+                        profilePicUrl={settings?.profilePicUrl}
+                        username={settings?.username}
+                        className={isExpanded ? 'w-8 h-8 ml-1' : 'w-9 h-9'}
+                     />
                      <span className={`ml-3 text-sm ${!isExpanded && 'hidden'}`}>Settings</span>
                 </button>
             </div>

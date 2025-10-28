@@ -1,46 +1,35 @@
-// src/components/PinLockScreen.jsx
-import React, { useState, useEffect, useCallback } from 'react'; // Import useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { KeyRound, Delete } from 'lucide-react'; 
 
-function PinLockScreen({ correctPin, onUnlock }) {
+function PinLockScreen({ correctPin, onUnlock, onForgotPin }) {
     const [pin, setPin] = useState('');
     const [error, setError] = useState(false);
 
-    // --- Keyboard Input Logic ---
-    
-    // Memoize handleInput so it can be safely used in useEffect
     const handleInput = useCallback((num) => {
         if (pin.length < 4) {
             setPin(pin + num);
         }
-    }, [pin]); // Dependency: pin
+    }, [pin]); 
 
-    // Memoize handleBackspace
     const handleBackspace = useCallback(() => {
         setPin(pin.slice(0, -1));
-    }, [pin]); // Dependency: pin
+    }, [pin]); 
 
-    // Add keyboard event listener when the component mounts
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key >= '0' && event.key <= '9') {
-                event.preventDefault(); // Prevent default browser action for number keys
+                event.preventDefault(); 
                 handleInput(event.key);
             } else if (event.key === 'Backspace') {
-                event.preventDefault(); // Prevent browser from navigating back
+                event.preventDefault(); 
                 handleBackspace();
             }
-            // We don't need 'Enter' since it auto-submits at 4 digits
         };
-
-        // Add the listener
         document.addEventListener('keydown', handleKeyDown);
-        
-        // Cleanup: Remove the listener when the component unmounts (is closed)
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [handleInput, handleBackspace]); // Re-run effect if these functions change
+    }, [handleInput, handleBackspace]); 
 
     // --- Auto-submit Logic ---
     useEffect(() => {
@@ -66,7 +55,7 @@ function PinLockScreen({ correctPin, onUnlock }) {
     ];
 
     return (
-        <div className="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center z-50">
+        <div className="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center z-50 p-4">
             <KeyRound size={48} className="text-teal-400 mb-6" />
             <h2 className="text-2xl font-semibold text-white mb-4">Enter PIN</h2>
             <div className={`flex space-x-4 mb-8 ${error ? 'shake' : ''}`}>
@@ -90,6 +79,14 @@ function PinLockScreen({ correctPin, onUnlock }) {
                         {key === 'Backspace' ? <Delete size={28} /> : key}
                     </button>
                 ))}
+            </div>
+            <div className="mt-8">
+                <button
+                    onClick={onForgotPin}
+                    className="text-sm text-teal-400 hover:text-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500 rounded"
+                >
+                    Forgot PIN?
+                </button>
             </div>
         </div>
     );

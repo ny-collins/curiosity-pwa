@@ -1,15 +1,21 @@
-/* Import Tailwind directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Apply base styles using @apply for consistency */
+:root {
+  --color-primary-hex: #14b8a6;
+  --font-body: 'Inter', sans-serif;
+  --font-serif: 'Merriweather', serif;
+  --font-logo: 'Pacifico', cursive;
+}
+
 html {
     @apply h-full bg-slate-900;
 }
 
 body {
-    @apply h-full m-0 p-0 font-sans text-gray-200;
+    @apply h-full m-0 p-0 text-gray-200;
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -18,38 +24,20 @@ body {
     @apply h-full;
 }
 
-/* Custom Scrollbar styles */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #1e293b; /* slate-800 */
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #64748b; /* slate-500 */
-    border-radius: 3px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8; /* slate-400 */
-}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #64748b; border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Focus outline styles (Updated to teal) */
 textarea:focus, input:focus, button:focus {
     outline: 2px solid transparent;
     outline-offset: 2px;
-    box-shadow: 0 0 0 2px #2dd4bf; /* teal-400 */
+    box-shadow: 0 0 0 2px var(--color-primary-hex);
 }
 
-/* PIN dot transition */
-.pin-dot {
-    transition: all 0.2s ease-in-out;
-}
+.pin-dot { transition: all 0.2s ease-in-out; }
 
-/* Shake animation for incorrect PIN */
-.shake {
-    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    transform: translate3d(0, 0, 0);
-}
+.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; transform: translate3d(0, 0, 0); }
 @keyframes shake {
   10%, 90% { transform: translate3d(-1px, 0, 0); }
   20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -57,17 +45,18 @@ textarea:focus, input:focus, button:focus {
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-/* Animation for ReloadPrompt */
 @keyframes slide-in-up {
-  from { 
-    transform: translateY(100%); 
-    opacity: 0; 
-  }
-  to { 
-    transform: translateY(0); 
-    opacity: 1; 
-  }
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
-.animate-slide-in-up {
-  animation: slide-in-up 0.5s ease-out;
+.animate-slide-in-up { animation: slide-in-up 0.5s ease-out; }
+
+.bg-primary { background-color: var(--color-primary-hex); }
+.text-primary { color: var(--color-primary-hex); }
+.font-logo { font-family: var(--font-logo); }
+.font-body { font-family: var(--font-body); }
+.font-serif { font-family: var(--font-serif); }
+
+.react-calendar-override button:enabled:focus {
+    box-shadow: 0 0 0 2px var(--color-primary-hex) !important;
 }

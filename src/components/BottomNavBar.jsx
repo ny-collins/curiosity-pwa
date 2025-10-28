@@ -28,7 +28,7 @@ function BottomNavBar({ onCreate, currentView, onViewChange, onShowSettings, set
                     key={item.id}
                     onClick={() => onViewChange(item.id)}
                     className={`flex flex-col items-center justify-center p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                        currentView === item.id ? 'text-teal-400' : 'text-gray-400 hover:text-white'
+                        currentView === item.id ? 'text-teal-400' : 'text-gray-400 hover:text-white' // Active state for list/calendar
                     }`}
                     aria-label={`Switch to ${item.label} view`}
                 >
@@ -39,8 +39,10 @@ function BottomNavBar({ onCreate, currentView, onViewChange, onShowSettings, set
 
             {/* Settings Button (Profile Pic) */}
             <button
-                onClick={onShowSettings}
-                className="p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                onClick={onShowSettings} // Now triggers setCurrentView('settings')
+                 className={`p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                    currentView === 'settings' ? 'ring-2 ring-teal-400' : 'text-gray-400' // Active state for settings
+                 }`}
                 aria-label="Settings"
             >
                 {settings.profilePicUrl ? (
