@@ -6,6 +6,8 @@
   --color-primary-hex: #14b8a6;
   --font-body: 'Inter', sans-serif;
   --font-serif: 'Merriweather', serif;
+  --font-slab: 'Roboto Slab', serif;
+  --font-cursive: 'Dancing Script', cursive;
   --font-logo: 'Pacifico', cursive;
 }
 
@@ -49,13 +51,8 @@ textarea:focus, input:focus, button:focus {
   from { transform: translateY(100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-.animate-slide-in-up { animation: slide-in-up 0.5s ease-out; }
 
-.bg-primary { background-color: var(--color-primary-hex); }
-.text-primary { color: var(--color-primary-hex); }
-.font-logo { font-family: var(--font-logo); }
-.font-body { font-family: var(--font-body); }
-.font-serif { font-family: var(--font-serif); }
+.animate-slide-in-up { animation: slide-in-up 0.5s ease-out; }
 
 .react-calendar-override button:enabled:focus {
     box-shadow: 0 0 0 2px var(--color-primary-hex) !important;
