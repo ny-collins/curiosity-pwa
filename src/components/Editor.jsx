@@ -1,84 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react';
-// Icons needed for the consistent header
-import { BookOpen, Trash2, Check, ArrowLeft } from 'lucide-react'; 
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { BookOpen, ArrowLeft, Trash2, Check, Eye, EyeOff } from 'lucide-react'; 
 import { formatTimestamp } from '../utils'; 
-// useDebounce hook is removed
+import SimpleMdeReact from "react-simplemde-editor";
+import ReactMarkdown from 'react-markdown'; 
+import TagsInput from './TagsInput';
 
-// Added isCreating and onSaveNew props
 function Editor({ entry, onUpdate, onSaveNew, onDelete, onBack, onCreate, className, username, isCreating }) {
     const [localTitle, setLocalTitle] = useState('');
     const [localContent, setLocalContent] = useState('');
-    // Ref to track the current entry ID associated with local state
+    const [localTags, setLocalTags] = useState([]);
+    const [viewMode, setViewMode] = useState('edit'); 
     const localEntryIdRef = useRef(null);
 
-    // Effect to update local state when entry prop changes OR when entering create mode
     useEffect(() => {
-        console.log('Editor useEffect - isCreating:', isCreating, 'entry:', entry);
         if (isCreating) {
-            // If entering create mode, reset fields
             setLocalTitle('');
             setLocalContent('');
-            localEntryIdRef.current = null; // No ID for new entry yet
-            console.log("Editor reset for new entry");
+            setLocalTags([]);
+            localEntryIdRef.current = null; 
+            setViewMode('edit');
         } else if (entry) {
-            // If editing an existing entry, load its data if ID changed
             if (entry.id !== localEntryIdRef.current) {
-                 setLocalTitle(entry.title || '');
-                 setLocalContent(entry.content || '');
-                 localEntryIdRef.current = entry.id; // Store current entry ID
-                 console.log("Editor loaded data for entry:", entry.id);
-             } else {
-                 console.log("Editor received update for the same entry, local state preserved.");
+                 setLocalTitle(entry.title || ''); 
+                 setLocalContent(entry.content || ''); 
+                 setLocalTags(entry.tags || []);
+                 localEntryIdRef.current = entry.id; 
+                 setViewMode('edit'); 
              }
         } else {
-            // No entry selected and not creating, clear fields (e.g., after delete)
             setLocalTitle('');
             setLocalContent('');
-            localEntryIdRef.current = null;
+            setLocalTags([]);
+             localEntryIdRef.current = null; 
         }
-    // Rerun when isCreating flag changes or entry object reference changes
     }, [entry, isCreating]); 
 
-    // REMOVED: Auto-saving useEffect is gone
-
-    // Function to handle explicit save (now decides between create/update)
     const handleSave = () => {
         const titleToSave = localTitle.trim() === '' ? 'Untitled' : localTitle;
-        const dataToSave = {
-            title: titleToSave,
-            content: localContent
+        const dataToSave = { 
+            title: titleToSave, 
+            content: localContent,
+            tags: localTags 
         };
-
+        
         if (isCreating) {
-            console.log("Editor handleSave calling onSaveNew");
-            onSaveNew(dataToSave); // Call App's function to create
+            onSaveNew(dataToSave); 
         } else if (entry) {
-            console.log("Editor handleSave calling onUpdate for entry:", entry.id);
-            onUpdate(entry.id, dataToSave); // Call App's function to update
-            // After update, we still need to navigate back
+            onUpdate(entry.id, dataToSave); 
             onBack(); 
-        } else {
-            console.error("Save clicked but no entry or create mode active.");
         }
-        // onBack() is now called within onSaveNew or after onUpdate
     };
 
-    // Function to handle discard (simply navigate back)
     const handleDiscard = () => {
-         console.log("Editor handleDiscard triggered");
-         onBack(); // Navigate back without saving local state
+         onBack(); 
     };
+    
+    const editorOptions = useMemo(() => {
+        return {
+            autofocus: false, 
+            spellChecker: false,
+            placeholder: "Start writing your thoughts... (Markdown is supported!)",
+            minHeight: "100%",
+            toolbar: [
+                "bold", "italic", "heading", "|", 
+                "quote", "unordered-list", "ordered-list", "|",
+                "link", 
+                "|", 
+                {
+                    name: "togglePreview",
+                    action: () => setViewMode(prev => (prev === 'edit' ? 'preview' : 'edit')),
+                    className: `fa fa-eye${viewMode === 'preview' ? '-slash' : ''}`,
+                    title: `Toggle Preview (Ctrl+P)`,
+                },
+                "guide"
+            ],
+            status: ["words", "cursor"], 
+        };
+    }, [viewMode]); 
+    
+    const onContentChange = useCallback((value) => {
+        setLocalContent(value);
+    }, []);
 
-
-    // --- Render Logic ---
-
-    // Placeholder view when no entry selected AND not creating
-    // This condition might not be reachable if App component handles it, but good fallback
     if (!entry && !isCreating) {
         return (
             <div className={`flex-1 h-full flex items-center justify-center bg-slate-800 p-8 ${className}`}>
-                 {/* ... Placeholder content ... */}
-                 <div className="text-center max-w-sm">
+                <div className="text-center max-w-sm">
                     <BookOpen size={64} className="mx-auto text-slate-600" />
                     <h2 className="mt-6 text-3xl font-bold text-white">
                         {`What's on your mind, ${username || 'Collins'}?`}
@@ -88,7 +95,8 @@ function Editor({ entry, onUpdate, onSaveNew, onDelete, onBack, onCreate, classN
                     </p>
                     <button
                         onClick={onCreate}
-                        className="mt-8 w-full bg-teal-600 text-white font-bold py-3 px-5 rounded-lg hover:bg-teal-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                        className="mt-8 w-full text-white font-bold py-3 px-5 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2"
+                        style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
                     >
                         Start a New Entry
                     </button>
@@ -97,22 +105,19 @@ function Editor({ entry, onUpdate, onSaveNew, onDelete, onBack, onCreate, classN
         );
     }
 
-    // Editor view (either for new or existing entry)
     return (
         <div className={`flex-1 h-full flex flex-col bg-slate-800 overflow-hidden ${className}`}>
-            {/* Header - Consistent layout */}
             <div className="p-4 border-b border-slate-700 flex justify-between items-center space-x-2 flex-shrink-0">
-                {/* Back/Discard Button */}
                  <button
                     onClick={handleDiscard} 
-                    className="p-2 -ml-2 rounded-full text-gray-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500" 
+                    className="p-2 -ml-2 rounded-full text-gray-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2" 
+                    style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
                     aria-label="Discard Changes & Back" 
                     title="Discard Changes & Back"
                 >
                     <ArrowLeft size={22} /> 
                 </button>
                 
-                {/* Title Input */}
                 <input
                     type="text"
                     value={localTitle}
@@ -121,20 +126,28 @@ function Editor({ entry, onUpdate, onSaveNew, onDelete, onBack, onCreate, classN
                     className="flex-grow text-2xl font-semibold bg-transparent text-white border-none focus:outline-none p-2 focus:ring-0 mx-1 min-w-0" 
                 />
 
-                {/* Action Buttons Container */}
                 <div className="flex items-center space-x-1 flex-shrink-0">
-                    {/* Save Button */}
+                    <button
+                        onClick={() => setViewMode(prev => (prev === 'edit' ? 'preview' : 'edit'))}
+                        className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2"
+                        style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
+                        aria-label={viewMode === 'edit' ? 'Show Preview' : 'Show Editor'}
+                        title={viewMode === 'edit' ? 'Show Preview' : 'Show Editor'}
+                    >
+                        {viewMode === 'edit' ? <Eye size={20} /> : <EyeOff size={20} />}
+                    </button>
+                    
                     <button
                         onClick={handleSave} 
-                        className="p-2 rounded-full text-teal-400 hover:text-teal-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500" 
+                        className="p-2 rounded-full hover:bg-slate-700 focus:outline-none focus:ring-2" 
+                        style={{ color: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)'}}
                         aria-label="Save & Close" 
                         title="Save & Close"
                     >
                         <Check size={22} /> 
                     </button>
 
-                    {/* Delete Button (Hidden when creating new) */}
-                    {!isCreating && entry && ( // Only show if editing an existing entry
+                    {!isCreating && entry && ( 
                         <button
                             onClick={() => onDelete(entry.id)}
                             className="p-2 rounded-full text-gray-500 hover:text-red-400 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -146,19 +159,30 @@ function Editor({ entry, onUpdate, onSaveNew, onDelete, onBack, onCreate, classN
                     )}
                 </div>
             </div>
-            {/* Content Textarea */}
-            <textarea
-                value={localContent}
-                onChange={(e) => setLocalContent(e.target.value)}
-                placeholder="Start writing your thoughts..."
-                className="flex-1 w-full p-6 bg-transparent text-gray-300 resize-none focus:outline-none custom-scrollbar text-lg leading-relaxed focus:ring-0" 
-            />
-            {/* Footer (Hidden when creating new, visible when editing) */}
-            {!isCreating && entry && ( // Only show footer when editing
-                <div className="p-4 border-t border-slate-700 text-sm text-gray-500 flex-shrink-0 hidden md:block">
-                    Last updated: {formatTimestamp(entry.updatedAt)}
-                </div>
-            )}
+            
+            <div className="p-2 border-b border-slate-700 flex-shrink-0">
+                <TagsInput
+                    tags={localTags}
+                    onChange={setLocalTags}
+                />
+            </div>
+            
+            <div className="flex-1 w-full overflow-hidden">
+                {viewMode === 'edit' ? (
+                    <SimpleMdeReact
+                        className="h-full"
+                        value={localContent}
+                        onChange={onContentChange}
+                        options={editorOptions}
+                    />
+                ) : (
+                     <div className="markdown-preview">
+                        <ReactMarkdown>
+                            {localContent}
+                        </ReactMarkdown>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

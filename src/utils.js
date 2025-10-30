@@ -1,6 +1,5 @@
-// src/utils.js
+import { useState, useEffect } from 'react';
 
-// Formats Firestore Timestamps or JS Dates for display
 function formatTimestamp(timestamp) {
     if (!timestamp) return '...';
     
@@ -25,15 +24,11 @@ function formatTimestamp(timestamp) {
     return 'Pending...';
 }
 
-// Helper: Convert JS Date to 'YYYY-MM-DD' string based on LOCAL date parts
 const dateToKey = (date) => {
-    if (!date || !(date instanceof Date)) return null; // Added check
+    if (!date || !(date instanceof Date)) return null;
     try {
-        // Use local date components directly
         const year = date.getFullYear();
-        // getMonth() is 0-indexed, add 1 and pad
         const month = (date.getMonth() + 1).toString().padStart(2, '0'); 
-        // getDate() returns the day of the month (1-31)
         const day = date.getDate().toString().padStart(2, '0'); 
         return `${year}-${month}-${day}`;
     }
@@ -43,15 +38,11 @@ const dateToKey = (date) => {
     }
 };
 
-// Helper: Get JS Date object from 'YYYY-MM-DD' string (treat as local)
-// Assumes the key represents a local date
 const keyToDate = (key) => {
-    if (!key || typeof key !== 'string') return null; // Added check
+    if (!key || typeof key !== 'string') return null;
     try {
         const parts = key.split('-');
-        if (parts.length !== 3) return null; // Basic validation
-        // Construct date assuming local timezone from the key parts
-        // Use noon to avoid potential timezone shifts around midnight
+        if (parts.length !== 3) return null;
         return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0); 
     } catch (e) { 
         console.error("keyToDate conversion failed:", e);
@@ -59,5 +50,15 @@ const keyToDate = (key) => {
     }
 };
 
+function stripMarkdown(markdown) {
+    if (!markdown) return '';
+    return markdown
+        .replace(/!\[.*\]\(.*\)/g, '[Image]')
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        .replace(/([*_~`#]|> |-{3,})/g, '')
+        .replace(/(\r\n|\n|\r)/gm, " ")
+        .replace(/\s+/g, ' ')
+        .trim();
+}
 
-export { formatTimestamp, dateToKey, keyToDate };
+export { formatTimestamp, dateToKey, keyToDate, stripMarkdown };

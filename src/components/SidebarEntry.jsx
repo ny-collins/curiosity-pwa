@@ -1,13 +1,14 @@
-// src/components/SidebarEntry.jsx
 import React from 'react';
 import { Trash2 } from 'lucide-react';
-import { formatTimestamp } from '../utils'; // Assuming utils.js exists or will be created
+import { formatTimestamp, stripMarkdown } from '../utils';
 
 function SidebarEntry({ entry, onSelect, onDelete, isActive }) {
     const handleDelete = (e) => {
         e.stopPropagation();
         onDelete(entry.id);
     };
+    
+    const previewText = stripMarkdown(entry.content || '');
 
     return (
         <div
@@ -24,7 +25,31 @@ function SidebarEntry({ entry, onSelect, onDelete, isActive }) {
                     <Trash2 size={16} />
                 </button>
             </div>
-            <p className="text-sm text-gray-400 truncate mt-1">{entry.content ? entry.content.substring(0, 40) + (entry.content.length > 40 ? '...' : '') : <span className="italic">No content</span>}</p>
+            
+            {entry.tags && entry.tags.length > 0 && (
+                <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1.5">
+                    {entry.tags.slice(0, 3).map(tag => (
+                        <span 
+                            key={tag} 
+                            className="text-xs px-1.5 py-0.5 rounded" 
+                            style={{
+                                color: 'var(--color-primary-hex)', 
+                                backgroundColor: 'rgba(var(--color-primary-rgb, 20, 184, 172), 0.1)'
+                            }}
+                        >
+                            #{tag}
+                        </span>
+                    ))}
+                </div>
+            )}
+            
+            <p className="text-sm text-gray-400 truncate mt-1.5">
+                {previewText ? (
+                    previewText.substring(0, 40) + (previewText.length > 40 ? '...' : '')
+                 ) : (
+                    <span className="italic">No content</span>
+                 )}
+            </p>
             <p className="text-xs text-gray-500 mt-1">{formatTimestamp(entry.updatedAt)}</p>
         </div>
     );
