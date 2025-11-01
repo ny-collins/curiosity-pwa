@@ -33,7 +33,9 @@ export const ENTRY_TYPES = [
         value: 'credential', 
         label: 'Credential', 
         icon: Shield, 
-        template: `**Website/Service:** \n**Username:** \n**Email:** \n**Password:** \n\n**Notes:** \n` 
+        template: `> [!WARNING]  
+> **Security Warning:** Storing sensitive passwords in plain text is risky. This app does not encrypt your data. Please use a dedicated password manager for critical credentials.
+\n\n**Website/Service:** \n**Username:** \n**Email:** \n**Password:** \n\n**Notes:** \n` 
     },
 ];
 
@@ -63,7 +65,6 @@ export const THEME_MODES = [
     { name: 'System', value: 'system', icon: Laptop },
 ];
 
-// --- NEW FONT SIZES ---
 export const FONT_SIZES = [
     { name: 'Small', value: '14px' },
     { name: 'Medium', value: '16px' },

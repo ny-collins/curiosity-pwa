@@ -1,31 +1,57 @@
-// src/firebaseConfig.js
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth"; 
-import { getFirestore, setLogLevel } from "firebase/firestore";
+import { initializeApp, getApp } from "firebase/app";
+import { getFirestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
-import { getStorage } from "firebase/storage"; // Import getStorage
+import { getAnalytics } from "firebase/analytics";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBmfZu_t_WtS1fZFQ6v2HqcitA8ODw6cWk",
-  authDomain: "curiosity-pwa.firebaseapp.com",
-  projectId: "curiosity-pwa",
-  storageBucket: "curiosity-pwa.firebasestorage.app", // Make sure this is correct in your Firebase project
-  messagingSenderId: "361925578003",
-  appId: "1:361925578003:web:93fa63e239180f32061ee6",
-  measurementId: "G-H6TK2EPB53"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const functions = getFunctions(app);
-const storage = getStorage(app); // Initialize Storage
+export const appId = firebaseConfig.projectId || 'curiosity-pwa';
+export const PIN_STORAGE_KEY = `curiosity-pin-${appId}`;
 
-// App ID and Local Storage Key for PIN
-const appId = firebaseConfig.projectId || 'default-app-id';
-const PIN_STORAGE_KEY = 'curiosity_pin';
+let app;
+let auth;
+let db;
+let storage;
+let functions;
+let analytics;
 
-// Export app, db, auth, functions, storage, and provider
-export { db, auth, app, functions, storage, appId, PIN_STORAGE_KEY, GoogleAuthProvider };
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  
+  db = initializeFirestore(app, {
+      localCache: memoryLocalCache({ cacheSizeBytes: 100 * 1024 * 1024 }) // 100MB cache
+  });
+  
+  storage = getStorage(app);
+  functions = getFunctions(app);
+  
+  if (typeof window !== 'undefined') {
+    analytics = getAnalytics(app);
+  }
+
+} catch (error) {
+  console.error("Error initializing Firebase:", error);
+  if (error.code === 'duplicate-app') {
+    app = getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+    functions = getFunctions(app);
+    if (typeof window !== 'undefined') {
+      analytics = getAnalytics(app);
+    }
+  }
+}
+
+export { db, auth, app, functions, storage, analytics, GoogleAuthProvider };
