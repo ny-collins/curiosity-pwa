@@ -3,6 +3,23 @@ import {
     Sun, Moon, Laptop 
 } from 'lucide-react';
 
+// --- APP CONSTANTS ---
+export const STORAGE_KEYS = {
+    THEME_MODE: 'curiosity-theme-mode',
+    THEME_COLOR: 'curiosity-theme-color',
+    THEME_FONT: 'curiosity-theme-font',
+    FONT_SIZE: 'curiosity-font-size',
+    PIN: 'curiosity_pin'
+};
+
+export const LIMITS = {
+    PIN_LENGTH: 4,
+    MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+    MAX_PIN_ATTEMPTS: 5
+};
+
+export const PIN_STORAGE_KEY = STORAGE_KEYS.PIN; // Alias for legacy use in context
+
 // --- TEMPLATES ---
 export const ENTRY_TYPES = [
     { 

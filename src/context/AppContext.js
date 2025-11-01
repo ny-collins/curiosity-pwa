@@ -1,22 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '../hooks.js';
-import { db, auth, app, functions, storage, appId, PIN_STORAGE_KEY, GoogleAuthProvider } from '../firebaseConfig.js';
+import { db, auth, app, functions, storage, appId, GoogleAuthProvider } from '../firebaseConfig.js';
+import { PIN_STORAGE_KEY } from '../constants.js'; // Import from constants
 import { signInAnonymously, onAuthStateChanged, linkWithPopup, signInWithPopup } from "firebase/auth";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import {
     doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
     collection, query, serverTimestamp, getDocs, where, writeBatch
 } from "firebase/firestore";
-import { dateToKey } from '../utils.js';
+import { dateToKey, hashPin } from './utils.js'; // Import hashPin
 import JSZip from 'jszip';
 import { jsPDF } from 'jspdf';
 
-// --- Create the Context ---
 const AppContext = createContext();
 
-// --- Create the Provider Component ---
 export function AppProvider({ children }) {
-    // --- All State from App.jsx ---
+    // --- State ---
     const { 
         themeMode, setThemeMode, 
         themeColor, setThemeColor,
@@ -27,7 +26,7 @@ export function AppProvider({ children }) {
     const [isLoading, setIsLoading] = useState(true);
     const [checkingPin, setCheckingPin] = useState(true);
     const [isLocked, setIsLocked] = useState(false);
-    const [appPin, setAppPin] = useState(null);
+    const [appPin, setAppPin] = useState(null); // This will now store the HASH
     const [entries, setEntries] = useState([]);
     const [reminders, setReminders] = useState([]);
     const [activeEntryId, setActiveEntryId] = useState(null);
@@ -57,7 +56,7 @@ export function AppProvider({ children }) {
     
     const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
-    // --- All useEffects from App.jsx ---
+    // --- Effects ---
 
     useEffect(() => {
         if (settings) {
@@ -76,9 +75,15 @@ export function AppProvider({ children }) {
              console.warn("VAPID public key is not set in App.jsx. Notifications will fail.");
         }
         try {
+            // Read the stored HASH (or old plaintext pin)
             const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
-            if (storedPin) { setAppPin(storedPin); setIsLocked(true); }
-            else { setIsLocked(false); }
+            if (storedPin) { 
+                setAppPin(storedPin); // Store the hash
+                setIsLocked(true);
+            }
+            else { 
+                setIsLocked(false); 
+            }
             setCheckingPin(false);
 
             const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -161,7 +166,7 @@ export function AppProvider({ children }) {
             }
         }, (error) => console.error("Settings load error:", error));
         return () => unsubscribe();
-    }, [settingsDocRef, currentUser, isAnonymous]); // Correct dependencies
+    }, [settingsDocRef, currentUser, isAnonymous]);
 
     const [entriesLoaded, setEntriesLoaded] = useState(false);
     const [remindersLoaded, setRemindersLoaded] = useState(false);
@@ -210,7 +215,7 @@ export function AppProvider({ children }) {
         }
     }, [checkingPin, entriesLoaded, remindersLoaded, settings]);
 
-    // --- All useMemos from App.jsx ---
+    // --- Memos ---
     
     const availableYears = useMemo(() => {
         const years = new Set(entries
@@ -266,7 +271,7 @@ export function AppProvider({ children }) {
         return entries.find(entry => entry.id === activeEntryId);
     }, [entries, activeEntryId]);
 
-    // --- All Handlers from App.jsx (wrapped in useCallback) ---
+    // --- Handlers (wrapped in useCallback) ---
 
     const getEntriesCollection = useCallback(() => collection(db, `artifacts/${appId}/users/${userId}/entries`), [userId]);
     const getEntryDoc = useCallback((id) => doc(db, `artifacts/${appId}/users/${userId}/entries`, id), [userId]);
@@ -414,13 +419,26 @@ export function AppProvider({ children }) {
              }
          }
         catch (error) { console.error("Save settings error:", error); }
-        if (newPin) { localStorage.setItem(PIN_STORAGE_KEY, newPin); setAppPin(newPin); }
-        else { localStorage.removeItem(PIN_STORAGE_KEY); setAppPin(null); setIsLocked(false); }
+        
+        // --- PIN HASHING LOGIC ---
+        if (newPin && newPin.length > 0) {
+            try {
+                const hashedPin = await hashPin(newPin);
+                localStorage.setItem(PIN_STORAGE_KEY, hashedPin);
+                setAppPin(hashedPin);
+            } catch (error) {
+                console.error("Error hashing pin:", error);
+                alert("Error setting new PIN. Please try again.");
+            }
+        } else if (newPin === '') { // Explicitly clearing the pin
+            localStorage.removeItem(PIN_STORAGE_KEY);
+            setAppPin(null);
+            setIsLocked(false);
+        }
     }, [settingsDocRef, themeMode, themeColor, themeFont, fontSize]);
 
     const handleOnboardingComplete = useCallback(async (username, themeColor) => {
         if (!settingsDocRef) return;
-
         const newSettings = {
             username: username,
             profilePicUrl: currentUser?.photoURL || '',
@@ -429,7 +447,6 @@ export function AppProvider({ children }) {
             themeMode: 'system',
             fontSize: '16px'
         };
-        
         try {
             await setDoc(settingsDocRef, newSettings, { merge: true });
             setSettings(newSettings);
@@ -697,28 +714,22 @@ ${entry.content || ''}
     // --- Value to Provide ---
     
     const value = {
-        // State
         isLoading, checkingPin, isLocked, appPin, entries, reminders, activeEntryId, settings,
         currentView, userId, isAnonymous, currentUser, isSidebarExpanded, isCreating,
         searchTerm, filterYear, filterMonth, filterTag, filterType, installPromptEvent,
         isAppInstalled, isEditorDirty, showUnsavedModal, pendingView, forceEditorSave,
         showOnboarding, newEntryType,
         
-        // Theme
         themeMode, themeColor, themeFont, fontSize,
         
-        // Derived State
         availableYears, availableTags, filteredEntries, activeEntry,
 
-        // Setters
         setIsLocked, setAppPin, setActiveEntryId, setCurrentView, setIsSidebarExpanded,
         setIsCreating, setSearchTerm, setFilterYear, setFilterMonth, setFilterTag,
         setFilterType, setIsEditorDirty, setShowUnsavedModal, setForceEditorSave,
         
-        // Theme Setters
         setThemeMode, setThemeColor, setThemeFont, setFontSize,
 
-        // Handlers
         handleCreateEntry, handleViewChange, handleSelectEntry, handleModalSave,
         handleModalDiscard, handleModalCancel, handleEditorSaveComplete, handleSaveNewEntry,
         handleUpdateEntry, handleDeleteEntry, handleAddReminder, handleDeleteReminder,
@@ -735,7 +746,6 @@ ${entry.content || ''}
     );
 }
 
-// --- Create the Custom Hook ---
 export function useAppContext() {
     const context = useContext(AppContext);
     if (context === undefined) {

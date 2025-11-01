@@ -16,7 +16,6 @@ const firebaseConfig = {
 };
 
 export const appId = firebaseConfig.projectId || 'curiosity-pwa';
-export const PIN_STORAGE_KEY = `curiosity-pin-${appId}`;
 
 let app;
 let auth;

@@ -8,7 +8,7 @@ import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
 import LoadingSpinner from './LoadingSpinner';
 import ExportModal from './ExportModal';
-import { THEME_COLORS, FONT_OPTIONS, THEME_MODES, FONT_SIZES } from '../constants.js';
+import { THEME_COLORS, FONT_OPTIONS, THEME_MODES, FONT_SIZES, LIMITS } from '../constants.js';
 
 function SettingsPage() {
     const {
@@ -25,7 +25,7 @@ function SettingsPage() {
     const [username, setUsername] = useState('');
     const [profilePicUrl, setProfilePicUrl] = useState('');
     const [enableLock, setEnableLock] = useState(!!appPin);
-    const [pin, setPin] = useState(appPin || '');
+    const [pin, setPin] = useState(''); // This is for the NEW pin input, defaults to empty
     const [notificationStatus, setNotificationStatus] = useState('default');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false); 
@@ -48,7 +48,8 @@ function SettingsPage() {
             setActiveFont(settings.fontFamily || "'Inter', sans-serif");
             setActiveFontSize(settings.fontSize || '16px');
         }
-    }, [settings, currentUser, isAnonymous]);
+        setEnableLock(!!appPin); // Sync lock toggle with the actual pin state
+    }, [settings, currentUser, isAnonymous, appPin]);
 
     useEffect(() => {
         if ('Notification' in window) {
@@ -82,6 +83,21 @@ function SettingsPage() {
     };
 
     const handleSave = () => {
+        let pinToSave = null; // Default: no change
+        if (enableLock) {
+            if (pin) { // User typed a new pin
+                pinToSave = pin;
+            } else if (appPin) {
+                pinToSave = null; // Pin enabled, but no new pin typed, so no change
+            } else {
+                // Should not happen if UI is correct, but handles edge case
+                alert("Please enter a 4-digit PIN.");
+                return;
+            }
+        } else {
+            pinToSave = ''; // User disabled the pin, send empty string to clear it
+        }
+
         handleSaveSettings({
             settings: { 
                 username, 
@@ -91,8 +107,9 @@ function SettingsPage() {
                 fontFamily: activeFont,
                 fontSize: activeFontSize,
             },
-            pin: enableLock ? pin : null
+            pin: pinToSave // Pass the plaintext pin or '' to clear, or null to ignore
         });
+        setPin(''); // Clear the pin input field
         alert("Settings Saved!");
     };
     
@@ -178,8 +195,8 @@ function SettingsPage() {
              if(isAnonymous) alert("Please link your account to enable image uploads.");
              return;
         }
-        if (file.size > 5 * 1024 * 1024) { 
-             alert("File is too large. Please select an image under 5MB.");
+        if (file.size > LIMITS.MAX_FILE_SIZE) { 
+             alert(`File is too large. Please select an image under ${LIMITS.MAX_FILE_SIZE / 1024 / 1024}MB.`);
              return;
         }
 
@@ -205,7 +222,7 @@ function SettingsPage() {
                     fontFamily: activeFont,
                     fontSize: activeFontSize
                 },
-                pin: enableLock ? pin : null
+                pin: null // No pin change on image upload
             });
         } catch (error) {
             console.error("Error uploading profile picture:", error);
@@ -214,6 +231,8 @@ function SettingsPage() {
             setIsUploading(false);
         }
     };
+    
+    const isSaveDisabled = isDeleting || isUploading || (enableLock && !appPin && pin.length !== LIMITS.PIN_LENGTH) || (enableLock && appPin && pin.length > 0 && pin.length !== LIMITS.PIN_LENGTH);
 
     return (
         <>
@@ -226,7 +245,7 @@ function SettingsPage() {
                     <div className="flex items-center space-x-1 flex-shrink-0">
                         <button
                             onClick={handleSave}
-                            disabled={isDeleting || isUploading || (enableLock && pin.length !== 4)}
+                            disabled={isSaveDisabled}
                             className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 disabled:bg-slate-500 disabled:cursor-not-allowed"
                             style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
                         >
@@ -365,10 +384,14 @@ function SettingsPage() {
                             </div>
                             {enableLock && (
                                 <div>
-                                    <label htmlFor="pin" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">4-Digit PIN</label>
-                                    <input type="password" id="pin" value={pin} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 4) setPin(val); }} maxLength={4}
+                                    <label htmlFor="pin" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">
+                                        {appPin ? 'Change 4-Digit PIN' : 'Set 4-Digit PIN'}
+                                    </label>
+                                    <input type="password" id="pin" value={pin} 
+                                        onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= LIMITS.PIN_LENGTH) setPin(val); }} 
+                                        maxLength={LIMITS.PIN_LENGTH}
                                         className="form-input w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md border-slate-300 dark:border-slate-600 tracking-widest"
-                                        placeholder="••••" />
+                                        placeholder={appPin ? 'Enter new PIN' : '••••'} />
                                 </div>
                             )}
                         </div>

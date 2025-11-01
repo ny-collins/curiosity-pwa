@@ -1,102 +1,126 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Lock, Fingerprint } from 'lucide-react';
 import Logo from './Logo';
+import { verifyPin } from '../utils.js'; // Import the new verifyPin function
+import { useAppContext } from '../context/AppContext';
 
-export default function PinLockScreen({ correctPin, onUnlock, onForgotPin }) {
-    const [pin, setPin] = useState('');
-    const [isShaking, setIsShaking] = useState(false);
+function PinLockScreen({ onUnlock, onForgotPin }) {
+    const { appPin: correctPinHash } = useAppContext(); // Get the hash from context
+    const [enteredPin, setEnteredPin] = useState('');
+    const [error, setError] = useState('');
 
-    const handleInput = (num) => {
-        if (pin.length < 4) {
-            setPin(pin + num);
+    const handlePinChange = (e) => {
+        const val = e.target.value.replace(/\D/g, '');
+        if (val.length <= 4) {
+            setEnteredPin(val);
+            setError('');
         }
     };
 
+    const handlePinSubmit = async (e) => {
+        e.preventDefault();
+        if (enteredPin.length !== 4) {
+            setError('PIN must be 4 digits.');
+            return;
+        }
+
+        const isCorrect = await verifyPin(enteredPin, correctPinHash);
+
+        if (isCorrect) {
+            onUnlock();
+        } else {
+            setError('Incorrect PIN. Please try again.');
+            setEnteredPin('');
+        }
+    };
+    
+    const handleDigitClick = (digit) => {
+        if (enteredPin.length < 4) {
+            setEnteredPin(enteredPin + digit);
+            setError('');
+        }
+    };
+    
     const handleDelete = () => {
-        setPin(pin.slice(0, -1));
+         setEnteredPin(enteredPin.slice(0, -1));
+         setError('');
     };
-
-    const handleForgot = () => {
-        if (onForgotPin) {
-            onForgotPin();
-        }
-    };
-
-    useEffect(() => {
-        if (pin.length === 4) {
-            if (pin === correctPin) {
-                onUnlock();
-            } else {
-                setIsShaking(true);
-                setPin('');
-                setTimeout(() => setIsShaking(false), 500);
-            }
-        }
-    }, [pin, correctPin, onUnlock]);
-
-    const PinDots = () => (
-        <div className={`flex space-x-4 ${isShaking ? 'shake' : ''}`}>
-            {[...Array(4)].map((_, i) => (
-                <div
-                    key={i}
-                    className={`w-4 h-4 rounded-full transition-all duration-200 ${i < pin.length ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}
-                    style={{ backgroundColor: i < pin.length ? 'var(--color-primary-hex)' : '' }}
-                ></div>
-            ))}
-        </div>
-    );
-
-    const PinButton = ({ num, letters }) => (
-        <button
-            onClick={() => handleInput(num.toString())}
-            className="w-20 h-20 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white text-3xl font-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900"
-            style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
-        >
-            {num}
-            {letters && <div className="text-xs tracking-widest text-slate-500 dark:text-slate-400">{letters}</div>}
-        </button>
-    );
 
     return (
-        <div className="flex flex-col items-center justify-between h-full w-full bg-slate-100 dark:bg-slate-900 p-8">
-            <div className="flex flex-col items-center pt-16">
-                <Logo className="w-12 h-12" />
-                <h2 className="text-xl text-slate-800 dark:text-white font-medium mt-4">Enter PIN</h2>
-            </div>
+        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white p-4">
+            <Logo className="w-16 h-16" />
+            <h1 style={{ fontFamily: 'var(--font-logo)' }} className="text-4xl mt-2">Curiosity</h1>
+            <p className="mt-4 text-lg text-slate-600 dark:text-gray-300">Enter your PIN to unlock</p>
+            
+            <form onSubmit={handlePinSubmit} className="mt-8 w-full max-w-xs">
+                <div className="flex justify-center space-x-4 mb-4">
+                    {[0, 1, 2, 3].map(i => (
+                        <div
+                            key={i}
+                            className={`w-4 h-4 rounded-full transition-colors ${
+                                enteredPin.length > i ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'
+                            }`}
+                            style={{ backgroundColor: enteredPin.length > i ? 'var(--color-primary-hex)' : undefined }}
+                        ></div>
+                    ))}
+                </div>
 
-            <PinDots />
-
-            <div className="grid grid-cols-3 gap-6">
-                <PinButton num={1} />
-                <PinButton num={2} letters="ABC" />
-                <PinButton num={3} letters="DEF" />
-                <PinButton num={4} letters="GHI" />
-                <PinButton num={5} letters="JKL" />
-                <PinButton num={6} letters="MNO" />
-                <PinButton num={7} letters="PQRS" />
-                <PinButton num={8} letters="TUV" />
-                <PinButton num={9} letters="WXYZ" />
+                {error && (
+                    <p className="text-red-500 text-sm text-center mb-4">{error}</p>
+                )}
                 
-                <button 
-                    onClick={handleForgot}
-                    className="w-20 h-20 rounded-full text-sm font-medium text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900"
-                    style={{
-                        color: 'var(--color-primary-hex)',
-                        '--tw-ring-color': 'var(--color-primary-hex)'
-                    }}
-                >
-                    Forgot?
-                </button>
+                <input
+                    type="password"
+                    value={enteredPin}
+                    onChange={handlePinChange}
+                    maxLength={4}
+                    className="opacity-0 absolute w-0 h-0" // Hide the input, use numpad
+                    autoFocus
+                />
                 
-                <PinButton num={0} />
+                <div className="grid grid-cols-3 gap-4">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => (
+                        <button
+                            type="button"
+                            key={digit}
+                            onClick={() => handleDigitClick(digit.toString())}
+                            className="text-3xl font-light h-16 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                        >
+                            {digit}
+                        </button>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={onForgotPin}
+                        className="text-sm font-medium h-16 rounded-lg text-primary"
+                        style={{ color: 'var(--color-primary-hex)' }}
+                    >
+                        Forgot PIN
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleDigitClick('0')}
+                        className="text-3xl font-light h-16 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                    >
+                        0
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="flex items-center justify-center text-sm font-medium h-16 rounded-lg text-slate-600 dark:text-gray-300"
+                    >
+                        <Fingerprint size={24} />
+                    </button>
+                </div>
 
                 <button
-                    onClick={handleDelete}
-                    className="w-20 h-20 rounded-full text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900"
-                    style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
+                    type="submit"
+                    className="w-full mt-6 py-3 rounded-lg text-white font-semibold text-lg bg-primary"
+                    style={{ backgroundColor: 'var(--color-primary-hex)' }}
                 >
-                    Delete
+                    Unlock
                 </button>
-            </div>
+            </form>
         </div>
     );
 }

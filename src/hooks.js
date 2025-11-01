@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from './constants';
 
 const useLocalStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => {
@@ -31,10 +32,10 @@ const useLocalStorage = (key, initialValue) => {
 };
 
 export const useTheme = (defaultSettings) => {
-  const [themeMode, setThemeMode] = useLocalStorage('curiosity-theme-mode', 'system');
-  const [themeColor, setThemeColor] = useLocalStorage('curiosity-theme-color', '#14b8a6');
-  const [themeFont, setThemeFont] = useLocalStorage('curiosity-theme-font', "'Inter', sans-serif");
-  const [fontSize, setFontSize] = useLocalStorage('curiosity-font-size', '16px'); // New state
+  const [themeMode, setThemeMode] = useLocalStorage(STORAGE_KEYS.THEME_MODE, 'system');
+  const [themeColor, setThemeColor] = useLocalStorage(STORAGE_KEYS.THEME_COLOR, '#14b8a6');
+  const [themeFont, setThemeFont] = useLocalStorage(STORAGE_KEYS.THEME_FONT, "'Inter', sans-serif");
+  const [fontSize, setFontSize] = useLocalStorage(STORAGE_KEYS.FONT_SIZE, '16px');
   
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -42,7 +43,7 @@ export const useTheme = (defaultSettings) => {
     if (defaultSettings && !isInitialized) {
       if (defaultSettings.themeColor) setThemeColor(defaultSettings.themeColor);
       if (defaultSettings.fontFamily) setThemeFont(defaultSettings.fontFamily);
-      if (defaultSettings.fontSize) setFontSize(defaultSettings.fontSize); // New
+      if (defaultSettings.fontSize) setFontSize(defaultSettings.fontSize);
       setIsInitialized(true);
     }
   }, [defaultSettings, isInitialized, setThemeColor, setThemeFont, setFontSize]);
@@ -75,7 +76,6 @@ export const useTheme = (defaultSettings) => {
     root.style.setProperty('--font-body', themeFont);
   }, [themeFont]);
 
-  // New effect for font size
   useEffect(() => {
     const root = window.document.documentElement;
     root.style.setProperty('font-size', fontSize);
@@ -85,6 +85,6 @@ export const useTheme = (defaultSettings) => {
     themeMode, setThemeMode,
     themeColor, setThemeColor,
     themeFont, setThemeFont,
-    fontSize, setFontSize // Expose new state
+    fontSize, setFontSize
   };
 };
