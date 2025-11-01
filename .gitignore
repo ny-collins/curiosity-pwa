@@ -13,3 +13,4 @@ yarn-error.log
 *.local
 .DS_STORE
 Thumbs.db
+package-lock.json
