@@ -1,204 +1,171 @@
-import React, { useState, useMemo } from 'react';
-import Calendar from 'react-calendar';
-import { Bell, X, BookOpen, Plus } from 'lucide-react';
-import { keyToDate, dateToKey } from '../utils';
+import React, { useState } from 'react';
+import BaseCalendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import { Plus, X, BookOpen, Clock } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import { getEntryType } from '../constants.js';
+import { keyToDate, dateToKey } from '../utils.js';
 
-function CalendarView({ reminders, onAddReminder, onDeleteReminder, entries, onSelect }) {
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [newReminderText, setNewReminderText] = useState('');
-
-    const remindersByDate = useMemo(() => {
-        return reminders.reduce((acc, reminder) => {
-            const dateStr = reminder.date;
-            if (!acc[dateStr]) {
-                acc[dateStr] = [];
-            }
-            acc[dateStr].push(reminder);
-            return acc;
-        }, {});
-    }, [reminders]);
-
-    const entriesByDate = useMemo(() => {
-        return entries.reduce((acc, entry) => {
-            if (entry.createdAtDate) {
-                const dateStr = dateToKey(entry.createdAtDate);
-                if (!acc[dateStr]) {
-                    acc[dateStr] = [];
-                }
-                acc[dateStr].push(entry);
-            }
-            return acc;
-        }, {});
-    }, [entries]);
-
-    const upcomingReminders = useMemo(() => {
-        const today = dateToKey(new Date());
-        return reminders
-            .filter(r => r.date >= today)
-            .sort((a, b) => a.date.localeCompare(b.date));
-    }, [reminders]);
+const TimePicker = ({ value, onChange }) => {
+    const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+    const minutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
     
-    const selectedDateKey = dateToKey(selectedDate);
-    const remindersForSelectedDate = remindersByDate[selectedDateKey] || [];
-    const entriesForSelectedDate = entriesByDate[selectedDateKey] || [];
+    const [hour, minute] = value.split(':');
 
-    const handleAddReminder = (e) => {
-        e.preventDefault();
-        if (newReminderText.trim() && selectedDate) {
-            onAddReminder(newReminderText.trim(), selectedDate);
-            setNewReminderText('');
-        }
-    };
-
-    const tileContent = ({ date, view }) => {
-        if (view === 'month') {
-            const dateStr = dateToKey(date);
-            const hasReminder = remindersByDate[dateStr] && remindersByDate[dateStr].length > 0;
-            const hasEntry = entriesByDate[dateStr] && entriesByDate[dateStr].length > 0;
-            
-            if (hasReminder && hasEntry) {
-                 return (
-                    <>
-                        <Bell size={12} className="reminder-bell-marker" style={{ top: '4px', left: '35%' }} />
-                        <BookOpen size={12} className="entry-book-marker" style={{ color: 'var(--color-primary-hex)', position: 'absolute', top: '4px', left: '65%' }} />
-                    </>
-                );
-            } else if (hasReminder) {
-                return <Bell size={12} className="reminder-bell-marker" />;
-            } else if (hasEntry) {
-                 return <BookOpen size={12} className="entry-book-marker" style={{ color: 'var(--color-primary-hex)', position: 'absolute', top: '4px', left: '50%', transform: 'translateX(-50%)' }} />;
-            }
-        }
-        return null;
-    };
-
-    const tileClassName = ({ date, view }) => {
-        if (view === 'month') {
-            const dateStr = dateToKey(date);
-            if (entriesByDate[dateStr] && entriesByDate[dateStr].length > 0) {
-                return 'has-entry';
-            }
-        }
-        return null;
-    };
+    const handleHourChange = (e) => onChange(`${e.target.value}:${minute}`);
+    const handleMinuteChange = (e) => onChange(`${hour}:${e.target.value}`);
 
     return (
-        <div className="flex flex-col md:flex-row h-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white overflow-hidden">
-            <div className="flex-1 md:flex-auto md:w-2/3 lg:w-3/4 p-4 md:p-6 overflow-y-auto custom-scrollbar">
-                <div className="max-w-3xl mx-auto">
-                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow p-4">
-                        <Calendar
-                            onChange={setSelectedDate}
-                            value={selectedDate}
-                            tileContent={tileContent}
-                            tileClassName={tileClassName}
-                            className="react-calendar-override"
-                        />
-                    </div>
+        <div className="flex items-center space-x-2">
+            <select value={hour} onChange={handleHourChange} className="form-select bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-md">
+                {hours.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+            <span className="font-bold">:</span>
+            <select value={minute} onChange={handleMinuteChange} className="form-select bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-md">
+                {minutes.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+        </div>
+    );
+};
 
-                    <div className="mt-6">
-                        <h3 className="text-xl font-semibold mb-3 text-slate-900 dark:text-white">
-                            Events for {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                        </h3>
-                        
-                        <form onSubmit={handleAddReminder} className="mb-4 p-4 bg-white dark:bg-slate-900 rounded-lg shadow">
-                            <label htmlFor="reminder-text" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">New Reminder</label>
-                            <div className="flex space-x-2">
-                                <input
-                                    id="reminder-text"
-                                    type="text"
-                                    value={newReminderText}
-                                    onChange={(e) => setNewReminderText(e.target.value)}
-                                    className="form-input flex-1 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 rounded-md"
-                                    placeholder="Add a new reminder..."
-                                />
+export default function CalendarView() {
+    const {
+        reminders,
+        entries,
+        handleAddReminder,
+        handleDeleteReminder,
+        handleSelectEntry
+    } = useAppContext();
+
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [reminderText, setReminderText] = useState('');
+    const [reminderTime, setReminderTime] = useState('09:00');
+
+    const onDateChange = (date) => {
+        setSelectedDate(date);
+    };
+
+    const submitReminder = (e) => {
+        e.preventDefault();
+        if (!reminderText.trim()) return;
+
+        const [hour, minute] = reminderTime.split(':');
+        const reminderDate = new Date(selectedDate);
+        reminderDate.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0);
+        
+        handleAddReminder(reminderText, reminderDate);
+        setReminderText('');
+    };
+
+    const selectedDateKey = dateToKey(selectedDate, true);
+    
+    const dailyReminders = reminders.filter(r => r.date && r.date.startsWith(selectedDateKey));
+    dailyReminders.sort((a, b) => a.date.localeCompare(b.date));
+    
+    const dailyEntries = entries.filter(e => e.createdAtDate && dateToKey(e.createdAtDate, true) === selectedDateKey);
+    dailyEntries.sort((a, b) => b.createdAtDate - a.createdAtDate);
+
+    return (
+        <div className="flex flex-col md:flex-row h-full overflow-hidden bg-slate-50 dark:bg-slate-800">
+            <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar">
+                <div className="bg-white dark:bg-slate-900 rounded-lg shadow border border-slate-200 dark:border-slate-700">
+                    <BaseCalendar
+                        onChange={onDateChange}
+                        value={selectedDate}
+                        className="react-calendar-themed"
+                        tileContent={({ date, view }) => {
+                            if (view === 'month') {
+                                const dateKey = dateToKey(date, true);
+                                const hasReminder = reminders.some(r => r.date && r.date.startsWith(dateKey));
+                                const hasEntry = entries.some(e => e.createdAtDate && dateToKey(e.createdAtDate, true) === dateKey);
+                                return (
+                                    <div className="flex justify-center items-center space-x-1 pt-1">
+                                        {hasReminder && <span className="h-1.5 w-1.5 bg-red-500 rounded-full"></span>}
+                                        {hasEntry && <span className="h-1.5 w-1.5 bg-primary rounded-full" style={{backgroundColor: 'var(--color-primary-hex)'}}></span>}
+                                    </div>
+                                );
+                            }
+                            return null;
+                        }}
+                    />
+                </div>
+            </div>
+            
+            <div className="w-full md:w-96 flex-shrink-0 border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                        {selectedDate.toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    </h2>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+                    <div>
+                        <h3 className="text-sm font-semibold uppercase text-slate-500 dark:text-gray-400 mb-3">Reminders</h3>
+                        <form onSubmit={submitReminder} className="mb-4 space-y-2">
+                            <input
+                                type="text"
+                                value={reminderText}
+                                onChange={(e) => setReminderText(e.target.value)}
+                                placeholder="New reminder..."
+                                className="form-input w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 rounded-md"
+                            />
+                            <div className="flex justify-between items-center">
+                                <TimePicker value={reminderTime} onChange={setReminderTime} />
                                 <button
                                     type="submit"
-                                    className="flex items-center justify-center px-4 py-2 rounded-md text-white font-semibold transition-colors focus:outline-none focus:ring-2"
-                                    style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
+                                    className="p-2 rounded-full text-white"
+                                    style={{ backgroundColor: 'var(--color-primary-hex)' }}
                                 >
                                     <Plus size={18} />
                                 </button>
                             </div>
                         </form>
-
-                        <div className="space-y-4">
-                            {remindersForSelectedDate.length > 0 && (
-                                <div>
-                                    <h4 className="text-lg font-semibold mb-2 flex items-center text-amber-500">
-                                        <Bell size={18} className="mr-2" /> Reminders
-                                    </h4>
-                                    <ul className="space-y-2">
-                                        {remindersForSelectedDate.map(reminder => (
-                                            <li key={reminder.id} className="flex justify-between items-center p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm">
-                                                <span className="text-slate-800 dark:text-gray-200">{reminder.text}</span>
-                                                <button onClick={() => onDeleteReminder(reminder.id)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
-                                                    <X size={16} />
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
+                        
+                        <div className="space-y-2">
+                            {dailyReminders.length > 0 ? dailyReminders.map(r => {
+                                const time = r.date.substring(11).replace('-', ':');
+                                return (
+                                    <div key={r.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                                        <div className="flex items-center space-x-2">
+                                            <Clock size={14} className="text-slate-500 dark:text-gray-400" />
+                                            <div>
+                                                <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{r.text}</span>
+                                                <span className="block text-xs text-slate-500 dark:text-gray-400">{time}</span>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => handleDeleteReminder(r.id)} className="p-1 rounded-full text-slate-400 hover:text-red-500">
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                );
+                            }) : (
+                                <p className="text-sm text-slate-500 dark:text-gray-400 italic">No reminders for this day.</p>
                             )}
-
-                            {entriesForSelectedDate.length > 0 && (
-                                <div>
-                                    <h4 className="text-lg font-semibold mb-2 flex items-center" style={{ color: 'var(--color-primary-hex)' }}>
-                                        <BookOpen size={18} className="mr-2" /> Journal Entries
-                                    </h4>
-                                    <ul className="space-y-2">
-                                        {entriesForSelectedDate.map(entry => (
-                                            <li key={entry.id} className="p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm">
-                                                <button onClick={() => onSelect(entry.id)} className="text-left w-full">
-                                                    <h5 className="font-semibold text-primary" style={{ color: 'var(--color-primary-hex)' }}>{entry.title || "Untitled"}</h5>
-                                                    <p className="text-sm text-slate-600 dark:text-gray-400 truncate">
-                                                        {entry.content ? entry.content.substring(0, 100) + '...' : 'No content'}
-                                                    </p>
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {remindersForSelectedDate.length === 0 && entriesForSelectedDate.length === 0 && (
-                                <div className="text-center p-6 bg-white dark:bg-slate-900 rounded-lg shadow-sm">
-                                    <p className="text-slate-500 dark:text-gray-400">No entries or reminders for this date.</p>
-                                </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 className="text-sm font-semibold uppercase text-slate-500 dark:text-gray-400 mb-3">Entries</h3>
+                        <div className="space-y-2">
+                            {dailyEntries.length > 0 ? dailyEntries.map(e => {
+                                const entryType = getEntryType(e.type);
+                                return (
+                                    <button 
+                                        key={e.id} 
+                                        onClick={() => handleSelectEntry(e.id)}
+                                        className="w-full text-left flex items-center space-x-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    >
+                                        <entryType.icon size={14} className="text-slate-500 dark:text-gray-400" />
+                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{e.title || "Untitled Entry"}</span>
+                                    </button>
+                                );
+                            }) : (
+                                <p className="text-sm text-slate-500 dark:text-gray-400 italic">No entries for this day.</p>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div className="md:w-1/3 lg:w-1/4 h-full md:border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar flex-shrink-0">
-                <div className="p-4">
-                    <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Upcoming Reminders</h3>
-                    {upcomingReminders.length > 0 ? (
-                        <ul className="space-y-3">
-                            {upcomingReminders.map(reminder => (
-                                <li key={reminder.id} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg flex justify-between items-start">
-                                    <div>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-gray-200">{reminder.text}</p>
-                                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                                            {keyToDate(reminder.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                                        </p>
-                                    </div>
-                                    <button onClick={() => onDeleteReminder(reminder.id)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 -mr-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex-shrink-0">
-                                        <X size={16} />
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                            <p className="text-sm text-slate-500 dark:text-gray-400">Your schedule is clear.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
         </div>
     );
 }
-
-export default CalendarView;

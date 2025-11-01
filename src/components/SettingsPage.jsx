@@ -1,29 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { functions, storage, appId } from '../firebaseConfig'; // Import appId here
+import { functions, storage, appId } from '../firebaseConfig'; 
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
+import { useAppContext } from '../context/AppContext';
 import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
 import LoadingSpinner from './LoadingSpinner';
 import ExportModal from './ExportModal';
 import { THEME_COLORS, FONT_OPTIONS, THEME_MODES, FONT_SIZES } from '../constants.js';
 
-function SettingsPage({
-    onBack, onSave, initialSettings, initialPin,
-    onRequestNotificationPermission, onDisableNotifications,
-    onInstallApp, installPromptEvent, isAppInstalled,
-    currentUser, isAnonymous, onLinkAccount,
-    onExportData,
-    themeMode, onThemeModeChange,
-    themeColor, onThemeColorChange,
-    themeFont, onThemeFontChange,
-    fontSize, onFontSizeChange
-}) {
+function SettingsPage() {
+    const {
+        settings, appPin, handleViewChange, handleSaveSettings,
+        handleRequestNotificationPermission, handleDisableNotifications,
+        handleInstallApp, installPromptEvent, isAppInstalled,
+        currentUser, isAnonymous, handleLinkAccount, handleExportData,
+        themeMode, setThemeMode,
+        themeColor, setThemeColor,
+        themeFont, setThemeFont,
+        fontSize, setFontSize
+    } = useAppContext();
+
     const [username, setUsername] = useState('');
     const [profilePicUrl, setProfilePicUrl] = useState('');
-    const [enableLock, setEnableLock] = useState(!!initialPin);
-    const [pin, setPin] = useState(initialPin || '');
+    const [enableLock, setEnableLock] = useState(!!appPin);
+    const [pin, setPin] = useState(appPin || '');
     const [notificationStatus, setNotificationStatus] = useState('default');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false); 
@@ -38,15 +40,15 @@ function SettingsPage({
     const fileInputRef = useRef(null); 
 
     useEffect(() => {
-        if(initialSettings) {
-            setUsername(initialSettings.username || (currentUser && !isAnonymous ? currentUser.displayName : 'Collins'));
-            setProfilePicUrl(initialSettings.profilePicUrl || (currentUser && !isAnonymous ? currentUser.photoURL : ''));
-            setActiveThemeMode(initialSettings.themeMode || 'system');
-            setActiveThemeColor(initialSettings.themeColor || '#14b8a6');
-            setActiveFont(initialSettings.fontFamily || "'Inter', sans-serif");
-            setActiveFontSize(initialSettings.fontSize || '16px');
+        if(settings) {
+            setUsername(settings.username || (currentUser && !isAnonymous ? currentUser.displayName : 'Collins'));
+            setProfilePicUrl(settings.profilePicUrl || (currentUser && !isAnonymous ? currentUser.photoURL : ''));
+            setActiveThemeMode(settings.themeMode || 'system');
+            setActiveThemeColor(settings.themeColor || '#14b8a6');
+            setActiveFont(settings.fontFamily || "'Inter', sans-serif");
+            setActiveFontSize(settings.fontSize || '16px');
         }
-    }, [initialSettings, currentUser, isAnonymous]);
+    }, [settings, currentUser, isAnonymous]);
 
     useEffect(() => {
         if ('Notification' in window) {
@@ -54,44 +56,33 @@ function SettingsPage({
         }
     }, []);
     
-    useEffect(() => {
-        setActiveThemeMode(themeMode);
-    }, [themeMode]);
-
-    useEffect(() => {
-        setActiveThemeColor(themeColor);
-    }, [themeColor]);
-    
-    useEffect(() => {
-        setActiveFont(themeFont);
-    }, [themeFont]);
-
-    useEffect(() => {
-        setActiveFontSize(fontSize);
-    }, [fontSize]);
+    useEffect(() => { setActiveThemeMode(themeMode); }, [themeMode]);
+    useEffect(() => { setActiveThemeColor(themeColor); }, [themeColor]);
+    useEffect(() => { setActiveFont(themeFont); }, [themeFont]);
+    useEffect(() => { setActiveFontSize(fontSize); }, [fontSize]);
 
     const handleThemeModeChange = (mode) => {
         setActiveThemeMode(mode);
-        onThemeModeChange(mode);
+        setThemeMode(mode);
     };
 
     const handleThemeColorChange = (color) => {
         setActiveThemeColor(color);
-        onThemeColorChange(color);
+        setThemeColor(color);
     };
 
     const handleFontChange = (font) => {
         setActiveFont(font);
-        onThemeFontChange(font);
+        setThemeFont(font);
     };
 
     const handleFontSizeChange = (size) => {
         setActiveFontSize(size);
-        onFontSizeChange(size);
+        setFontSize(size);
     };
 
     const handleSave = () => {
-        onSave({
+        handleSaveSettings({
             settings: { 
                 username, 
                 profilePicUrl,
@@ -108,10 +99,10 @@ function SettingsPage({
     const handleNotificationClick = async () => {
         let newStatus = null;
         if (notificationStatus === 'granted') {
-            try { newStatus = await onDisableNotifications(); } 
+            try { newStatus = await handleDisableNotifications(); } 
             catch (err) { console.error("Error disabling notifications:", err); }
         } else if (notificationStatus === 'default' || notificationStatus === 'prompt') {
-            try { newStatus = await onRequestNotificationPermission(); } 
+            try { newStatus = await handleRequestNotificationPermission(); } 
             catch (err) { console.error("Error requesting notification permission:", err); }
         }
         if (newStatus) setNotificationStatus(newStatus);
@@ -130,7 +121,7 @@ function SettingsPage({
      if (isAppInstalled) {
          installButton = ( <button disabled className="text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-green-600 text-white cursor-default"> <CheckCircle size={14}/> <span>Installed</span> </button> );
      } else if (installPromptEvent) {
-          installButton = ( <button onClick={onInstallApp} className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500"> <Download size={14}/> <span>Install App</span> </button> );
+          installButton = ( <button onClick={handleInstallApp} className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500"> <Download size={14}/> <span>Install App</span> </button> );
      } else {
          installButton = null; 
      }
@@ -140,7 +131,7 @@ function SettingsPage({
         accountSection = (
             <div className="text-center p-4 bg-slate-100 dark:bg-slate-700 rounded-md">
                 <p className="text-sm text-slate-700 dark:text-gray-300 mb-3">Sync & backup your data by linking your account. This also enables PIN recovery.</p>
-                <button onClick={onLinkAccount} className="w-full flex items-center justify-center space-x-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-semibold py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200 focus:outline-none focus:ring-2" style={{'--tw-ring-color': 'var(--color-primary-hex)'}}>
+                <button onClick={handleLinkAccount} className="w-full flex items-center justify-center space-x-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-semibold py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200 focus:outline-none focus:ring-2" style={{'--tw-ring-color': 'var(--color-primary-hex)'}}>
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" className="w-5 h-5"/>
                     <span>Sign in with Google</span>
                 </button>
@@ -170,7 +161,7 @@ function SettingsPage({
         console.log("Calling 'deleteAllUserData' cloud function...");
         try {
             const deleteAllUserData = httpsCallable(functions, 'deleteAllUserData');
-            const result = await deleteAllUserData({ appId: appId }); // Pass the imported appId
+            const result = await deleteAllUserData({ appId: appId });
             console.log("Cloud function result:", result.data);
             alert("All your data has been permanently deleted.");
             window.location.reload(); 
@@ -204,9 +195,9 @@ function SettingsPage({
             console.log("File uploaded, URL:", downloadURL);
             setProfilePicUrl(downloadURL); 
             
-            onSave({
+            handleSaveSettings({
                 settings: { 
-                    ...initialSettings, 
+                    ...settings, 
                     username, 
                     profilePicUrl: downloadURL, 
                     themeMode: activeThemeMode,
@@ -228,7 +219,7 @@ function SettingsPage({
         <>
             <div className="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center space-x-2 flex-shrink-0 bg-white dark:bg-slate-900 z-10">
-                    <button onClick={onBack} className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden focus:outline-none focus:ring-2" style={{'--tw-ring-color': 'var(--color-primary-hex)'}} aria-label="Back to list" title="Back to list">
+                    <button onClick={() => handleViewChange('list')} className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden focus:outline-none focus:ring-2" style={{'--tw-ring-color': 'var(--color-primary-hex)'}} aria-label="Back to list" title="Back to list">
                         <ArrowLeft size={22} />
                     </button>
                     <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Settings</h2>
@@ -436,7 +427,7 @@ function SettingsPage({
             <ExportModal
                 show={showExportModal}
                 onClose={() => setShowExportModal(false)}
-                onExport={onExportData}
+                onExport={handleExportData}
             />
 
             {showDeleteModal && (

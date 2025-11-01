@@ -1,21 +1,34 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ArrowLeft, Check, Trash2, X, AlertTriangle, ChevronDown } from 'lucide-react';
 import SimpleMDE from 'react-simplemde-editor';
 import "easymde/dist/easymde.min.css";
 import TagsInput from '/src/components/TagsInput.jsx';
 import { formatTimestamp } from '/src/utils.js';
 import { ENTRY_TYPES, getEntryType } from '/src/constants.js';
+import { useAppContext } from '../context/AppContext';
 
-function Editor({ 
-    entry, onUpdate, onSaveNew, onDelete, onBack, isCreating, username,
-    onDirtyChange, forceSave, onSaveComplete,
-    initialEntryType
-}) {
+function Editor() {
+    const {
+        activeEntry,
+        handleUpdateEntry,
+        handleSaveNewEntry,
+        handleDeleteEntry,
+        handleCloseEditor,
+        isCreating,
+        settings,
+        setIsEditorDirty,
+        forceEditorSave,
+        handleEditorSaveComplete,
+        newEntryType
+    } = useAppContext();
+
+    const username = settings?.username || 'User';
+    const entry = activeEntry; // Rename for consistency
+
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tags, setTags] = useState([]);
-    const [entryType, setEntryType] = useState(initialEntryType || 'note');
-    const [isDirty, setIsDirty] = useState(false);
+    const [entryType, setEntryType] = useState(isCreating ? newEntryType : 'note');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const simpleMdeRef = useRef(null);
@@ -47,72 +60,67 @@ function Editor({
 
     useEffect(() => {
         if (isCreating) {
-            const newType = initialEntryType || 'note';
+            const newType = newEntryType || 'note';
             const template = getEntryType(newType)?.template || '';
             setTitle('');
             setContent(template);
             setTags([]);
             setEntryType(newType);
-            setIsDirty(template.length > 0);
+            setIsEditorDirty(template.length > 0);
         } else if (entry) {
             setTitle(entry.title || '');
             setContent(entry.content || '');
             setTags(entry.tags || []);
             setEntryType(entry.type || 'note');
-            setIsDirty(false);
+            setIsEditorDirty(false);
         } else {
             setTitle('');
             setContent('');
             setTags([]);
             setEntryType('note');
-            setIsDirty(false);
+            setIsEditorDirty(false);
         }
-    }, [entry, isCreating, initialEntryType]);
-
-    useEffect(() => {
-        if (onDirtyChange) {
-            onDirtyChange(isDirty);
-        }
-    }, [isDirty, onDirtyChange]);
-
-    useEffect(() => {
-        if (forceSave) {
-            handleSave(true);
-        }
-    }, [forceSave]);
+    }, [entry, isCreating, newEntryType, setIsEditorDirty]);
 
     const handleContentChange = (value) => {
         setContent(value);
-        setIsDirty(true);
+        setIsEditorDirty(true);
     };
 
     const handleTitleChange = (e) => {
         setTitle(e.target.value);
-        setIsDirty(true);
+        setIsEditorDirty(true);
     };
 
     const handleTagsChange = (newTags) => {
         setTags(newTags);
-        setIsDirty(true);
+        setIsEditorDirty(true);
     };
     
     const handleTypeChange = (e) => {
         setEntryType(e.target.value);
-        setIsDirty(true);
+        setIsEditorDirty(true);
     };
 
-    const handleSave = async (fromModal = false) => {
+    const handleSave = useCallback(async (fromModal = false) => {
         const entryData = { title, content, tags, type: entryType };
         if (isCreating) {
-            await onSaveNew(entryData);
+            await handleSaveNewEntry(entryData);
         } else if (entry) {
-            await onUpdate(entry.id, entryData);
+            await handleUpdateEntry(entry.id, entryData);
         }
-        setIsDirty(false);
-        if (fromModal && onSaveComplete) {
-            onSaveComplete();
+        setIsEditorDirty(false);
+        if (fromModal) {
+            handleEditorSaveComplete();
         }
-    };
+    }, [title, content, tags, entryType, isCreating, entry, handleSaveNewEntry, handleUpdateEntry, setIsEditorDirty, handleEditorSaveComplete]);
+
+    // --- FIX for Issue #19 ---
+    useEffect(() => {
+        if (forceEditorSave) {
+            handleSave(true);
+        }
+    }, [forceEditorSave, handleSave]); // Correct dependencies
 
     const handleDeleteClick = () => {
         if (!isCreating && entry) {
@@ -122,10 +130,10 @@ function Editor({
 
     const confirmDelete = () => {
         if (!isCreating && entry) {
-            onDelete(entry.id);
+            handleDeleteEntry(entry.id);
         }
         setShowDeleteModal(false);
-        onBack();
+        handleCloseEditor();
     };
 
     const entryTimestamp = entry?.updatedAt || entry?.createdAt;
@@ -137,7 +145,7 @@ function Editor({
                 <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center space-x-2 flex-shrink-0 z-10">
                     <div className="flex items-center space-x-1">
                         <button 
-                            onClick={onBack} 
+                            onClick={handleCloseEditor} 
                             className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2" 
                             style={{'--tw-ring-color': 'var(--color-primary-hex)'}} 
                             aria-label="Back" 
@@ -165,12 +173,12 @@ function Editor({
                         )}
                         <button
                             onClick={() => handleSave(false)}
-                            disabled={!isDirty}
+                            disabled={!isEditorDirty}
                             className="flex items-center space-x-1 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed"
                             style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
                         >
                             <Check size={20} />
-                            <span>{isCreating ? 'Save' : (isDirty ? 'Save' : 'Saved')}</span>
+                            <span>{isCreating ? 'Save' : (isEditorDirty ? 'Save' : 'Saved')}</span>
                         </button>
                     </div>
                 </div>
