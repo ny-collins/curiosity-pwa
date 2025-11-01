@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { functions, storage, appId } from '../firebaseConfig'; 
+import { functions, storage, appId } from '../firebaseConfig'; // Import appId here
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
 import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
@@ -33,7 +33,7 @@ function SettingsPage({
     const [activeThemeMode, setActiveThemeMode] = useState(themeMode);
     const [activeThemeColor, setActiveThemeColor] = useState(themeColor);
     const [activeFont, setActiveFont] = useState(themeFont);
-    const [activeFontSize, setActiveFontSize] = useState(fontSize); // New state
+    const [activeFontSize, setActiveFontSize] = useState(fontSize);
     
     const fileInputRef = useRef(null); 
 
@@ -44,7 +44,7 @@ function SettingsPage({
             setActiveThemeMode(initialSettings.themeMode || 'system');
             setActiveThemeColor(initialSettings.themeColor || '#14b8a6');
             setActiveFont(initialSettings.fontFamily || "'Inter', sans-serif");
-            setActiveFontSize(initialSettings.fontSize || '16px'); // New
+            setActiveFontSize(initialSettings.fontSize || '16px');
         }
     }, [initialSettings, currentUser, isAnonymous]);
 
@@ -98,7 +98,7 @@ function SettingsPage({
                 themeMode: activeThemeMode,
                 themeColor: activeThemeColor,
                 fontFamily: activeFont,
-                fontSize: activeFontSize, // Save font size
+                fontSize: activeFontSize,
             },
             pin: enableLock ? pin : null
         });
@@ -170,7 +170,7 @@ function SettingsPage({
         console.log("Calling 'deleteAllUserData' cloud function...");
         try {
             const deleteAllUserData = httpsCallable(functions, 'deleteAllUserData');
-            const result = await deleteAllUserData({ appId: appId });
+            const result = await deleteAllUserData({ appId: appId }); // Pass the imported appId
             console.log("Cloud function result:", result.data);
             alert("All your data has been permanently deleted.");
             window.location.reload(); 
