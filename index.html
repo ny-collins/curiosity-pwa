@@ -2,13 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" /> 
-    <link rel="alternate icon" href="/favicon.ico" /> 
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" /> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="manifest" href="/manifest.json" /> 
-    <meta name="theme-color" content="#14b8a6"> 
     
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
+    
+    <link rel="mask-icon" href="/favicon.svg" color="#14b8a6">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <link rel="manifest" href="/manifest.json" />
+    
+    <meta name="theme-color" content="#14b8a6" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
@@ -19,9 +24,11 @@
           const themeMode = localStorage.getItem('curiosity-theme-mode') || 'system';
           const color = localStorage.getItem('curiosity-theme-color') || '#14b8a6';
           const font = localStorage.getItem('curiosity-theme-font') || "'Inter', sans-serif";
+          const fontSize = localStorage.getItem('curiosity-font-size') || '16px'; // Added font size
 
           document.documentElement.style.setProperty('--color-primary-hex', color);
           document.documentElement.style.setProperty('--font-body', font);
+          document.documentElement.style.setProperty('font-size', fontSize); // Added font size
 
           if (themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
@@ -36,7 +43,7 @@
     
     <title>Curiosity - Your Personal AI Journal</title>
   </head>
-  <body>
+  <body class="bg-white dark:bg-slate-900">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

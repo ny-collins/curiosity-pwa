@@ -1,184 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&family=Lora:ital,wght@0,400;0,700;1,400&family=Pacifico&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-primary-hex: #14b8a6; 
+@layer base {
+  :root {
+    --color-primary-hex: #14b8a6;
+    --color-primary-rgb: 20, 184, 172;
+    --color-primary-light: rgba(var(--color-primary-rgb), 0.1);
+    --color-primary-dark: #0f766e;
+    --color-bg-base: #ffffff;
+    
+    --font-sans: 'Inter', sans-serif;
+    --font-serif: 'Lora', serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-logo: 'Pacifico', cursive;
+    
+    --font-body: var(--font-sans);
+  }
   
-  --font-sans: "'Inter'", sans-serif;
-  --font-serif: "'Lora'", serif;
-  --font-mono: "'JetBrains Mono'", monospace;
-  --font-logo: "'Pacifico'", cursive;
+  .dark {
+     --color-bg-base: #0f172a;
+  }
   
-  --font-body: var(--font-sans);
-}
-
-html {
-    @apply h-full;
-}
-
-body {
-    @apply h-full m-0 p-0;
-    font-family: var(--font-body); 
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-
-    @apply bg-white text-slate-700;
-    @apply dark:bg-slate-900 dark:text-gray-200;
-}
-
-#root {
-    @apply h-full;
-}
-
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { @apply bg-slate-200 dark:bg-slate-800; }
-.custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-400 dark:bg-slate-600 rounded; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { @apply bg-slate-500 dark:bg-slate-500; }
-
-textarea:focus, input:focus, button:focus {
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 2px var(--color-primary-hex);
-}
-.form-input:focus, .form-select:focus, .form-textarea:focus, .form-checkbox:focus, .form-radio:focus {
-   border-color: var(--color-primary-hex) !important;
-   box-shadow: 0 0 0 1px var(--color-primary-hex) !important;
-}
-.form-checkbox:checked, .form-radio:checked {
-  background-color: var(--color-primary-hex) !important;
-  border-color: var(--color-primary-hex) !important;
-}
-
-.pin-dot { transition: all 0.2s ease-in-out; }
-
-.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; transform: translate3d(0, 0, 0); }
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
-}
-
-@keyframes slide-in-up {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.animate-slide-in-up { animation: slide-in-up 0.5s ease-out; }
-
-.react-calendar-override { width: 100%; border: none; background: transparent; font-family: inherit; }
-.react-calendar-override button { @apply text-slate-600 dark:text-slate-300 rounded-md transition-colors duration-200 border-none p-2; }
-.react-calendar-override button:enabled:hover { @apply bg-slate-200 dark:bg-slate-700; }
-.react-calendar-override button:enabled:focus { outline: 2px solid transparent; outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-primary-hex) !important; }
-.react-calendar-override .react-calendar__navigation button { min-width: 40px; background: none; @apply text-base font-semibold text-slate-800 dark:text-slate-100; }
-.react-calendar-override .react-calendar__navigation button:enabled:hover { @apply bg-slate-200 dark:bg-slate-700; }
-.react-calendar-override .react-calendar__navigation button:disabled { @apply text-slate-400 dark:text-slate-600 bg-transparent !important; }
-.react-calendar-override .react-calendar__month-view__weekdays__weekday { @apply text-center uppercase font-bold text-xs text-slate-500 dark:text-slate-400 pb-2; }
-.react-calendar-override .react-calendar__month-view__weekdays__weekday abbr { text-decoration: none; }
-.react-calendar-override .react-calendar__month-view__days__day { @apply text-slate-700 dark:text-slate-300; }
-.react-calendar-override .react-calendar__month-view__days__day--weekend { color: var(--color-primary-hex); }
-.react-calendar-override .react-calendar__month-view__days__day--neighboringMonth { @apply text-slate-300 dark:text-slate-600; }
-.react-calendar-override .react-calendar__tile { height: auto; aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.1rem; position: relative; @apply text-sm leading-none; }
-.react-calendar-override .react-calendar__tile abbr { display: block; }
-.react-calendar-override .react-calendar__tile--now { 
-    @apply bg-slate-200 dark:bg-slate-700 font-bold rounded-md; 
-    color: var(--color-primary-hex); 
-}
-.react-calendar-override .react-calendar__tile--now:hover { @apply bg-slate-300 dark:bg-slate-600; }
-.react-calendar-override .react-calendar__tile--active { background: var(--color-primary-hex); @apply text-white font-bold rounded-md; }
-.react-calendar-override .react-calendar__tile--active:enabled:hover, .react-calendar-override .react-calendar__tile--active:enabled:focus { background: var(--color-primary-hex); filter: brightness(0.9); }
-.react-calendar-override .reminder-bell-marker { color: var(--color-primary-hex); @apply absolute top-1 left-1/2 -translate-x-1/2; }
-.react-calendar-override .react-calendar__tile--active .reminder-bell-marker, .react-calendar-override .react-calendar__tile--now .reminder-bell-marker { @apply text-white dark:text-slate-100; }
-.react-calendar-override .react-calendar__tile:has(.reminder-bell-marker) abbr { @apply mt-3; }
-.react-calendar__year-view__months__month, .react-calendar__decade-view__years__year, .react-calendar__century-view__decades__decade { @apply text-slate-600 dark:text-slate-300 p-4 rounded-md; }
-.react-calendar__year-view__months__month:enabled:hover, .react-calendar__decade-view__years__year:enabled:hover, .react-calendar__century-view__decades__decade:enabled:hover { @apply bg-slate-200 dark:bg-slate-700; }
-.react-calendar__tile--hasActive { @apply bg-slate-200 dark:bg-slate-700 !important; color: var(--color-primary-hex) !important; @apply font-bold rounded-md; }
-
-.react-tagsinput {
-    @apply bg-white dark:bg-slate-700 rounded-md border border-slate-300 dark:border-slate-600 p-1 flex flex-wrap items-center;
+  html, body, #root {
+    @apply h-full overflow-hidden;
+  }
+  
+  body {
     font-family: var(--font-body);
-}
-.react-tagsinput-input {
-    @apply bg-transparent text-slate-800 dark:text-white text-sm p-1 placeholder-slate-500 dark:placeholder-slate-400;
-    outline: none;
-    flex-grow: 1;
-    min-width: 150px;
-}
-.react-tagsinput-tag {
-    @apply bg-slate-200 dark:bg-slate-800 rounded-md text-sm py-1 px-2 m-1 flex items-center;
-    font-family: var(--font-body);
-    color: var(--color-primary-hex);
-    display: inline-flex; 
-}
-.react-tagsinput-remove {
-    @apply text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white ml-1.5 cursor-pointer;
-}
-.react-tagsinput-remove::before {
-    content: "x";
+  }
 }
 
-.EasyMDEContainer {
-    @apply h-full flex flex-col border-none;
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.300') theme('colors.slate.100');
+  }
+  .dark .custom-scrollbar {
+    scrollbar-color: theme('colors.slate.600') theme('colors.slate.800');
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-slate-100 dark:bg-slate-800 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-500;
+  }
 }
-.EasyMDEContainer .CodeMirror {
-    @apply flex-grow bg-white dark:bg-slate-800 text-slate-800 dark:text-gray-300 border-none;
-    font-family: var(--font-body);
-    font-size: 1.125rem; 
-    line-height: 1.75rem; 
-    padding: 1.5rem; 
-}
-.EasyMDEContainer .CodeMirror-cursor {
-    border-left: 1px solid var(--color-primary-hex);
-}
-.EasyMDEContainer .CodeMirror-scroll {
-    @apply custom-scrollbar;
-}
-.EasyMDEContainer .editor-toolbar {
-    @apply bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 p-1;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-}
-.EasyMDEContainer .editor-toolbar button {
+
+/* --- SimpleMDE Theme Overrides --- */
+@layer components {
+  .EasyMDEContainer {
+    @apply border-none shadow-none;
+  }
+  
+  /* Toolbar */
+  .editor-toolbar {
+    @apply bg-slate-50 dark:bg-slate-800 border-none rounded-t-lg;
+    @apply opacity-100 transition-opacity;
+  }
+  .editor-toolbar.fullscreen {
+    @apply rounded-none;
+  }
+
+  .editor-toolbar button {
     @apply text-slate-600 dark:text-gray-400 border-none;
-    box-shadow: none !important; 
-}
-.EasyMDEContainer .editor-toolbar button:hover,
-.EasyMDEContainer .editor-toolbar button.active {
-    @apply bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-white border-none;
-}
-.EasyMDEContainer .editor-toolbar button:focus {
-     box-shadow: 0 0 0 2px var(--color-primary-hex) !important; 
-}
-.EasyMDEContainer .editor-toolbar i.separator {
-    @apply border-l border-slate-300 dark:border-slate-700;
-}
-.EasyMDEContainer .editor-statusbar {
-    @apply bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-gray-500 text-xs border-t border-slate-300 dark:border-slate-700 rounded-b-md;
-}
-
-.markdown-preview {
-    @apply prose max-w-none p-6 h-full overflow-y-auto custom-scrollbar bg-white dark:bg-slate-800;
-    font-family: var(--font-body);
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-}
-.prose {
-    @apply text-slate-700 dark:text-gray-300;
-}
-.prose :where(a):not(:where([class~="not-prose"] *)) {
-     color: var(--color-primary-hex);
-}
-.prose :where(h1):not(:where([class~="not-prose"] *)),
-.prose :where(h2):not(:where([class~="not-prose"] *)),
-.prose :where(h3):not(:where([class~="not-prose"] *)) {
+  }
+  
+  .editor-toolbar button:hover,
+  .editor-toolbar button.active {
+    @apply bg-slate-200 dark:bg-slate-700 border-none;
+  }
+  
+  .editor-toolbar button.active {
     color: var(--color-primary-hex);
-}
-.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
-    border-left-color: var(--color-primary-hex);
-}
-.prose :where(code):not(:where([class~="not-prose"] *)) {
-  @apply text-slate-800 dark:text-slate-200;
-}
-.prose :where(pre):not(:where([class~="not-prose"] *)) {
-  @apply bg-slate-100 dark:bg-slate-900;
+  }
+  
+  .editor-toolbar i.separator {
+    @apply border-r border-slate-300 dark:border-slate-600;
+  }
+  
+  /* Main text area */
+  .CodeMirror {
+    @apply h-full min-h-[400px] text-base;
+    @apply bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200;
+    font-family: var(--font-body);
+  }
+  
+  .CodeMirror, .CodeMirror-scroll {
+    @apply min-h-[400px];
+  }
+
+  .CodeMirror-lines {
+    @apply p-4 md:p-6;
+  }
+  
+  .CodeMirror-cursor {
+    border-color: var(--color-primary-hex);
+  }
+
+  .cm-s-easymde .cm-header {
+    @apply text-slate-900 dark:text-white;
+  }
+  .cm-s-easymde .cm-quote {
+    @apply text-slate-500;
+  }
+  .cm-s-easymde .cm-link {
+    color: var(--color-primary-hex);
+  }
+
+  /* Status Bar */
+  .editor-statusbar {
+    @apply bg-white dark:bg-slate-900;
+    @apply text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-slate-700 rounded-b-lg;
+    @apply py-1 px-4;
+  }
+  .editor-statusbar.fullscreen {
+     @apply rounded-none;
+  }
+
+  /* Fullscreen Mode */
+  .EasyMDEContainer.fullscreen {
+    @apply bg-white dark:bg-slate-900 z-[9998];
+  }
+  .EasyMDEContainer.fullscreen .CodeMirror {
+     @apply min-h-screen;
+  }
+  
+  /* --- THIS IS THE CORRECTED RULE --- */
+  /* Make editor fill height in our app */
+  .h-full .EasyMDEContainer,
+  .h-full .EasyMDEContainer .CodeMirror,
+  .h-full .EasyMDEContainer .CodeMirror-scroll {
+      height: 100%;
+      min-height: 100%;
+  }
 }

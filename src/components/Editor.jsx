@@ -8,12 +8,13 @@ import { ENTRY_TYPES, getEntryType } from '/src/constants.js';
 
 function Editor({ 
     entry, onUpdate, onSaveNew, onDelete, onBack, isCreating, username,
-    onDirtyChange, forceSave, onSaveComplete
+    onDirtyChange, forceSave, onSaveComplete,
+    initialEntryType
 }) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tags, setTags] = useState([]);
-    const [entryType, setEntryType] = useState('note');
+    const [entryType, setEntryType] = useState(initialEntryType || 'note');
     const [isDirty, setIsDirty] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -45,7 +46,15 @@ function Editor({
     }, []);
 
     useEffect(() => {
-        if (entry && !isCreating) {
+        if (isCreating) {
+            const newType = initialEntryType || 'note';
+            const template = getEntryType(newType)?.template || '';
+            setTitle('');
+            setContent(template);
+            setTags([]);
+            setEntryType(newType);
+            setIsDirty(template.length > 0);
+        } else if (entry) {
             setTitle(entry.title || '');
             setContent(entry.content || '');
             setTags(entry.tags || []);
@@ -58,7 +67,7 @@ function Editor({
             setEntryType('note');
             setIsDirty(false);
         }
-    }, [entry, isCreating]);
+    }, [entry, isCreating, initialEntryType]);
 
     useEffect(() => {
         if (onDirtyChange) {
@@ -138,7 +147,7 @@ function Editor({
                         </button>
                         <div className="flex flex-col">
                             <span className="text-xs text-slate-500 dark:text-gray-400">
-                                {isCreating ? `New Entry by ${username}` : `Last edited: ${formattedTimestamp}`}
+                                {isCreating ? `New ${getEntryType(entryType).label} by ${username}` : `Last edited: ${formattedTimestamp}`}
                             </span>
                         </div>
                     </div>
@@ -172,7 +181,7 @@ function Editor({
                             type="text"
                             value={title}
                             onChange={handleTitleChange}
-                            placeholder="Entry Title"
+                            placeholder={`${getEntryType(entryType).label} Title`}
                             className="form-input w-full bg-transparent text-slate-900 dark:text-white text-2xl md:text-3xl font-bold border-none p-0 focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500"
                         />
                         
@@ -210,7 +219,7 @@ function Editor({
                                         Tags
                                     </label>
                                     <TagsInput
-                                        value={tags}
+                                        tags={tags}
                                         onChange={handleTagsChange}
                                     />
                                 </div>
@@ -225,7 +234,7 @@ function Editor({
                             value={content}
                             onChange={handleContentChange}
                             options={mdeOptions}
-                            className="h-full text-lg"
+                            className="h-full"
                         />
                     </div>
                 </div>

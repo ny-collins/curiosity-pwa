@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BookOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from './components/LoadingSpinner';
 import PinLockScreen from './components/PinLockScreen';
 import SettingsPage from './components/SettingsPage';
@@ -12,9 +13,10 @@ import ReloadPrompt from './components/ReloadPrompt';
 import SplashScreen from './components/SplashScreen';
 import Logo from './components/Logo';
 import UnsavedChangesModal from './components/UnsavedChangesModal';
+import OnboardingModal from './components/OnboardingModal';
 import { db, auth, app, functions, storage, appId, PIN_STORAGE_KEY, GoogleAuthProvider } from './firebaseConfig.js';
 import { signInAnonymously, onAuthStateChanged, linkWithPopup, signInWithPopup } from "firebase/auth";
-import { getMessaging, getToken, deleteToken } from "firebase/messaging";
+import { getMessaging, getToken, deleteToken, onMessage } from "firebase/messaging";
 import {
     doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
     collection, query, serverTimestamp, getDocs, where, writeBatch
@@ -23,7 +25,22 @@ import { formatTimestamp, dateToKey, keyToDate, stripMarkdown } from './utils.js
 import { useTheme } from './hooks.js';
 import { ENTRY_TYPES } from './constants.js';
 
+import JSZip from 'jszip';
+import { jsPDF } from 'jspdf';
+
 const VAPID_PUBLIC_KEY = 'BPk_f_2-4qQ1uPOwHYmdjVnOq8sdFj82eZ-gREl1dUSb-SgNPqWWtKBRDBA-uGsRlhRViDbWeZimXWYYYxY-S_M';
+
+const viewVariants = {
+    initial: { opacity: 0, x: 10 },
+    in: { opacity: 1, x: 0 },
+    out: { opacity: 0, x: -10 }
+};
+
+const viewTransition = {
+    type: 'tween',
+    ease: 'easeInOut',
+    duration: 0.2
+};
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -51,7 +68,8 @@ export default function App() {
     const { 
         themeMode, setThemeMode, 
         themeColor, setThemeColor,
-        themeFont, setThemeFont 
+        themeFont, setThemeFont,
+        fontSize, setFontSize
     } = useTheme();
     
     const [isLoading, setIsLoading] = useState(true);
@@ -81,6 +99,9 @@ export default function App() {
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [pendingView, setPendingView] = useState(null);
     const [forceEditorSave, setForceEditorSave] = useState(false);
+    
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [newEntryType, setNewEntryType] = useState('note');
 
     useEffect(() => {
         if (settings) {
@@ -144,6 +165,31 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        if (!app) return;
+        
+        let unsubscribeOnMessage;
+
+        try {
+            const messaging = getMessaging(app);
+            
+            unsubscribeOnMessage = onMessage(messaging, (payload) => {
+                console.log("Message received in foreground: ", payload);
+                const notification = payload.notification;
+                alert(`Reminder: ${notification.body}`);
+            });
+
+        } catch (error) {
+            console.error("Error setting up foreground message handler:", error);
+        }
+        
+        return () => {
+            if (unsubscribeOnMessage) {
+                unsubscribeOnMessage();
+            }
+        };
+    }, [app]);
+
+    useEffect(() => {
         if (!settingsDocRef) return;
         const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
             if (doc.exists()) {
@@ -152,24 +198,24 @@ export default function App() {
                 setThemeColor(data.themeColor || '#14b8a6');
                 setThemeFont(data.fontFamily || "var(--font-sans)");
                 setThemeMode(data.themeMode || 'system');
+                setFontSize(data.fontSize || '16px');
+                setShowOnboarding(false);
             } else {
-                const defaultUsername = currentUser?.displayName || 'Collins';
                 const defaultPic = currentUser?.photoURL || '';
                 const defaultSettings = {
-                    username: defaultUsername,
+                    username: 'Curious User',
                     profilePicUrl: defaultPic,
                     themeColor: '#14b8a6',
                     fontFamily: "var(--font-sans)",
-                    themeMode: 'system'
+                    themeMode: 'system',
+                    fontSize: '16px'
                 };
                 setSettings(defaultSettings);
-                if (currentUser && !isAnonymous) {
-                     setDoc(settingsDocRef, defaultSettings, { merge: true });
-                }
+                setShowOnboarding(true);
             }
         }, (error) => console.error("Settings load error:", error));
         return () => unsubscribe();
-    }, [settingsDocRef, currentUser, isAnonymous, setThemeColor, setThemeFont, setThemeMode]);
+    }, [settingsDocRef, currentUser, isAnonymous]); // <-- THE FIX IS HERE
 
     const [entriesLoaded, setEntriesLoaded] = useState(false);
     const [remindersLoaded, setRemindersLoaded] = useState(false);
@@ -282,9 +328,10 @@ export default function App() {
     const getSubscriptionsCollection = () => collection(db, `artifacts/${appId}/users/${userId}/subscriptions`);
     const getSettingsDoc = () => settingsDocRef;
 
-     const handleCreateEntry = () => {
+     const handleCreateEntry = (type = 'note') => {
         if (!userId) return;
         setActiveEntryId(null);
+        setNewEntryType(type);
         setIsCreating(true);
         setCurrentView('editor');
     };
@@ -400,7 +447,8 @@ export default function App() {
                      ...newSettings, 
                      themeMode, 
                      themeColor, 
-                     fontFamily: themeFont 
+                     fontFamily: themeFont,
+                     fontSize
                  };
                  await setDoc(settingsDocRef, fullSettings, { merge: true });
                  setSettings(prevSettings => ({...prevSettings, ...fullSettings}));
@@ -409,6 +457,34 @@ export default function App() {
         catch (error) { console.error("Save settings error:", error); }
         if (newPin) { localStorage.setItem(PIN_STORAGE_KEY, newPin); setAppPin(newPin); }
         else { localStorage.removeItem(PIN_STORAGE_KEY); setAppPin(null); setIsLocked(false); }
+    };
+
+    const handleOnboardingComplete = async (username, themeColor) => {
+        if (!settingsDocRef) return;
+
+        const newSettings = {
+            username: username,
+            profilePicUrl: currentUser?.photoURL || '',
+            themeColor: themeColor,
+            fontFamily: "var(--font-sans)",
+            themeMode: 'system',
+            fontSize: '16px'
+        };
+        
+        try {
+            await setDoc(settingsDocRef, newSettings, { merge: true });
+            
+            setSettings(newSettings);
+            setThemeColor(newSettings.themeColor);
+            setThemeFont(newSettings.fontFamily);
+            setThemeMode(newSettings.themeMode);
+            setFontSize(newSettings.fontSize);
+            
+            setShowOnboarding(false);
+        } catch (error) {
+            console.error("Error saving onboarding settings:", error);
+            alert("Could not save settings. Please try again.");
+        }
     };
     
     const handleCloseEditor = () => {
@@ -441,38 +517,117 @@ export default function App() {
         setFilterType('All');
     };
     
-    const handleExportData = () => {
+    const handleExportData = async (format) => {
+        console.log(`Exporting data as ${format}...`);
+        
+        const exportDate = new Date().toISOString().split('T')[0];
+        const filename = `curiosity_backup_${exportDate}`;
+        
+        const dataToExport = {
+            settings: { ...settings },
+            entries: entries.map(({ createdAtDate, ...rest }) => rest),
+            reminders,
+        };
+
         try {
-            console.log("Exporting data...");
-            const cleanEntries = entries.map(({ createdAtDate, ...rest }) => rest);
-            const cleanSettings = { ...settings };
+            if (format === 'json') {
+                const dataStr = JSON.stringify(dataToExport, (key, value) => {
+                    if (value && typeof value === 'object' && value.hasOwnProperty('seconds')) {
+                        return new Date(value.seconds * 1000).toISOString();
+                    }
+                    return value;
+                }, 2);
+                downloadFile(dataStr, `${filename}.json`, 'application/json');
+            }
             
-            const dataToExport = {
-                settings: cleanSettings,
-                entries: cleanEntries,
-                reminders,
-            };
-            const dataStr = JSON.stringify(dataToExport, (key, value) => {
-                if (value && typeof value === 'object' && value.hasOwnProperty('seconds') && value.hasOwnProperty('nanoseconds')) {
-                    return new Date(value.seconds * 1000).toISOString();
-                }
-                return value;
-            }, 2);
+            else if (format === 'markdown') {
+                const zip = new JSZip();
+                
+                zip.file('settings.json', JSON.stringify(dataToExport.settings, null, 2));
+                zip.file('reminders.json', JSON.stringify(dataToExport.reminders, null, 2));
+                
+                const entriesFolder = zip.folder('entries');
+                dataToExport.entries.forEach(entry => {
+                    const entryDate = entry.createdAtDate ? entry.createdAtDate.toISOString().split('T')[0] : 'no-date';
+                    const safeTitle = (entry.title || 'untitled').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    const entryFilename = `${entryDate}_${safeTitle}.md`;
+                    
+                    let mdContent = `---
+id: ${entry.id}
+type: ${entry.type || 'note'}
+createdAt: ${entry.createdAt?.toDate ? entry.createdAt.toDate().toISOString() : 'unknown'}
+updatedAt: ${entry.updatedAt?.toDate ? entry.updatedAt.toDate().toISOString() : 'unknown'}
+tags: [${(entry.tags || []).join(', ')}]
+---
+
+# ${entry.title || 'Untitled'}
+
+${entry.content || ''}
+`;
+                    entriesFolder.file(entryFilename, mdContent);
+                });
+                
+                const zipContent = await zip.generateAsync({ type: 'blob' });
+                downloadFile(zipContent, `${filename}.zip`, 'application/zip');
+            }
             
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `curiosity_backup_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            console.log("Export successful.");
+            else if (format === 'pdf') {
+                const doc = new jsPDF();
+                const sortedEntries = [...dataToExport.entries].sort((a, b) => {
+                    const timeA = a.createdAt?.seconds || 0;
+                    const timeB = b.createdAt?.seconds || 0;
+                    return timeA - timeB;
+                });
+
+                doc.setFontSize(22);
+                doc.text('Curiosity Export', 10, 20);
+                doc.setFontSize(12);
+                doc.text(`Exported on: ${exportDate}`, 10, 30);
+                doc.text(`Total Entries: ${sortedEntries.length}`, 10, 36);
+                doc.text(`Total Reminders: ${dataToExport.reminders.length}`, 10, 42);
+
+                sortedEntries.forEach((entry, index) => {
+                    doc.addPage();
+                    doc.setFontSize(18);
+                    doc.text(entry.title || 'Untitled Entry', 10, 20);
+                    
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    const entryDate = entry.createdAt?.toDate ? entry.createdAt.toDate().toLocaleString() : 'unknown date';
+                    doc.text(`Created: ${entryDate}`, 10, 28);
+                    doc.text(`Type: ${entry.type || 'note'}`, 10, 34);
+                    if(entry.tags && entry.tags.length > 0) {
+                        doc.text(`Tags: ${entry.tags.join(', ')}`, 10, 40);
+                    }
+                    
+                    doc.setDrawColor(200);
+                    doc.line(10, 45, 200, 45);
+
+                    doc.setFontSize(12);
+                    doc.setTextColor(0);
+                    const splitContent = doc.splitTextToSize(entry.content || '', 190);
+                    doc.text(splitContent, 10, 55);
+                });
+                
+                doc.save(`${filename}.pdf`);
+            }
+            
         } catch (error) {
-            console.error("Error exporting data:", error);
-            alert("An error occurred while exporting your data.");
+            console.error(`Error exporting data as ${format}:`, error);
+            alert(`An error occurred while exporting your data as ${format}.`);
         }
+    };
+    
+    const downloadFile = (data, filename, mimeType) => {
+        const blob = new Blob([data], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     };
 
     const handleInstallApp = async () => {
@@ -551,7 +706,7 @@ export default function App() {
              console.warn('Push notifications not supported by this browser.');
              return null;
          }
-         if (!app || !userId || !db) {
+         if (!app || !userId ||!db) {
              console.error("Cannot disable notifications: app/user/db not ready.");
              return Notification?.permission || 'default';
          }
@@ -661,12 +816,17 @@ export default function App() {
     if (checkingPin || isLoading) {
         return <SplashScreen />;
     }
+    
     if (isLocked) {
         return <PinLockScreen
                   correctPin={appPin}
                   onUnlock={() => setIsLocked(false)}
                   onForgotPin={handleForgotPin}
                />;
+    }
+
+    if (showOnboarding) {
+        return <OnboardingModal onComplete={handleOnboardingComplete} />;
     }
 
     const activeEntry = entries.find(entry => entry.id === activeEntryId);
@@ -679,20 +839,39 @@ export default function App() {
     let mainContent;
     if (effectiveView === 'editor') {
         mainContent = (
-            <Editor
-                entry={isCreating ? null : activeEntry}
-                onUpdate={handleUpdateEntry} onSaveNew={handleSaveNewEntry}
-                onDelete={handleDeleteEntry} onBack={handleCloseEditor}
-                isCreating={isCreating}
-                username={settings?.username || 'User'}
-                onDirtyChange={setIsEditorDirty}
-                forceSave={forceEditorSave}
-                onSaveComplete={handleEditorSaveComplete}
-            />
+            <motion.div 
+                key="editor" 
+                className="h-full"
+                variants={viewVariants} 
+                initial="initial" 
+                animate="in" 
+                exit="out" 
+                transition={viewTransition}
+            >
+                <Editor
+                    entry={isCreating ? null : activeEntry}
+                    onUpdate={handleUpdateEntry} onSaveNew={handleSaveNewEntry}
+                    onDelete={handleDeleteEntry} onBack={handleCloseEditor}
+                    isCreating={isCreating}
+                    username={settings?.username || 'User'}
+                    onDirtyChange={setIsEditorDirty}
+                    forceSave={forceEditorSave}
+                    onSaveComplete={handleEditorSaveComplete}
+                    initialEntryType={isCreating ? newEntryType : null}
+                />
+            </motion.div>
         );
     } else if (effectiveView === 'settings') {
          mainContent = (
-            <div className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0">
+            <motion.div 
+                key="settings" 
+                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                variants={viewVariants} 
+                initial="initial" 
+                animate="in" 
+                exit="out" 
+                transition={viewTransition}
+            >
                 <SettingsPage
                     onBack={() => handleViewChange('list')}
                     onSave={handleSaveSettings}
@@ -711,12 +890,21 @@ export default function App() {
                     themeMode={themeMode} onThemeModeChange={setThemeMode}
                     themeColor={themeColor} onThemeColorChange={setThemeColor}
                     themeFont={themeFont} onThemeFontChange={setThemeFont}
+                    fontSize={fontSize} onFontSizeChange={setFontSize} 
                 />
-            </div>
+            </motion.div>
          );
     } else if (effectiveView === 'list') {
         mainContent = (
-             <div className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0">
+             <motion.div 
+                key="list" 
+                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                variants={viewVariants} 
+                initial="initial" 
+                animate="in" 
+                exit="out" 
+                transition={viewTransition}
+            >
                 <EntryList
                     entries={filteredEntries}
                     searchTerm={searchTerm}    
@@ -737,11 +925,19 @@ export default function App() {
                     activeEntryId={null}
                     onClearFilters={handleClearFilters}
                 />
-             </div>
+             </motion.div>
         );
     } else {
         mainContent = (
-             <div className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0">
+             <motion.div 
+                key="calendar" 
+                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                variants={viewVariants} 
+                initial="initial" 
+                animate="in" 
+                exit="out" 
+                transition={viewTransition}
+            >
                  <CalendarView
                      reminders={reminders}
                      onAddReminder={handleAddReminder}
@@ -749,14 +945,14 @@ export default function App() {
                      entries={entries}
                      onSelect={handleSelectEntry}
                  />
-             </div>
+             </motion.div>
         );
     }
 
 
     return (
         <>
-            <div className="h-full relative flex md:flex-row overflow-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200" style={{ fontFamily: themeFont }}>
+            <div className="h-full relative flex md:flex-row overflow-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200" style={{ fontFamily: themeFont, fontSize: fontSize }}>
                  <div className="hidden md:block fixed top-0 left-0 h-full z-30">
                     <Sidebar
                         onCreate={handleCreateEntry}
@@ -770,8 +966,9 @@ export default function App() {
                 <MobileHeader currentView={effectiveView} />
 
                 <main className={`flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'md:pl-64' : 'md:pl-16'} ${effectiveView === 'settings' || effectiveView === 'editor' ? 'flex flex-col' : ''} ${effectiveView !== 'editor' && effectiveView !== 'settings' ? 'pt-16 md:pt-0' : ''}`}>
-                     {mainContent}
-                     {isSidebarExpanded && ( <div className="fixed inset-0 bg-black/30 z-20 hidden md:block lg:hidden" onClick={handleToggleSidebar}></div> )}
+                    <AnimatePresence mode="wait">
+                        {mainContent}
+                    </AnimatePresence>
                 </main>
 
                  <BottomNavBar

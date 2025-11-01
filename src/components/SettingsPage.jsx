@@ -1,40 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, LogIn, User, FileOutput, Sun, Moon, Laptop } from 'lucide-react';
+import { X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { functions, storage, appId } from '../firebaseConfig'; 
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
 import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
 import LoadingSpinner from './LoadingSpinner';
-
-const themeColors = [
-    { name: 'Teal', hex: '#14b8a6' }, { name: 'Rose', hex: '#f43f5e' },
-    { name: 'Pink', hex: '#ec4899' }, { name: 'Fuchsia', hex: '#d946ef' },
-    { name: 'Purple', hex: '#8b5cf6' }, { name: 'Violet', hex: '#6366f1' },
-    { name: 'Blue', hex: '#3b82f6' }, { name: 'Sky', hex: '#0ea5e9' },
-    { name: 'Cyan', hex: '#06b6d4' }, { name: 'Emerald', hex: '#10b981' },
-    { name: 'Amber', hex: '#f59e0b' }, { name: 'Slate', hex: '#64748b' },
-];
-
-const fontOptions = [
-    { name: 'Default', value: "'Inter', sans-serif" },
-    { name: 'Serif', value: "'Lora', serif" },
-    { name: 'Mono', value: "'JetBrains Mono', monospace" },
-];
-
-const themeModes = [
-    { name: 'Light', value: 'light', icon: Sun },
-    { name: 'Dark', value: 'dark', icon: Moon },
-    { name: 'System', value: 'system', icon: Laptop },
-];
+import ExportModal from './ExportModal';
+import { THEME_COLORS, FONT_OPTIONS, THEME_MODES, FONT_SIZES } from '../constants.js';
 
 function SettingsPage({
     onBack, onSave, initialSettings, initialPin,
-    onSetThemeMode, onSetThemeColor, onSetThemeFont,
     onRequestNotificationPermission, onDisableNotifications,
     onInstallApp, installPromptEvent, isAppInstalled,
     currentUser, isAnonymous, onLinkAccount,
-    onExportData 
+    onExportData,
+    themeMode, onThemeModeChange,
+    themeColor, onThemeColorChange,
+    themeFont, onThemeFontChange,
+    fontSize, onFontSizeChange
 }) {
     const [username, setUsername] = useState('');
     const [profilePicUrl, setProfilePicUrl] = useState('');
@@ -44,10 +28,12 @@ function SettingsPage({
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false); 
     const [isUploading, setIsUploading] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
     
-    const [activeThemeMode, setActiveThemeMode] = useState(initialSettings.themeMode);
-    const [activeThemeColor, setActiveThemeColor] = useState(initialSettings.themeColor);
-    const [activeFont, setActiveFont] = useState(initialSettings.fontFamily);
+    const [activeThemeMode, setActiveThemeMode] = useState(themeMode);
+    const [activeThemeColor, setActiveThemeColor] = useState(themeColor);
+    const [activeFont, setActiveFont] = useState(themeFont);
+    const [activeFontSize, setActiveFontSize] = useState(fontSize); // New state
     
     const fileInputRef = useRef(null); 
 
@@ -58,6 +44,7 @@ function SettingsPage({
             setActiveThemeMode(initialSettings.themeMode || 'system');
             setActiveThemeColor(initialSettings.themeColor || '#14b8a6');
             setActiveFont(initialSettings.fontFamily || "'Inter', sans-serif");
+            setActiveFontSize(initialSettings.fontSize || '16px'); // New
         }
     }, [initialSettings, currentUser, isAnonymous]);
 
@@ -66,20 +53,41 @@ function SettingsPage({
             setNotificationStatus(Notification.permission);
         }
     }, []);
+    
+    useEffect(() => {
+        setActiveThemeMode(themeMode);
+    }, [themeMode]);
+
+    useEffect(() => {
+        setActiveThemeColor(themeColor);
+    }, [themeColor]);
+    
+    useEffect(() => {
+        setActiveFont(themeFont);
+    }, [themeFont]);
+
+    useEffect(() => {
+        setActiveFontSize(fontSize);
+    }, [fontSize]);
 
     const handleThemeModeChange = (mode) => {
         setActiveThemeMode(mode);
-        onSetThemeMode(mode);
+        onThemeModeChange(mode);
     };
 
     const handleThemeColorChange = (color) => {
         setActiveThemeColor(color);
-        onSetThemeColor(color);
+        onThemeColorChange(color);
     };
 
     const handleFontChange = (font) => {
         setActiveFont(font);
-        onSetThemeFont(font);
+        onThemeFontChange(font);
+    };
+
+    const handleFontSizeChange = (size) => {
+        setActiveFontSize(size);
+        onFontSizeChange(size);
     };
 
     const handleSave = () => {
@@ -90,6 +98,7 @@ function SettingsPage({
                 themeMode: activeThemeMode,
                 themeColor: activeThemeColor,
                 fontFamily: activeFont,
+                fontSize: activeFontSize, // Save font size
             },
             pin: enableLock ? pin : null
         });
@@ -161,7 +170,7 @@ function SettingsPage({
         console.log("Calling 'deleteAllUserData' cloud function...");
         try {
             const deleteAllUserData = httpsCallable(functions, 'deleteAllUserData');
-            const result = await deleteAllUserData();
+            const result = await deleteAllUserData({ appId: appId });
             console.log("Cloud function result:", result.data);
             alert("All your data has been permanently deleted.");
             window.location.reload(); 
@@ -202,7 +211,8 @@ function SettingsPage({
                     profilePicUrl: downloadURL, 
                     themeMode: activeThemeMode,
                     themeColor: activeThemeColor, 
-                    fontFamily: activeFont 
+                    fontFamily: activeFont,
+                    fontSize: activeFontSize
                 },
                 pin: enableLock ? pin : null
             });
@@ -247,7 +257,7 @@ function SettingsPage({
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Theme</label>
                                 <div className="flex items-center space-x-2 rounded-lg bg-slate-100 dark:bg-slate-700 p-1">
-                                    {themeModes.map(mode => (
+                                    {THEME_MODES.map(mode => (
                                         <button
                                             key={mode.value}
                                             onClick={() => handleThemeModeChange(mode.value)}
@@ -267,7 +277,7 @@ function SettingsPage({
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Theme Color</label>
                                 <div className="flex flex-wrap gap-3">
-                                    {themeColors.map(color => (
+                                    {THEME_COLORS.map(color => (
                                         <button
                                             key={color.hex}
                                             title={color.name}
@@ -286,7 +296,7 @@ function SettingsPage({
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Typography</label>
                                 <div className="flex flex-wrap gap-2">
-                                    {fontOptions.map(font => (
+                                    {FONT_OPTIONS.map(font => (
                                         <button
                                             key={font.value}
                                             onClick={() => handleFontChange(font.value)}
@@ -297,6 +307,25 @@ function SettingsPage({
                                             }}
                                         >
                                             {font.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Font Size</label>
+                                <div className="flex items-center space-x-2 rounded-lg bg-slate-100 dark:bg-slate-700 p-1">
+                                    {FONT_SIZES.map(size => (
+                                        <button
+                                            key={size.value}
+                                            onClick={() => handleFontSizeChange(size.value)}
+                                            className={`flex-1 flex justify-center items-center space-x-2 py-2 px-3 rounded-md text-sm transition-colors ${
+                                                activeFontSize === size.value
+                                                    ? 'bg-white dark:bg-slate-800 shadow-sm text-primary font-semibold'
+                                                    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                            }`}
+                                            style={{ color: activeFontSize === size.value ? 'var(--color-primary-hex)' : '' }}
+                                        >
+                                            <span style={{ fontSize: size.value }}>{size.name}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -378,11 +407,11 @@ function SettingsPage({
                                     <p className="text-xs text-slate-600 dark:text-gray-400">Download a JSON file of all your entries and reminders.</p>
                                 </div>
                                 <button
-                                    onClick={onExportData}
+                                    onClick={() => setShowExportModal(true)}
                                     className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 >
                                     <FileOutput size={16} className="inline mr-1"/>
-                                    Export
+                                    Export...
                                 </button>
                             </div>
                             <div className="flex items-center justify-between">
@@ -403,6 +432,12 @@ function SettingsPage({
                     </div>
                 </div>
             </div>
+
+            <ExportModal
+                show={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                onExport={onExportData}
+            />
 
             {showDeleteModal && (
                 <DeleteDataModal

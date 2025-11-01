@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({ 
-      registerType: 'prompt', // Changed from 'autoUpdate' to 'prompt'
+      registerType: 'prompt',
       injectRegister: 'auto', 
       manifest: {
         name: 'Curiosity - Your Personal AI Journal',
@@ -42,8 +42,12 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'logo.svg', 'icons/*.png'], 
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'], 
-        globIgnores: ['**/node_modules/**', 'sw.js', 'workbox-*.js'],
-        // Runtime caching rules remain the same
+        globIgnores: [
+          '**/node_modules/**', 
+          'sw.js', 
+          'workbox-*.js', 
+          'firebase-messaging-sw.js' // Add this line
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
