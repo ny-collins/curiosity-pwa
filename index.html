@@ -8,9 +8,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" /> 
     <meta name="theme-color" content="#14b8a6"> 
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Merriweather:ital,wght@0,400;0,700&family=Pacifico&family=Roboto+Slab:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
+    
+    <script>
+      (function() {
+        try {
+          const themeMode = localStorage.getItem('curiosity-theme-mode') || 'system';
+          const color = localStorage.getItem('curiosity-theme-color') || '#14b8a6';
+          const font = localStorage.getItem('curiosity-theme-font') || "'Inter', sans-serif";
+
+          document.documentElement.style.setProperty('--color-primary-hex', color);
+          document.documentElement.style.setProperty('--font-body', font);
+
+          if (themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {
+          console.error('Error applying initial theme', e);
+        }
+      })();
+    </script>
     
     <title>Curiosity - Your Personal AI Journal</title>
   </head>

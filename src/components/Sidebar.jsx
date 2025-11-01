@@ -1,138 +1,140 @@
-// src/components/Sidebar.jsx
 import React from 'react';
-import { Calendar, List, PlusSquare, PanelLeft, PanelRight } from 'lucide-react';
-import EntryList from './EntryList';
-import CalendarView from './CalendarView';
-import ThemedAvatar from './ThemedAvatar'; // Import our themed avatar
+import { Settings, Plus, BookOpen, CalendarDays, LogOut, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { signOut } from "firebase/auth";
+import { auth } from '../firebaseConfig';
+import ThemedAvatar from './ThemedAvatar';
+import Logo from './Logo';
 
-// The SVG path data from logo.svg
-const LogoPath = () => (
-  <path 
-    d="M60.385 151.154c-4.76-1.483-7.38-4.875-7.733-10.01l-.188-2.733-1.439-.242c-2.004-.338-4.753-1.844-5.866-3.215-1.284-1.581-1.495-3.744-.546-5.599 1.016-1.984 2.985-3.115 7.61-4.37.258-.07.4-.726.4-1.84v-1.73l-1.677-.394c-5.745-1.347-8.547-5.52-6.112-9.097.462-.68 1.074-1.424 1.359-1.655.98-.796 3.712-1.964 5.07-2.167l1.36-.203v-3.694l-1.244-.21c-.685-.115-2.088-.607-3.12-1.093-6.783-3.198-5.179-10.047 2.783-11.879l1.581-.364v-3.641l-1.36-.203c-1.723-.258-4.292-1.467-5.428-2.555-1.416-1.356-1.93-2.638-1.762-4.388.267-2.773 2.931-5.099 6.838-5.97l1.743-.389-.095-1.77-.095-1.77-1.725-.44c-4.121-1.048-6.448-3.125-6.66-5.946-.259-3.44 2.4-5.883 7.665-7.043.846-.186.88-.27.88-2.2 0-4.446 2.02-7.794 5.896-9.768l2.188-1.115 37.185-.085 37.185-.085v15.968l-2.109-.094-2.108-.094.044-5.117c.025-2.814-.048-5.358-.162-5.654-.193-.5-2.26-.539-28.937-.539H73.077v99.398l28.843-.081 28.844-.081.06-5.257c.033-2.89.069-5.436.08-5.655.013-.275.659-.398 2.097-.398h2.077v15.929l-36.673-.021c-29.391-.018-36.94-.105-38.02-.441zm8.218-53.695V47.76h-3.567c-3.239 0-3.695.075-4.945.805-.851.497-1.718 1.381-2.266 2.31l-.887 1.505v13.061l.799-.105c.972-.128 2.94-1.228 3.292-1.84.177-.308.887-.444 2.317-.444 1.861 0 2.061.063 2.061.65 0 1.191-1.258 3.128-2.654 4.085-1.265.868-3.598 1.78-5.176 2.024-.61.094-.643.377-.726 6.386-.085 6.158-.073 6.288.57 6.288.97 0 2.628-.773 3.322-1.55.5-.56.968-.68 2.636-.68 1.904 0 2.028.045 2.028.734 0 .403-.416 1.388-.925 2.188-1.052 1.654-3.837 3.262-6.283 3.628l-1.42.212v6.335c0 5.824.044 6.335.558 6.329.807-.01 3.04-1.076 3.555-1.695.325-.391.968-.528 2.477-.528 1.927 0 2.038.04 2.038.749 0 2.025-3.037 4.646-6.378 5.504l-2.25.578v12.652l1.038-.223c1.409-.302 2.791-1.036 3.007-1.596.265-.689 4.583-.663 4.583.027 0 2.393-3.21 5.096-7.02 5.91l-1.609.344v12.702l.879-.21c1.275-.305 3.276-1.356 3.276-1.72 0-.174 1.003-.312 2.277-.312h2.277l-.207 1.034c-.459 2.286-3.642 4.719-6.904 5.277l-1.438.247.023 2.092c.029 2.627 1.093 4.63 3.097 5.827 1.235.737 1.671.809 4.95.812l3.595.003zm-16.045 34.326c-.107-2.622-.19-2.667-2.731-1.463-2.293 1.086-1.673 2.508 1.516 3.475.44.133.915.255 1.055.27s.211-1.012.16-2.282m.065-17.165v-2.272l-1.121.181c-1.434.232-3.033 1.362-3.033 2.143 0 .616.684 1.129 2.397 1.797 1.7.663 1.757.603 1.757-1.85m0-17.161c0-2.586-.2-2.704-2.568-1.514-1.117.561-1.426.89-1.426 1.514 0 .623.31.952 1.426 1.513 2.368 1.19 2.568 1.073 2.568-1.513m0-17.238v-2.264l-.878.212c-3.248.786-4.044 2.34-1.838 3.585.703.396 1.602.724 1.997.726.68.005.72-.121.72-2.259m0-17.187c0-2.557-.064-2.593-2.494-1.386-2.187 1.086-2.282 2.014-.302 2.937 1.708.795 2.255.966 2.557.795.132-.074.24-1.13.24-2.346m61.842 75.926c-1.055-.465-1.969-.881-2.03-.924-.063-.043.616-4.997 1.508-11.01l1.62-10.931 3.324-7.646c15.109-34.761 18.306-42.123 21.516-49.538 2.01-4.643 4.091-9.344 4.625-10.447 2.72-5.62 9.736-6.863 14.111-2.501 1.775 1.768 2.31 3.2 2.279 6.1-.027 2.52-.064 2.632-3.463 10.353a5938 5938 0 0 0-9.04 20.707 86310 86310 0 0 0-15.65 36.04l-1.745 4.023-6.716 7.445c-3.693 4.095-7.1 7.835-7.569 8.31l-.853.866zm8.914-13.256c1.388-1.526 2.444-2.853 2.347-2.95-.387-.385-6.078-2.694-6.241-2.531-.21.209-1.644 9.544-1.642 10.686.002.883-.003.888 5.536-5.205m7.615-12.237c15.949-36.702 20.703-47.698 20.703-47.887 0-.277-7.676-3.583-7.87-3.39-.077.076-4.951 11.233-10.832 24.792-5.88 13.56-11.054 25.409-11.495 26.333-.442.923-.801 1.855-.8 2.07.004.295 6.745 3.554 7.672 3.709.09.015 1.27-2.517 2.622-5.627m24.454-56.308c.894-2.102 1.713-4.089 1.817-4.414.342-1.061-.418-2.974-1.589-3.999-.918-.803-1.402-.984-2.632-.983-1.708 0-3.218.767-3.819 1.937-1.332 2.598-3.56 8.103-3.36 8.3.474.466 7.594 3.383 7.773 3.185.1-.112.915-1.923 1.81-4.026"
-  />
+const SidebarHeader = ({ isExpanded, onToggleExpand, settings }) => (
+    <div className={`flex items-center justify-between p-4 ${isExpanded ? 'flex-row' : 'flex-col'} relative`}>
+        <div className={`flex items-center ${isExpanded ? 'space-x-2' : ''}`}>
+            <Logo className="w-8 h-8 flex-shrink-0" />
+            <span 
+                style={{ fontFamily: 'var(--font-logo)' }} 
+                className={`text-2xl text-slate-900 dark:text-white font-medium overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 max-w-xs' : 'opacity-0 max-w-0'}`}
+            >
+                Curiosity
+            </span>
+        </div>
+        <button 
+            onClick={onToggleExpand} 
+            className="p-1 rounded-full text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white focus:outline-none focus:ring-2"
+            style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
+            title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
+            {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+        </button>
+    </div>
 );
 
-function Sidebar({
-    entries, onSelect, onDelete, onCreate, activeEntryId,
-    onShowSettings, className, settings, currentView, onViewChange,
-    isExpanded, onToggleExpand
-}) {
-    const sidebarWidth = isExpanded ? 'w-64' : 'w-16';
-    const contentVisibility = isExpanded ? 'inline' : 'hidden';
-
-    // Style object for primary color
-    const primaryColorStyle = { backgroundColor: 'var(--color-primary-hex)' };
-    const primaryTextStyle = { color: 'var(--color-primary-hex)' };
-
-    // Helper function to apply active style
-    const getActiveStyle = (viewName) => {
-        if (currentView !== viewName) return { color: '#94a3b8' }; // slate-400
-        if (isExpanded) {
-            return { color: 'var(--color-primary-hex)', fontWeight: '600' }; // Bold text, primary color
-        } else {
-            return { backgroundColor: '#334155', color: 'var(--color-primary-hex)' }; // slate-700 bg
-        }
-    };
-    
-    // Helper for active indicator
-    const activeIndicator = (viewName) => {
-         if (currentView !== viewName) return null;
-         if (isExpanded) {
-             return <div className="absolute left-0 top-1 bottom-1 w-1 rounded-r-md" style={primaryColorStyle}></div>;
-         }
-         return <div className="absolute inset-1.5 bg-slate-700 rounded-md z-[-1]"></div>;
+const UserProfile = ({ settings, isExpanded }) => {
+    const handleSignOut = () => {
+        signOut(auth).catch((error) => console.error("Sign out error", error));
     };
 
     return (
-        <div className={`bg-slate-900 h-full flex flex-col border-r border-slate-700 overflow-hidden transition-all duration-300 ease-in-out flex-shrink-0 ${sidebarWidth} ${className} z-30 relative`}>
-
-            {/* Header Area */}
-            <div className={`p-2 border-b border-slate-700 flex items-center flex-shrink-0 h-16 ${isExpanded ? 'justify-between px-3' : 'justify-center'}`}>
-                 {isExpanded && (
-                     <div className="flex items-center space-x-2">
-                         {/* Inlined SVG Logo */}
-                         <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            viewBox="40 40 130 130" // Use the "good" viewBox from logo.svg
-                            className="w-10 h-10"
-                            style={primaryTextStyle} // Apply theme color via text color
-                            fill="currentColor" // Use CSS currentColor to fill
-                            stroke="none"
-                         >
-                            <LogoPath />
-                         </svg>
-                         <span className="font-semibold text-lg text-white" style={{ fontFamily: 'var(--font-logo)' }}>Curiosity</span>
-                     </div>
-                 )}
-                 <button
-                    onClick={onToggleExpand}
-                    className="p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none"
-                    style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
-                    aria-label={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-                    title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-                >
-                    {isExpanded ? <PanelLeft size={20} /> : <PanelRight size={20} />}
-                </button>
+        <div className={`p-4 border-t border-slate-200 dark:border-slate-700 ${isExpanded ? 'flex items-center justify-between' : 'flex flex-col items-center'}`}>
+            <div className={`flex items-center ${isExpanded ? 'space-x-2' : ''}`}>
+                <ThemedAvatar 
+                    profilePicUrl={settings?.profilePicUrl}
+                    username={settings?.username}
+                    className="w-8 h-8 flex-shrink-0"
+                />
+                <span className={`text-sm font-medium text-slate-800 dark:text-gray-200 overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 max-w-xs' : 'opacity-0 max-w-0'}`}>
+                    {settings?.username || 'User'}
+                </span>
             </div>
-
-             {/* Navigation Area */}
-             <nav className="flex-grow flex flex-col items-center space-y-2 py-4 px-2 overflow-y-auto custom-scrollbar">
-                 <button
-                    onClick={onCreate}
-                    className={`w-full flex items-center rounded-md p-2 ${isExpanded ? 'justify-start px-4' : 'justify-center'} transition-colors`}
-                    style={primaryTextStyle}
-                    title="New Entry"
-                 >
-                     <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                         <PlusSquare size={22}/>
-                     </div>
-                     <span className={`ml-3 font-semibold ${!isExpanded && 'hidden'}`}>New Entry</span>
-                 </button>
-                  <button
-                     onClick={() => onViewChange('list')} 
-                     className={`w-full flex items-center p-2 rounded-md relative ${isExpanded ? 'justify-start px-4' : 'justify-center'} transition-colors`}
-                     style={getActiveStyle('list')}
-                     title="List View"
-                  >
-                     {activeIndicator('list')}
-                     <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                         <List size={22} />
-                     </div>
-                     <span className={`ml-3 text-sm ${!isExpanded && 'hidden'}`}>List</span>
-                  </button>
-                 <button
-                    onClick={() => onViewChange('calendar')}
-                     className={`w-full flex items-center p-2 rounded-md relative ${isExpanded ? 'justify-start px-4' : 'justify-center'} transition-colors`}
-                     style={getActiveStyle('calendar')}
-                     title="Calendar View"
-                 >
-                     {activeIndicator('calendar')}
-                     <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                        <Calendar size={22} />
-                     </div>
-                    <span className={`ml-3 text-sm ${!isExpanded && 'hidden'}`}>Calendar</span>
-                 </button>
-            </nav>
-
-            {/* Footer - Settings Button */}
-            <div className={`p-2 border-t border-slate-700 mt-auto flex items-center flex-shrink-0 ${isExpanded ? 'justify-start px-2 h-16' : 'justify-center py-3'}`}>
-                <button
-                    onClick={onShowSettings} 
-                    className={`w-full flex items-center p-1 rounded-md relative transition-colors ${currentView === 'settings' ? '' : 'text-gray-400 hover:text-white'} ${isExpanded ? '' : 'justify-center'}`}
-                    style={getActiveStyle('settings')}
-                    title="Settings"
-                >
-                     {activeIndicator('settings')}
-                     <ThemedAvatar 
-                        profilePicUrl={settings?.profilePicUrl}
-                        username={settings?.username}
-                        className={isExpanded ? 'w-8 h-8 ml-1' : 'w-9 h-9'}
-                     />
-                     <span className={`ml-3 text-sm ${!isExpanded && 'hidden'}`}>Settings</span>
-                </button>
-            </div>
+            <button 
+                onClick={handleSignOut} 
+                className={`p-1.5 rounded-md text-slate-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-800/20 hover:text-red-600 dark:hover:text-red-500 transition-colors ${isExpanded ? '' : 'mt-2'}`}
+                title="Sign Out"
+            >
+                <LogOut size={18} />
+            </button>
         </div>
     );
-}
+};
 
-export default Sidebar;
+const SidebarNavLink = ({ icon: Icon, label, isExpanded, isActive, isPrimary, onClick }) => {
+    const primaryClasses = "text-white dark:text-white";
+    const activeClasses = "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white";
+    const inactiveClasses = "text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700";
+
+    const baseClasses = "flex items-center p-3 rounded-lg transition-colors duration-200 w-full";
+    const expandedClasses = "space-x-3";
+    const collapsedClasses = "justify-center";
+
+    return (
+        <button
+            onClick={onClick}
+            className={`
+                ${baseClasses} 
+                ${isExpanded ? expandedClasses : collapsedClasses}
+                ${isPrimary ? primaryClasses : (isActive ? activeClasses : inactiveClasses)}
+            `}
+            style={{ 
+                backgroundColor: isPrimary ? 'var(--color-primary-hex)' : undefined,
+                '--tw-ring-color': 'var(--color-primary-hex)'
+            }}
+        >
+            <Icon size={20} className="flex-shrink-0" />
+            <span className={`font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 max-w-xs' : 'opacity-0 max-w-0'}`}>
+                {label}
+            </span>
+        </button>
+    );
+};
+
+
+export default function Sidebar({ 
+    onCreate, 
+    onShowSettings, 
+    className, 
+    settings,
+    currentView,
+    onViewChange,
+    isExpanded,
+    onToggleExpand 
+}) {
+    return (
+        <aside className={`flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 shadow-lg transition-all duration-300 ease-in-out ${isExpanded ? 'w-64' : 'w-16'} ${className}`}>
+            <SidebarHeader isExpanded={isExpanded} onToggleExpand={onToggleExpand} settings={settings} />
+            
+            <nav className="flex-1 flex flex-col p-2 space-y-1 overflow-y-auto custom-scrollbar">
+                <SidebarNavLink 
+                    icon={Plus} 
+                    label="New Entry" 
+                    onClick={onCreate}
+                    isExpanded={isExpanded}
+                    isPrimary={true}
+                />
+                <hr className="border-t border-slate-200 dark:border-slate-700 mx-2 my-2"/>
+                <SidebarNavLink 
+                    icon={BookOpen} 
+                    label="Entries" 
+                    onClick={() => onViewChange('list')}
+                    isActive={currentView === 'list'}
+                    isExpanded={isExpanded}
+                />
+                <SidebarNavLink 
+                    icon={CalendarDays} 
+                    label="Calendar" 
+                    onClick={() => onViewChange('calendar')}
+                    isActive={currentView === 'calendar'}
+                    isExpanded={isExpanded}
+                />
+            </nav>
+
+            <div className="p-2 border-t border-slate-200 dark:border-slate-700">
+                <SidebarNavLink 
+                    icon={Settings} 
+                    label="Settings" 
+                    onClick={() => onViewChange('settings')}
+                    isActive={currentView === 'settings'}
+                    isExpanded={isExpanded}
+                />
+                 <UserProfile settings={settings} isExpanded={isExpanded} />
+            </div>
+        </aside>
+    );
+}

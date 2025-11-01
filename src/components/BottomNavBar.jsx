@@ -1,64 +1,67 @@
-// src/components/BottomNavBar.jsx
 import React from 'react';
-import { Plus, List, Calendar, User } from 'lucide-react';
+import { BookOpen, CalendarDays, Plus, User, Settings } from 'lucide-react';
+import ThemedAvatar from './ThemedAvatar';
 
-function BottomNavBar({ onCreate, currentView, onViewChange, onShowSettings, settings }) {
-    
-    const navItems = [
-        { id: 'list', label: 'List', icon: List },
-        { id: 'calendar', label: 'Calendar', icon: Calendar },
-    ];
+const NavButton = ({ icon: Icon, label, onClick, isActive }) => (
+    <button
+        onClick={onClick}
+        className={`flex flex-col items-center justify-center w-full h-full pt-1 focus:outline-none transition-colors duration-200 ${isActive ? 'text-primary' : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'}`}
+        style={{ color: isActive ? 'var(--color-primary-hex)' : '' }}
+    >
+        <Icon size={22} />
+        <span className="text-xs font-medium">{label}</span>
+    </button>
+);
 
+const CreateButton = ({ onClick }) => (
+    <button
+        onClick={onClick}
+        className="w-14 h-14 rounded-full text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 -mt-6"
+        style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)'}}
+        title="New Entry"
+    >
+        <Plus size={28} className="mx-auto" />
+    </button>
+);
+
+export default function BottomNavBar({ onCreate, currentView, onViewChange, onShowSettings, settings }) {
     return (
-        // Fixed position at bottom, visible only on mobile (md:hidden)
-        <nav className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 md:hidden flex justify-around items-center h-16 z-10">
-            {/* New Entry Button */}
-            <button
-                onClick={onCreate}
-                className="flex flex-col items-center justify-center p-2 text-teal-400 hover:text-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500 rounded-lg"
-                aria-label="New Entry"
-            >
-                <Plus size={24} />
-                <span className="text-xs mt-1">New</span>
-            </button>
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-40">
+            <div className="flex justify-around items-center h-full max-w-md mx-auto">
+                <NavButton
+                    icon={BookOpen}
+                    label="Entries"
+                    onClick={() => onViewChange('list')}
+                    isActive={currentView === 'list'}
+                />
+                <NavButton
+                    icon={CalendarDays}
+                    label="Calendar"
+                    onClick={() => onViewChange('calendar')}
+                    isActive={currentView === 'calendar'}
+                />
+                
+                <CreateButton onClick={onCreate} />
 
-            {/* View Toggle Buttons */}
-            {navItems.map(item => (
-                 <button
-                    key={item.id}
-                    onClick={() => onViewChange(item.id)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                        currentView === item.id ? 'text-teal-400' : 'text-gray-400 hover:text-white' // Active state for list/calendar
-                    }`}
-                    aria-label={`Switch to ${item.label} view`}
+                <NavButton
+                    icon={Settings}
+                    label="Settings"
+                    onClick={() => onViewChange('settings')}
+                    isActive={currentView === 'settings'}
+                />
+
+                <button
+                    onClick={() => alert("Profile Clicked")}
+                    className={`flex flex-col items-center justify-center w-full h-full pt-1 focus:outline-none`}
                 >
-                    <item.icon size={24} />
-                     <span className="text-xs mt-1">{item.label}</span>
-                </button>
-            ))}
-
-            {/* Settings Button (Profile Pic) */}
-            <button
-                onClick={onShowSettings} // Now triggers setCurrentView('settings')
-                 className={`p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                    currentView === 'settings' ? 'ring-2 ring-teal-400' : 'text-gray-400' // Active state for settings
-                 }`}
-                aria-label="Settings"
-            >
-                {settings.profilePicUrl ? (
-                    <img src={settings.profilePicUrl}
-                         alt="Profile"
-                         className="w-8 h-8 rounded-full object-cover"
-                         onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/32x32/4a5568/a0aec0?text=C"; }}
+                    <ThemedAvatar
+                        profilePicUrl={settings?.profilePicUrl}
+                        username={settings?.username}
+                        className="w-7 h-7"
                     />
-                ) : (
-                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
-                        <User size={18} />
-                    </div>
-                )}
-            </button>
-        </nav>
+                    <span className="text-xs font-medium text-slate-500 dark:text-gray-400">Me</span>
+                </button>
+            </div>
+        </div>
     );
 }
-
-export default BottomNavBar;

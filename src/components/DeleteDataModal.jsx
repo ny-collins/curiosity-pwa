@@ -1,78 +1,76 @@
-// src/components/DeleteDataModal.jsx
 import React, { useState } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
+import LoadingSpinner from './LoadingSpinner';
 
-const CONFIRMATION_PHRASE = "delete all my data"; // The exact phrase to type
+export default function DeleteDataModal({ onClose, onConfirmDelete }) {
+    const [isLoading, setIsLoading] = useState(false);
+    const [confirmText, setConfirmText] = useState("");
 
-function DeleteDataModal({ onClose, onConfirmDelete }) {
-    const [confirmationText, setConfirmationText] = useState("");
+    const canDelete = confirmText === "DELETE";
 
-    const isMatch = confirmationText === CONFIRMATION_PHRASE;
-
-    const handleSubmit = () => {
-        if (isMatch) {
+    const handleConfirm = () => {
+        if (canDelete) {
+            setIsLoading(true);
             onConfirmDelete();
-            onClose();
         }
     };
 
     return (
-        <div
-            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 transition-opacity duration-300"
-            onClick={onClose}
-        >
-            <div
-                className="bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transform transition-all duration-300 scale-100 opacity-100"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-red-500 flex items-center">
-                        <AlertTriangle size={24} className="mr-2"/>
-                        Are you sure?
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="p-1 rounded-full text-gray-500 hover:text-white hover:bg-slate-700 focus:ring-2 focus:ring-teal-500"
-                    >
-                        <X size={20} />
-                    </button>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 relative animate-slide-in-up">
+                
+                <button 
+                    onClick={onClose} 
+                    className="absolute top-3 right-3 p-1 rounded-full text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                    <X size={20} />
+                </button>
+
+                <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <AlertTriangle size={24} className="text-red-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Delete All Data</h2>
+                        <p className="text-sm text-slate-600 dark:text-gray-400">This action is irreversible.</p>
+                    </div>
                 </div>
 
-                {/* Warning Content */}
-                <div className="space-y-4">
-                    <p className="text-gray-300">
-                        This action is **irreversible**. All your entries, reminders, and settings will be permanently
-                        deleted from the cloud. This cannot be undone.
+                <div className="mt-4 space-y-3">
+                    <p className="text-sm text-slate-700 dark:text-gray-300">
+                        You are about to permanently delete all your entries, reminders, and settings from the cloud. This cannot be undone.
                     </p>
-                    <p className="text-gray-300">
-                        To confirm, please type the following phrase exactly:
+                    
+                    <p className="text-sm text-slate-700 dark:text-gray-300">
+                        To confirm, please type <strong>DELETE</strong> in the box below.
                     </p>
-                    <p className="text-center font-mono text-teal-400 bg-slate-900 rounded-md p-2">
-                        {CONFIRMATION_PHRASE}
-                    </p>
-                    <input
+
+                    <input 
                         type="text"
-                        value={confirmationText}
-                        onChange={(e) => setConfirmationText(e.target.value)}
-                        className="w-full bg-slate-700 text-white rounded-md border-slate-600 focus:border-red-500 focus:ring-red-500 p-2"
-                        placeholder="Type to confirm..."
+                        value={confirmText}
+                        onChange={(e) => setConfirmText(e.target.value)}
+                        className="form-input w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md border-slate-300 dark:border-slate-600"
+                        placeholder="DELETE"
                     />
                 </div>
 
-                {/* Delete Button */}
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end space-x-3">
                     <button
-                        onClick={handleSubmit}
-                        disabled={!isMatch}
-                        className="w-full bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 disabled:bg-slate-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        onClick={onClose}
+                        className="py-2 px-4 rounded-md text-sm font-medium bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-gray-200 hover:bg-slate-300 dark:hover:bg-slate-600 focus:outline-none focus:ring-2"
+                        style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
                     >
-                        I understand the consequences, delete all my data
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleConfirm}
+                        disabled={!canDelete || isLoading}
+                        className="py-2 px-4 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-red-400 dark:disabled:bg-red-800 disabled:cursor-not-allowed"
+                    >
+                        {isLoading ? <LoadingSpinner size={20} /> : "Delete Everything"}
                     </button>
                 </div>
             </div>
         </div>
     );
 }
-
-export default DeleteDataModal;
