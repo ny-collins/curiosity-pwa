@@ -2,11 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
-import { AppProvider } from './context/AppContext.js'; // Import the provider
+import { AppProvider } from './context/AppContext.jsx';
+import NotificationProvider from './components/NotificationProvider.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AppProvider>
+      <NotificationProvider />
       <App />
     </AppProvider>
   </React.StrictMode>,

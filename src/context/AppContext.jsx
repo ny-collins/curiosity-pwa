@@ -1,21 +1,26 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '../hooks.js';
 import { db, auth, app, functions, storage, appId, GoogleAuthProvider } from '../firebaseConfig.js';
-import { PIN_STORAGE_KEY } from '../constants.js'; // Import from constants
+import { PIN_STORAGE_KEY } from '../constants.js';
 import { signInAnonymously, onAuthStateChanged, linkWithPopup, signInWithPopup } from "firebase/auth";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import {
     doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
     collection, query, serverTimestamp, getDocs, where, writeBatch
 } from "firebase/firestore";
-import { dateToKey, hashPin } from './utils.js'; // Import hashPin
+import { dateToKey, hashPin } from '../utils.js';
 import JSZip from 'jszip';
 import { jsPDF } from 'jspdf';
+import { useToaster } from '../components/NotificationProvider.jsx'; // 1. Import the toaster
 
+// --- Create the Context ---
 const AppContext = createContext();
 
+// --- Create the Provider Component ---
 export function AppProvider({ children }) {
-    // --- State ---
+    const toast = useToaster(); // 2. Get the toast function
+
+    // --- All State from App.jsx ---
     const { 
         themeMode, setThemeMode, 
         themeColor, setThemeColor,
@@ -23,10 +28,11 @@ export function AppProvider({ children }) {
         fontSize, setFontSize 
     } = useTheme();
     
+    // ... (All other state variables remain the same) ...
     const [isLoading, setIsLoading] = useState(true);
     const [checkingPin, setCheckingPin] = useState(true);
     const [isLocked, setIsLocked] = useState(false);
-    const [appPin, setAppPin] = useState(null); // This will now store the HASH
+    const [appPin, setAppPin] = useState(null);
     const [entries, setEntries] = useState([]);
     const [reminders, setReminders] = useState([]);
     const [activeEntryId, setActiveEntryId] = useState(null);
@@ -45,18 +51,16 @@ export function AppProvider({ children }) {
     const [filterType, setFilterType] = useState('All');
     const [installPromptEvent, setInstallPromptEvent] = useState(null);
     const [isAppInstalled, setIsAppInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches);
-    
     const [isEditorDirty, setIsEditorDirty] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [pendingView, setPendingView] = useState(null);
     const [forceEditorSave, setForceEditorSave] = useState(false);
-    
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [newEntryType, setNewEntryType] = useState('note');
     
     const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
-    // --- Effects ---
+    // --- All useEffects ... (no changes needed in useEffects) ---
 
     useEffect(() => {
         if (settings) {
@@ -75,10 +79,9 @@ export function AppProvider({ children }) {
              console.warn("VAPID public key is not set in App.jsx. Notifications will fail.");
         }
         try {
-            // Read the stored HASH (or old plaintext pin)
             const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
             if (storedPin) { 
-                setAppPin(storedPin); // Store the hash
+                setAppPin(storedPin); 
                 setIsLocked(true);
             }
             else { 
@@ -130,7 +133,7 @@ export function AppProvider({ children }) {
             unsubscribeOnMessage = onMessage(messaging, (payload) => {
                 console.log("Message received in foreground: ", payload);
                 const notification = payload.notification;
-                alert(`Reminder: ${notification.body}`);
+                toast.success(`Reminder: ${notification.body}`); // Use toast
             });
         } catch (error) {
             console.error("Error setting up foreground message handler:", error);
@@ -138,7 +141,7 @@ export function AppProvider({ children }) {
         return () => {
             if (unsubscribeOnMessage) unsubscribeOnMessage();
         };
-    }, [app]);
+    }, [app, toast]);
 
     useEffect(() => {
         if (!settingsDocRef) return;
@@ -164,9 +167,12 @@ export function AppProvider({ children }) {
                 setSettings(defaultSettings);
                 setShowOnboarding(true);
             }
-        }, (error) => console.error("Settings load error:", error));
+        }, (error) => {
+            console.error("Settings load error:", error);
+            toast.error("Could not load settings.");
+        });
         return () => unsubscribe();
-    }, [settingsDocRef, currentUser, isAnonymous]);
+    }, [settingsDocRef, currentUser, isAnonymous, setThemeColor, setThemeFont, setThemeMode, setFontSize, toast]);
 
     const [entriesLoaded, setEntriesLoaded] = useState(false);
     const [remindersLoaded, setRemindersLoaded] = useState(false);
@@ -187,9 +193,13 @@ export function AppProvider({ children }) {
             }));
             setEntries(entriesData);
             setEntriesLoaded(true);
-        }, (error) => { console.error("Entry Snapshot error:", error); setEntriesLoaded(true); });
+        }, (error) => { 
+            console.error("Entry Snapshot error:", error); 
+            toast.error("Could not load entries.");
+            setEntriesLoaded(true); 
+        });
         return () => unsubscribe();
-    }, [userId]);
+    }, [userId, toast]);
 
     useEffect(() => {
         if (!userId || !db) {
@@ -205,9 +215,13 @@ export function AppProvider({ children }) {
              remindersData.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
             setReminders(remindersData);
             setRemindersLoaded(true);
-        }, (error) => { console.error("Reminder Snapshot error:", error); setRemindersLoaded(true); });
+        }, (error) => { 
+            console.error("Reminder Snapshot error:", error); 
+            toast.error("Could not load reminders.");
+            setRemindersLoaded(true); 
+        });
         return () => unsubscribe();
-    }, [userId, checkingPin]);
+    }, [userId, checkingPin, toast]);
 
     useEffect(() => {
         if (!checkingPin && entriesLoaded && remindersLoaded && settings) {
@@ -215,8 +229,7 @@ export function AppProvider({ children }) {
         }
     }, [checkingPin, entriesLoaded, remindersLoaded, settings]);
 
-    // --- Memos ---
-    
+    // --- Memos (no changes) ---
     const availableYears = useMemo(() => {
         const years = new Set(entries
             .map(entry => entry.createdAtDate?.getFullYear())
@@ -232,32 +245,25 @@ export function AppProvider({ children }) {
 
     const filteredEntries = useMemo(() => {
         const lowerSearchTerm = searchTerm.toLowerCase();
-        
         return entries
             .filter(entry => {
                 const typeMatch = filterType === 'All' || (entry.type || 'note') === filterType;
                 if (!typeMatch) return false;
-
                 const searchMatch = (
                     (entry.title?.toLowerCase() || '').includes(lowerSearchTerm) ||
                     (entry.content?.toLowerCase() || '').includes(lowerSearchTerm)
                 );
                 if (!searchMatch) return false;
-
                 if (filterYear === 'All') {
                     return (filterTag === 'All' || (entry.tags && entry.tags.includes(filterTag)));
                 }
-                
                 const entryYear = entry.createdAtDate?.getFullYear();
                 if (entryYear !== parseInt(filterYear, 10)) return false;
-
                 if (filterMonth === 'All') {
                     return (filterTag === 'All' || (entry.tags && entry.tags.includes(filterTag)));
                 }
-
                 const entryMonth = entry.createdAtDate?.getMonth() + 1;
                 if(entryMonth !== parseInt(filterMonth, 10)) return false;
-                
                 return (filterTag === 'All' || (entry.tags && entry.tags.includes(filterTag)));
             })
             .sort((a, b) => {
@@ -271,7 +277,7 @@ export function AppProvider({ children }) {
         return entries.find(entry => entry.id === activeEntryId);
     }, [entries, activeEntryId]);
 
-    // --- Handlers (wrapped in useCallback) ---
+    // --- Handlers (with try/catch and toasts) ---
 
     const getEntriesCollection = useCallback(() => collection(db, `artifacts/${appId}/users/${userId}/entries`), [userId]);
     const getEntryDoc = useCallback((id) => doc(db, `artifacts/${appId}/users/${userId}/entries`, id), [userId]);
@@ -352,7 +358,10 @@ export function AppProvider({ children }) {
     }, [handleModalDiscard]);
 
     const handleSaveNewEntry = useCallback(async (data) => {
-        if (!userId) { console.error("Cannot save new entry, no user."); return; }
+        if (!userId) { 
+            toast.error("You must be logged in to save.");
+            return;
+        }
         try {
             const newEntryData = { 
                 ...data, 
@@ -361,32 +370,50 @@ export function AppProvider({ children }) {
                 updatedAt: serverTimestamp() 
             };
             await addDoc(getEntriesCollection(), newEntryData);
+            toast.success("Entry saved!");
             handleCloseEditor();
             if (!pendingView) {
                 setCurrentView('list');
             }
-        } catch (error) { console.error("Error saving new entry:", error); }
-    }, [userId, getEntriesCollection, handleCloseEditor, pendingView]);
+        } catch (error) { 
+            console.error("Error saving new entry:", error); 
+            toast.error("Failed to save entry.");
+        }
+    }, [userId, getEntriesCollection, handleCloseEditor, pendingView, toast]);
     
     const handleUpdateEntry = useCallback(async (id, updates) => {
-        if (!userId) return;
+        if (!userId) {
+            toast.error("You must be logged in to update.");
+            return;
+        }
         try {
             await updateDoc(getEntryDoc(id), { 
                 ...updates, 
                 type: updates.type || 'note',
                 updatedAt: serverTimestamp() 
             });
+            toast.success("Entry updated!");
         }
-        catch (error) { console.error("Update error:", error); }
-    }, [userId, getEntryDoc]);
+        catch (error) { 
+            console.error("Update error:", error); 
+            toast.error("Failed to update entry.");
+        }
+    }, [userId, getEntryDoc, toast]);
     
      const handleDeleteEntry = useCallback(async (id) => {
-        if (!userId) return;
+        if (!userId) {
+            toast.error("You must be logged in to delete.");
+            return;
+        }
         try {
             if (activeEntryId === id) { setActiveEntryId(null); }
             await deleteDoc(getEntryDoc(id));
-        } catch (error) { console.error("Delete error:", error); }
-    }, [userId, activeEntryId, getEntryDoc]);
+            toast.success("Entry deleted.");
+        } catch (error) { 
+            console.error("Delete error:", error); 
+            toast.error("Failed to delete entry.");
+        }
+    }, [userId, activeEntryId, getEntryDoc, toast]);
     
     const handleAddReminder = useCallback(async (text, date) => {
         if (!userId || !text || !date) return;
@@ -395,14 +422,24 @@ export function AppProvider({ children }) {
             if (!dateString) throw new Error("Invalid date selected");
             const newReminder = { text: text, date: dateString, createdAt: serverTimestamp() };
             await addDoc(getRemindersCollection(), newReminder);
-        } catch (error) { console.error("Error adding reminder:", error); }
-    }, [userId, getRemindersCollection]);
+            toast.success("Reminder set!");
+        } catch (error) { 
+            console.error("Error adding reminder:", error); 
+            toast.error("Failed to set reminder.");
+        }
+    }, [userId, getRemindersCollection, toast]);
     
     const handleDeleteReminder = useCallback(async (id) => {
          if (!userId) return;
-        try { await deleteDoc(getReminderDoc(id)); }
-        catch (error) { console.error("Error deleting reminder:", error); }
-    }, [userId, getReminderDoc]);
+        try { 
+            await deleteDoc(getReminderDoc(id)); 
+            toast.success("Reminder deleted.");
+        }
+        catch (error) { 
+            console.error("Error deleting reminder:", error); 
+            toast.error("Failed to delete reminder.");
+        }
+    }, [userId, getReminderDoc, toast]);
     
     const handleSaveSettings = useCallback(async ({ settings: newSettings, pin: newPin }) => {
          try {
@@ -417,25 +454,30 @@ export function AppProvider({ children }) {
                  await setDoc(settingsDocRef, fullSettings, { merge: true });
                  setSettings(prevSettings => ({...prevSettings, ...fullSettings}));
              }
+             toast.success("Settings saved!");
          }
-        catch (error) { console.error("Save settings error:", error); }
+        catch (error) { 
+            console.error("Save settings error:", error); 
+            toast.error("Failed to save settings.");
+        }
         
-        // --- PIN HASHING LOGIC ---
         if (newPin && newPin.length > 0) {
             try {
                 const hashedPin = await hashPin(newPin);
                 localStorage.setItem(PIN_STORAGE_KEY, hashedPin);
                 setAppPin(hashedPin);
+                toast.success("PIN updated!");
             } catch (error) {
                 console.error("Error hashing pin:", error);
-                alert("Error setting new PIN. Please try again.");
+                toast.error("Error setting new PIN.");
             }
-        } else if (newPin === '') { // Explicitly clearing the pin
+        } else if (newPin === '') { 
             localStorage.removeItem(PIN_STORAGE_KEY);
             setAppPin(null);
             setIsLocked(false);
+            toast.success("PIN removed.");
         }
-    }, [settingsDocRef, themeMode, themeColor, themeFont, fontSize]);
+    }, [settingsDocRef, themeMode, themeColor, themeFont, fontSize, toast, setIsLocked]);
 
     const handleOnboardingComplete = useCallback(async (username, themeColor) => {
         if (!settingsDocRef) return;
@@ -455,13 +497,14 @@ export function AppProvider({ children }) {
             setThemeMode(newSettings.themeMode);
             setFontSize(newSettings.fontSize);
             setShowOnboarding(false);
+            toast.success(`Welcome, ${username}!`);
         } catch (error) {
             console.error("Error saving onboarding settings:", error);
-            alert("Could not save settings. Please try again.");
+            toast.error("Could not save settings.");
         }
-    }, [settingsDocRef, currentUser, setThemeColor, setThemeFont, setThemeMode, setFontSize]);
+    }, [settingsDocRef, currentUser, setThemeColor, setThemeFont, setThemeMode, setFontSize, toast]);
     
-    const handleToggleSidebar = useCallback(() => setIsSidebarExpanded(!isSidebarExpanded), []);
+    const handleToggleSidebar = useCallback(() => setIsSidebarExpanded(!isSidebarExpanded), [isSidebarExpanded]);
     
     const handleFilterYearChange = useCallback((year) => {
         setFilterYear(year);
@@ -491,7 +534,7 @@ export function AppProvider({ children }) {
     }, []);
     
     const handleExportData = useCallback(async (format) => {
-        console.log(`Exporting data as ${format}...`);
+        toast.success(`Exporting as ${format.toUpperCase()}...`);
         const exportDate = new Date().toISOString().split('T')[0];
         const filename = `curiosity_backup_${exportDate}`;
         const dataToExport = {
@@ -572,13 +615,13 @@ ${entry.content || ''}
             }
         } catch (error) {
             console.error(`Error exporting data as ${format}:`, error);
-            alert(`An error occurred while exporting your data as ${format}.`);
+            toast.error(`Failed to export as ${format.toUpperCase()}.`);
         }
-    }, [settings, entries, reminders, downloadFile]);
+    }, [settings, entries, reminders, downloadFile, toast]);
     
     const handleInstallApp = useCallback(async () => {
         if (!installPromptEvent) {
-             alert("Installation is not available on this browser or has already been prompted.");
+             toast.error("App cannot be installed right now.");
              return;
         }
         try {
@@ -588,8 +631,11 @@ ${entry.content || ''}
                 setInstallPromptEvent(null);
                 setIsAppInstalled(true);
             }
-        } catch (error) { console.error("Error showing install prompt:", error); }
-    }, [installPromptEvent]);
+        } catch (error) { 
+            console.error("Error showing install prompt:", error); 
+            toast.error("App installation failed.");
+        }
+    }, [installPromptEvent, toast]);
 
     const saveTokenToFirestore = useCallback(async (token) => {
         if (!userId || !db || !token) { console.error("Cannot save token, invalid inputs"); return; }
@@ -601,12 +647,15 @@ ${entry.content || ''}
                 await addDoc(subscriptionsRef, { fcmToken: token, createdAt: serverTimestamp() });
                 console.log("FCM token saved to Firestore.");
             }
-        } catch (error) { console.error("Error saving FCM token to Firestore:", error); }
-    }, [userId, getSubscriptionsCollection]);
+        } catch (error) { 
+            console.error("Error saving FCM token to Firestore:", error); 
+            toast.error("Could not save notification token.");
+        }
+    }, [userId, getSubscriptionsCollection, toast]);
 
     const handleRequestNotificationPermission = useCallback(async () => {
          if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-            alert('Sorry, push notifications are not supported by your browser.');
+            toast.error('Push notifications are not supported by this browser.');
             return null;
         }
          if (!app) { console.error("Firebase app not initialized."); return null; }
@@ -617,17 +666,18 @@ ${entry.content || ''}
                 const fcmToken = await getToken(messaging, { vapidKey: VAPID_PUBLIC_KEY });
                 if (fcmToken) {
                     await saveTokenToFirestore(fcmToken);
+                    toast.success("Notifications enabled!");
                 }
             } else {
-                 alert('Notification permission was denied. You can enable it in your browser settings.');
+                 toast.error('Notification permission was denied.');
             }
             return permission;
         } catch (error) {
              console.error('Error getting FCM token:', error);
-             alert('An error occurred while enabling notifications. Check browser settings.');
+             toast.error('Error enabling notifications.');
             return Notification?.permission || 'default';
         }
-    }, [app, VAPID_PUBLIC_KEY, saveTokenToFirestore]);
+    }, [app, VAPID_PUBLIC_KEY, saveTokenToFirestore, toast]);
     
     const handleDisableNotifications = useCallback(async () => {
          if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
@@ -648,17 +698,17 @@ ${entry.content || ''}
                     querySnapshot.forEach(doc => batch.delete(doc.ref));
                     await batch.commit();
                 }
-                 alert("Notifications disabled for this device.");
+                 toast.success("Notifications disabled.");
                  return 'default';
             } else {
-                 alert("Could not disable notifications. Please try again.");
+                 toast.error("Could not disable notifications.");
             }
         } catch (error) {
              console.error("Error disabling notifications:", error);
-             alert("An error occurred while disabling notifications.");
+             toast.error("Error disabling notifications.");
         }
          return Notification?.permission || 'default';
-    }, [app, userId, getSubscriptionsCollection]);
+    }, [app, userId, getSubscriptionsCollection, toast]);
 
     const handleLinkAccount = useCallback(async () => {
         if (!auth.currentUser || !auth.currentUser.isAnonymous) return;
@@ -666,7 +716,7 @@ ${entry.content || ''}
         try {
             const result = await linkWithPopup(auth.currentUser, provider);
             const user = result.user;
-            alert(`Account successfully linked to ${user.email}!`);
+            toast.success(`Account linked to ${user.email}!`);
             if (settingsDocRef) {
                 const updates = {};
                 if ((!settings.username || settings.username === 'Collins') && user.displayName) {
@@ -682,10 +732,10 @@ ${entry.content || ''}
         } catch (error) {
             console.error("Error linking account:", error);
             if (error.code === 'auth/credential-already-in-use') {
-                 alert("Error: This Google account is already linked to another user. Please sign in directly.");
-            } else { alert("An error occurred while linking the account."); }
+                 toast.error("This Google account is already in use.");
+            } else { toast.error("Error linking account."); }
         }
-    }, [settings, settingsDocRef]);
+    }, [settings, settingsDocRef, toast]);
     
     const handleForgotPin = useCallback(async () => {
          if (!app) return;
@@ -694,22 +744,18 @@ ${entry.content || ''}
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
             if (user && !user.isAnonymous) {
-                 alert("Identity verified. Removing local PIN.");
+                 toast.success("Identity verified. PIN removed.");
                 localStorage.removeItem(PIN_STORAGE_KEY);
                 setAppPin(null);
                 setIsLocked(false);
             } else {
-                 alert("Could not verify a permanent account. Please link your account in Settings first.");
+                 toast.error("Please link your account in Settings first.");
             }
          } catch (error) {
               console.error("Error during PIN reset sign-in:", error);
-              if (error.code === 'auth/account-exists-with-different-credential') {
-                   alert("Error: An account exists, but re-authentication failed. Try again.");
-              } else {
-                   alert("Could not verify your identity. Please ensure you have linked your account via Settings.");
-              }
+              toast.error("Could not verify your identity.");
          }
-    }, [app]);
+    }, [app, toast, setIsLocked]);
     
     // --- Value to Provide ---
     
@@ -736,7 +782,9 @@ ${entry.content || ''}
         handleSaveSettings, handleOnboardingComplete, handleCloseEditor, handleToggleSidebar,
         handleFilterYearChange, handleClearFilters, handleExportData, handleInstallApp,
         handleRequestNotificationPermission, handleDisableNotifications, handleLinkAccount,
-        handleForgotPin
+        handleForgotPin,
+        
+        toast // Expose the toast function
     };
 
     return (

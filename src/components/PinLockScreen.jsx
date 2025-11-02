@@ -124,3 +124,5 @@ function PinLockScreen({ onUnlock, onForgotPin }) {
         </div>
     );
 }
+
+export default PinLockScreen;

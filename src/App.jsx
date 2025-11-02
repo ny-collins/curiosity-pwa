@@ -14,7 +14,7 @@ import SplashScreen from './components/SplashScreen';
 import Logo from './components/Logo';
 import UnsavedChangesModal from './components/UnsavedChangesModal';
 import OnboardingModal from './components/OnboardingModal';
-import { ENTRY_TYPES } from './constants.js';
+// Removed unused ENTRY_TYPES
 
 const viewVariants = {
     initial: { opacity: 0, x: 10 },
@@ -57,7 +57,6 @@ export default function App() {
     
     if (isLocked) {
         return <PinLockScreen
-                  correctPin={appPin}
                   onUnlock={() => setIsLocked(false)}
                   onForgotPin={handleForgotPin}
                />;
