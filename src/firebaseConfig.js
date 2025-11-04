@@ -4,6 +4,7 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 import { getAnalytics } from "firebase/analytics";
+import { getMessaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -23,13 +24,14 @@ let db;
 let storage;
 let functions;
 let analytics;
+let messaging;
 
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   
   db = initializeFirestore(app, {
-      localCache: memoryLocalCache({ cacheSizeBytes: 100 * 1024 * 1024 }) // 100MB cache
+      localCache: memoryLocalCache({ cacheSizeBytes: 100 * 1024 * 1024 })
   });
   
   storage = getStorage(app);
@@ -37,6 +39,7 @@ try {
   
   if (typeof window !== 'undefined') {
     analytics = getAnalytics(app);
+    messaging = getMessaging(app);
   }
 
 } catch (error) {
@@ -49,8 +52,9 @@ try {
     functions = getFunctions(app);
     if (typeof window !== 'undefined') {
       analytics = getAnalytics(app);
+      messaging = getMessaging(app);
     }
   }
 }
 
-export { db, auth, app, functions, storage, analytics, GoogleAuthProvider };
+export { db as firestoreDb, auth, app, functions, storage, analytics, messaging, GoogleAuthProvider };

@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper } from 'lucide-react';
+import { X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper, Loader2 } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { functions, storage, appId } from '../firebaseConfig'; 
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
 import { useAppContext } from '../context/AppContext';
 import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
-import LoadingSpinner from './LoadingSpinner';
 import ExportModal from './ExportModal';
 import { THEME_COLORS, FONT_OPTIONS, THEME_MODES, FONT_SIZES, LIMITS } from '../constants.js';
 
@@ -19,13 +18,14 @@ function SettingsPage() {
         themeMode, setThemeMode,
         themeColor, setThemeColor,
         themeFont, setThemeFont,
-        fontSize, setFontSize
+        fontSize, setFontSize,
+        toast 
     } = useAppContext();
 
     const [username, setUsername] = useState('');
     const [profilePicUrl, setProfilePicUrl] = useState('');
     const [enableLock, setEnableLock] = useState(!!appPin);
-    const [pin, setPin] = useState(''); // This is for the NEW pin input, defaults to empty
+    const [pin, setPin] = useState('');
     const [notificationStatus, setNotificationStatus] = useState('default');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false); 
@@ -41,14 +41,14 @@ function SettingsPage() {
 
     useEffect(() => {
         if(settings) {
-            setUsername(settings.username || (currentUser && !isAnonymous ? currentUser.displayName : 'Collins'));
+            setUsername(settings.username || (currentUser && !isAnonymous ? currentUser.displayName : ''));
             setProfilePicUrl(settings.profilePicUrl || (currentUser && !isAnonymous ? currentUser.photoURL : ''));
             setActiveThemeMode(settings.themeMode || 'system');
             setActiveThemeColor(settings.themeColor || '#14b8a6');
             setActiveFont(settings.fontFamily || "'Inter', sans-serif");
             setActiveFontSize(settings.fontSize || '16px');
         }
-        setEnableLock(!!appPin); // Sync lock toggle with the actual pin state
+        setEnableLock(!!appPin);
     }, [settings, currentUser, isAnonymous, appPin]);
 
     useEffect(() => {
@@ -83,19 +83,22 @@ function SettingsPage() {
     };
 
     const handleSave = () => {
-        let pinToSave = null; // Default: no change
+        let pinToSave = null;
         if (enableLock) {
-            if (pin) { // User typed a new pin
+            if (pin) {
+                if (pin.length !== LIMITS.PIN_LENGTH) {
+                    toast.error(`PIN must be ${LIMITS.PIN_LENGTH} digits.`);
+                    return;
+                }
                 pinToSave = pin;
             } else if (appPin) {
-                pinToSave = null; // Pin enabled, but no new pin typed, so no change
+                pinToSave = null;
             } else {
-                // Should not happen if UI is correct, but handles edge case
-                alert("Please enter a 4-digit PIN.");
+                toast.error(`Please enter a ${LIMITS.PIN_LENGTH}-digit PIN to enable the lock.`);
                 return;
             }
         } else {
-            pinToSave = ''; // User disabled the pin, send empty string to clear it
+            pinToSave = '';
         }
 
         handleSaveSettings({
@@ -107,10 +110,10 @@ function SettingsPage() {
                 fontFamily: activeFont,
                 fontSize: activeFontSize,
             },
-            pin: pinToSave // Pass the plaintext pin or '' to clear, or null to ignore
+            pin: pinToSave
         });
-        setPin(''); // Clear the pin input field
-        alert("Settings Saved!");
+        setPin('');
+        toast.success("Settings Saved!");
     };
     
     const handleNotificationClick = async () => {
@@ -180,23 +183,26 @@ function SettingsPage() {
             const deleteAllUserData = httpsCallable(functions, 'deleteAllUserData');
             const result = await deleteAllUserData({ appId: appId });
             console.log("Cloud function result:", result.data);
-            alert("All your data has been permanently deleted.");
+            toast.success("All your data has been permanently deleted.");
             window.location.reload(); 
         } catch (error) {
             console.error("Error calling deleteAllUserData:", error);
-            alert(`An error occurred: ${error.message}`);
+            toast.error(`An error occurred: ${error.message}`);
             setIsDeleting(false);
         }
     };
     
     const handleImageUpload = async (event) => {
         const file = event.target.files[0];
-        if (!file || !currentUser || isAnonymous) {
-             if(isAnonymous) alert("Please link your account to enable image uploads.");
+        if (!file || !currentUser) {
              return;
         }
+        if (isAnonymous) {
+            toast.error("Please link your account to enable image uploads.");
+            return;
+        }
         if (file.size > LIMITS.MAX_FILE_SIZE) { 
-             alert(`File is too large. Please select an image under ${LIMITS.MAX_FILE_SIZE / 1024 / 1024}MB.`);
+             toast.error(`File is too large. Please select an image under ${LIMITS.MAX_FILE_SIZE / 1024 / 1024}MB.`);
              return;
         }
 
@@ -222,11 +228,12 @@ function SettingsPage() {
                     fontFamily: activeFont,
                     fontSize: activeFontSize
                 },
-                pin: null // No pin change on image upload
+                pin: null
             });
+            toast.success("Profile picture updated!");
         } catch (error) {
             console.error("Error uploading profile picture:", error);
-            alert("Failed to upload image. Please try again.");
+            toast.error("Failed to upload image. Please try again.");
         } finally {
             setIsUploading(false);
         }
@@ -238,15 +245,15 @@ function SettingsPage() {
         <>
             <div className="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center space-x-2 flex-shrink-0 bg-white dark:bg-slate-900 z-10">
-                    <button onClick={() => handleViewChange('list')} className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden focus:outline-none focus:ring-2" style={{'--tw-ring-color': 'var(--color-primary-hex)'}} aria-label="Back to list" title="Back to list">
+                    <button onClick={() => handleViewChange('dashboard')} className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden focus:outline-none focus:ring-2" style={{'--tw-ring-color': 'var(--color-primary-hex)'}} aria-label="Back to dashboard" title="Back to dashboard">
                         <ArrowLeft size={22} />
                     </button>
-                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Settings</h2>
+                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>Settings</h2>
                     <div className="flex items-center space-x-1 flex-shrink-0">
                         <button
                             onClick={handleSave}
                             disabled={isSaveDisabled}
-                            className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 disabled:bg-slate-500 disabled:cursor-not-allowed"
+                            className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed"
                             style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
                         >
                             {isDeleting ? "Deleting..." : isUploading ? "Saving..." : "Save"}
@@ -255,7 +262,7 @@ function SettingsPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-800">
-                    <div className="max-w-3xl w-full space-y-8"> 
+                    <div className="w-full space-y-8"> 
                         
                         <div className="space-y-2">
                             <h3 className="text-lg font-medium text-slate-900 dark:text-white">Account & Sync</h3>
@@ -273,7 +280,7 @@ function SettingsPage() {
                                             onClick={() => handleThemeModeChange(mode.value)}
                                             className={`flex-1 flex justify-center items-center space-x-2 py-2 px-3 rounded-md text-sm transition-colors ${
                                                 activeThemeMode === mode.value
-                                                    ? 'bg-white dark:bg-slate-800 shadow-sm text-primary font-semibold'
+                                                    ? 'bg-white dark:bg-slate-900 shadow-sm text-primary font-semibold'
                                                     : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                             }`}
                                             style={{ color: activeThemeMode === mode.value ? 'var(--color-primary-hex)' : '' }}
@@ -330,7 +337,7 @@ function SettingsPage() {
                                             onClick={() => handleFontSizeChange(size.value)}
                                             className={`flex-1 flex justify-center items-center space-x-2 py-2 px-3 rounded-md text-sm transition-colors ${
                                                 activeFontSize === size.value
-                                                    ? 'bg-white dark:bg-slate-800 shadow-sm text-primary font-semibold'
+                                                    ? 'bg-white dark:bg-slate-900 shadow-sm text-primary font-semibold'
                                                     : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                             }`}
                                             style={{ color: activeFontSize === size.value ? 'var(--color-primary-hex)' : '' }}
@@ -367,7 +374,7 @@ function SettingsPage() {
                                     className="w-full flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white font-semibold py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
                                   >
-                                    <Upload size={16} />
+                                    {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                                     <span>{isUploading ? "Uploading..." : "Upload from Device"}</span>
                                   </button>
                                    {isAnonymous && <p className="text-xs text-amber-500 dark:text-amber-400 mt-2">Please link your account to enable image uploads.</p>}
@@ -418,7 +425,7 @@ function SettingsPage() {
                              <div className="flex items-center justify-between">
                                 <div>
                                     <h4 className="font-semibold text-slate-800 dark:text-gray-200">Export All Data</h4>
-                                    <p className="text-xs text-slate-600 dark:text-gray-400">Download a JSON file of all your entries and reminders.</p>
+                                    <p className="text-xs text-slate-600 dark:text-gray-400">Download a backup of all your entries and reminders.</p>
                                 </div>
                                 <button
                                     onClick={() => setShowExportModal(true)}
@@ -463,7 +470,7 @@ function SettingsPage() {
             {isUploading && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-lg p-6 flex flex-col items-center space-y-4">
-                        <LoadingSpinner />
+                        <Loader2 className="animate-spin h-10 w-10 text-primary" style={{color: 'var(--color-primary-hex)'}} />
                         <p className="text-slate-900 dark:text-white">Uploading image...</p>
                     </div>
                 </div>

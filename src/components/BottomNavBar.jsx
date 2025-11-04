@@ -1,95 +1,58 @@
 import React from 'react';
-import { Home, BookOpen, Calendar, Plus, Settings, User } from 'lucide-react';
+import { LayoutDashboard, Book, Target, Shield, Bell } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import ThemedAvatar from './ThemedAvatar';
 import CreateEntryMenu from './CreateEntryMenu';
 
-function NavButton({ icon: Icon, label, onClick, isActive }) {
+const NavItem = ({ icon, label, isActive, onClick }) => {
+    const Icon = icon;
+    const activeClass = isActive ? 'text-primary' : 'text-slate-500 dark:text-gray-400';
+    
     return (
         <button
             onClick={onClick}
-            className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${
-                isActive ? 'text-primary' : 'text-slate-500 dark:text-gray-400 hover:text-primary-dark'
-            }`}
+            className={`flex flex-col items-center justify-center space-y-1 w-full ${activeClass}`}
             style={{ color: isActive ? 'var(--color-primary-hex)' : '' }}
         >
-            <Icon size={24} />
-            <span className="text-xs font-medium mt-1">{label}</span>
+            <Icon size={22} />
+            <span className="text-xs font-medium">{label}</span>
         </button>
     );
-}
+};
 
 export default function BottomNavBar() {
-    const {
-        settings,
-        currentView,
-        handleCreateEntry,
-        handleViewChange
-    } = useAppContext();
-
-    const getUsername = () => {
-        if (!settings) return 'User';
-        return settings.username || 'User';
-    };
-
-    const getProfilePicUrl = () => {
-        if (!settings) return null;
-        return settings.profilePicUrl || null;
-    };
+    const { currentView, handleViewChange } = useAppContext();
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex md:hidden z-30">
-            <div className="w-1/5">
-                <NavButton
-                    icon={BookOpen}
-                    label="Entries"
-                    onClick={() => handleViewChange('list')}
-                    isActive={currentView === 'list' || currentView === 'editor'}
-                />
-            </div>
-            <div className="w-1/fs-5">
-                <NavButton
-                    icon={Calendar}
-                    label="Calendar"
-                    onClick={() => handleViewChange('calendar')}
-                    isActive={currentView === 'calendar'}
-                />
-            </div>
+        <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex md:hidden items-center z-20">
+            <NavItem 
+                icon={LayoutDashboard} 
+                label="Home" 
+                isActive={currentView === 'dashboard'}
+                onClick={() => handleViewChange('dashboard')}
+            />
+            <NavItem 
+                icon={Book} 
+                label="Entries" 
+                isActive={currentView === 'list'}
+                onClick={() => handleViewChange('list')}
+            />
             
-            <div className="w-1/5 flex items-center justify-center">
-                <CreateEntryMenu onCreate={handleCreateEntry} position="top">
-                    <button
-                        className="flex items-center justify-center w-14 h-14 -mt-4 rounded-full text-white shadow-lg transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
-                        style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
-                    >
-                        <Plus size={30} />
-                    </button>
-                </CreateEntryMenu>
+            <div className="w-20 flex justify-center">
+                 <CreateEntryMenu isExpanded={false} />
             </div>
-            
-            <div className="w-1/5">
-                <NavButton
-                    icon={Settings}
-                    label="Settings"
-                    onClick={() => handleViewChange('settings')}
-                    isActive={currentView === 'settings'}
-                />
-            </div>
-            <div className="w-1/5">
-                <button
-                    onClick={() => handleViewChange('settings')}
-                    className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${
-                        currentView === 'settings' ? 'text-primary' : 'text-slate-500 dark:text-gray-400 hover:text-primary-dark'
-                    }`}
-                >
-                    <ThemedAvatar
-                        profilePicUrl={getProfilePicUrl()}
-                        username={getUsername()}
-                        className="w-7 h-7"
-                    />
-                    <span className="text-xs font-medium mt-1">Me</span>
-                </button>
-            </div>
+           
+            <NavItem 
+                icon={Target} 
+                label="Goals" 
+                isActive={currentView === 'goals'}
+                onClick={() => handleViewChange('goals')}
+            />
+            <NavItem 
+                icon={Bell} 
+                label="Reminders" 
+                isActive={currentView === 'reminders'}
+                onClick={() => handleViewChange('reminders')}
+            />
         </div>
     );
 }

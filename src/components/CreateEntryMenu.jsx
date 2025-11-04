@@ -1,56 +1,79 @@
 import React from 'react';
 import { Popover, Transition } from '@headlessui/react';
-import { ENTRY_TYPES } from '../constants';
+import { ChevronDown, Plus, BookOpen, CheckSquare, Brain } from 'lucide-react';
+import { useAppContext } from '../context/AppContext.jsx';
+import { ENTRY_TYPES, getEntryType } from '../constants.js';
 
-export default function CreateEntryMenu({ onCreate, children, position = 'right' }) {
-    const positionClasses = {
-        right: 'origin-left left-full top-0 ml-2',
-        top: 'origin-bottom bottom-full mb-2',
-    };
+const menuItems = ENTRY_TYPES;
 
-    return (
-        <Popover className="relative">
-            {({ open }) => (
-                <>
-                    <Popover.Button as={React.Fragment}>
-                        {children}
-                    </Popover.Button>
-                    <Transition
-                        show={open}
-                        as={React.Fragment}
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
-                    >
-                        <Popover.Panel 
-                            static 
-                            className={`absolute z-40 w-56 bg-white dark:bg-slate-800 shadow-lg rounded-lg ring-1 ring-black ring-opacity-5 dark:ring-slate-700 p-2 ${positionClasses[position]}`}
+export default function CreateEntryMenu({ isExpanded }) {
+    const { handleCreateEntry } = useAppContext();
+
+    if (!isExpanded) {
+        return (
+            <Popover className="relative">
+                {({ open }) => (
+                    <div className="relative">
+                        <Popover.Button 
+                            className="p-3 rounded-full text-white focus:outline-none focus:ring-2"
+                            style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
+                            title="Create new"
                         >
-                            {({ close }) => (
-                                <div className="flex flex-col space-y-1">
-                                    <span className="px-3 py-2 text-xs font-semibold text-slate-500 dark:text-gray-400">New Entry...</span>
-                                    {ENTRY_TYPES.map((type) => (
-                                        <button
-                                            key={type.value}
-                                            onClick={() => {
-                                                onCreate(type.value);
-                                                close();
-                                            }}
-                                            className="flex items-center space-x-3 w-full px-3 py-2 text-left text-sm text-slate-800 dark:text-slate-200 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
-                                        >
-                                            <type.icon size={16} className="text-slate-500 dark:text-gray-400" />
-                                            <span>{type.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </Popover.Panel>
-                    </Transition>
-                </>
+                            <Plus size={24} />
+                        </Popover.Button>
+                        <CreateMenuPanel open={open} handleCreateEntry={handleCreateEntry} />
+                    </div>
+                )}
+            </Popover>
+        );
+    }
+    
+    return (
+         <Popover className="relative w-full">
+            {({ open }) => (
+                <div className="relative w-full">
+                    <Popover.Button 
+                        className={`w-full flex items-center justify-between text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 ${open ? 'ring-2' : ''}`}
+                        style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
+                    >
+                        <span>Create New</span>
+                        <ChevronDown size={20} />
+                    </Popover.Button>
+                    <CreateMenuPanel open={open} handleCreateEntry={handleCreateEntry} />
+                </div>
             )}
         </Popover>
     );
 }
+
+const CreateMenuPanel = ({ open, handleCreateEntry }) => (
+     <Transition
+        show={open}
+        as={React.Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+    >
+        <Popover.Panel className="absolute z-20 w-56 mt-2 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none bottom-full mb-2 right-0 md:bottom-auto md:mb-0">
+            <div className="py-1">
+                {menuItems.map((item) => {
+                    const TypeIcon = item.icon;
+                    return (
+                        <Popover.Button
+                            key={item.value}
+                            as="button"
+                            onClick={() => handleCreateEntry(item.value)}
+                            className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        >
+                            <TypeIcon size={16} className="mr-3" style={{ color: 'var(--color-primary-hex)' }} />
+                            {item.label}
+                        </Popover.Button>
+                    );
+                })}
+            </div>
+        </Popover.Panel>
+    </Transition>
+);

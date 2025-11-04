@@ -1,89 +1,56 @@
-import { 
-    BookText, Notebook, Shield, Target, Type, 
-    Sun, Moon, Laptop 
-} from 'lucide-react';
+import { BookOpen, CheckSquare, Brain, Sun, Moon, Laptop, CaseLower, CaseUpper } from 'lucide-react';
 
-// --- APP CONSTANTS ---
-export const STORAGE_KEYS = {
-    THEME_MODE: 'curiosity-theme-mode',
-    THEME_COLOR: 'curiosity-theme-color',
-    THEME_FONT: 'curiosity-theme-font',
-    FONT_SIZE: 'curiosity-font-size',
-    PIN: 'curiosity_pin'
-};
-
-export const LIMITS = {
-    PIN_LENGTH: 4,
-    MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
-    MAX_PIN_ATTEMPTS: 5
-};
-
-export const PIN_STORAGE_KEY = STORAGE_KEYS.PIN; // Alias for legacy use in context
-
-// --- TEMPLATES ---
 export const ENTRY_TYPES = [
-    { 
-        value: 'note', 
-        label: 'Note', 
-        icon: Type, 
-        template: '' 
-    },
-    { 
-        value: 'journal', 
-        label: 'Journal', 
-        icon: BookText, 
-        template: `## What's on my mind?\n\n\n## How am I feeling?\n\n\n## What am I grateful for today?\n1. \n2. \n3. \n` 
-    },
-    { 
-        value: 'goal', 
-        label: 'Goal', 
-        icon: Target, 
-        template: `## My Goal:\n\n\n## Why is this important?\n\n\n## Key Milestones:\n1. \n2. \n3. \n\n## Potential Obstacles:\n\n\n` 
-    },
-    { 
-        value: 'log', 
-        label: 'Log', 
-        icon: Notebook, 
-        template: `## Today's Log:\n\n* \n\n` 
-    },
-    { 
-        value: 'credential', 
-        label: 'Credential', 
-        icon: Shield, 
-        template: `> [!WARNING]  
-> **Security Warning:** Storing sensitive passwords in plain text is risky. This app does not encrypt your data. Please use a dedicated password manager for critical credentials.
-\n\n**Website/Service:** \n**Username:** \n**Email:** \n**Password:** \n\n**Notes:** \n` 
-    },
+    { value: 'note', label: 'Note', icon: BookOpen, template: '' },
+    { value: 'journal', label: 'Journal Entry', icon: BookOpen, template: '## What happened today?\n\n\n## How do I feel?\n\n\n## What am I grateful for?\n\n' },
+    { value: 'task', label: 'Task List', icon: CheckSquare, template: '## To-Do\n\n- [ ] \n- [ ] \n- [ ] \n' },
+    { value: 'idea', label: 'Idea', icon: Brain, template: '## The Big Idea\n\n' },
 ];
 
+const ENTRY_TYPE_MAP = new Map(ENTRY_TYPES.map(type => [type.value, type]));
+
 export const getEntryType = (value) => {
-    return ENTRY_TYPES.find(t => t.value === value) || ENTRY_TYPES[0];
+    return ENTRY_TYPE_MAP.get(value) || ENTRY_TYPES[0];
 };
 
-// --- THEME OPTIONS ---
+export const STORAGE_KEYS = {
+  THEME_MODE: 'curiosity-theme-mode',
+  THEME_COLOR: 'curiosity-theme-color',
+  THEME_FONT: 'curiosity-theme-font',
+  FONT_SIZE: 'curiosity-font-size',
+  PIN: 'curiosity-pin',
+};
+
+export const PIN_STORAGE_KEY = STORAGE_KEYS.PIN;
+
+export const THEME_MODES = [
+  { name: 'Light', value: 'light', icon: Sun },
+  { name: 'Dark', value: 'dark', icon: Moon },
+  { name: 'System', value: 'system', icon: Laptop },
+];
+
 export const THEME_COLORS = [
-    { name: 'Teal', hex: '#14b8a6' }, { name: 'Rose', hex: '#f43f5e' },
-    { name: 'Pink', hex: '#ec4899' }, { name: 'Fuchsia', hex: '#d946ef' },
-    { name: 'Purple', hex: '#8b5cf6' }, { name: 'Violet', hex: '#6366f1' },
-    { name: 'Blue', hex: '#3b82f6' }, { name: 'Sky', hex: '#0ea5e9' },
-    { name: 'Cyan', hex: '#06b6d4' }, { name: 'Emerald', hex: '#10b981' },
-    { name: 'Amber', hex: '#f59e0b' }, { name: 'Slate', hex: '#64748b' },
+  { name: 'Teal', hex: '#14b8a6' },
+  { name: 'Rose', hex: '#e11d48' },
+  { name: 'Blue', hex: '#3b82f6' },
+  { name: 'Violet', hex: '#8b5cf6' },
+  { name: 'Orange', hex: '#f97316' },
+  { name: 'Green', hex: '#22c55e' },
 ];
 
 export const FONT_OPTIONS = [
-    { name: 'Default', value: "'Inter', sans-serif" },
-    { name: 'Serif', value: "'Lora', serif" },
-    { name: 'Mono', value: "'JetBrains Mono', monospace" },
-];
-
-export const THEME_MODES = [
-    { name: 'Light', value: 'light', icon: Sun },
-    { name: 'Dark', value: 'dark', icon: Moon },
-    { name: 'System', value: 'system', icon: Laptop },
+  { name: 'Sans', value: "var(--font-sans)" },
+  { name: 'Serif', value: "var(--font-serif)" },
+  { name: 'Mono', value: "var(--font-mono)" },
 ];
 
 export const FONT_SIZES = [
-    { name: 'Small', value: '14px' },
-    { name: 'Medium', value: '16px' },
-    { name: 'Large', value: '18px' },
+    { name: 'Small', value: '14px', icon: CaseLower },
+    { name: 'Medium', value: '16px', icon: CaseUpper },
+    { name: 'Large', value: '18px', icon: CaseUpper },
 ];
+
+export const LIMITS = {
+    MAX_FILE_SIZE: 5 * 1024 * 1024,
+    PIN_LENGTH: 4,
+};

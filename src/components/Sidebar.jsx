@@ -1,138 +1,141 @@
 import React from 'react';
-import { Plus, Settings, BookOpen, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { LayoutDashboard, Book, Calendar, Target, Shield, Bell, Settings, ArrowLeftToLine, ArrowRightToLine, Lock } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import Logo from './Logo';
-import ThemedAvatar from './ThemedAvatar';
-import SidebarEntry from './SidebarEntry';
 import CreateEntryMenu from './CreateEntryMenu';
+import ThemedAvatar from './ThemedAvatar';
 
-function NavButton({ icon: Icon, label, onClick, isActive, isExpanded }) {
+const NavItem = ({ icon, label, isActive, isExpanded, onClick }) => {
+    const Icon = icon;
+    const activeClass = isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+    
     return (
         <button
             onClick={onClick}
-            title={isExpanded ? '' : label}
-            className={`flex items-center w-full rounded-lg transition-colors duration-200 ${
-                isActive
-                    ? 'bg-primary-light text-primary-dark'
-                    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            } ${isExpanded ? 'p-3 space-x-3' : 'p-3 justify-center'}`}
-            style={{
-                backgroundColor: isActive ? 'var(--color-primary-light)' : 'transparent',
+            className={`flex items-center space-x-3 h-10 px-3 rounded-lg transition-colors duration-150 ${activeClass} ${isExpanded ? 'w-full' : 'w-10'}`}
+            style={{ 
                 color: isActive ? 'var(--color-primary-hex)' : '',
+                backgroundColor: isActive ? 'rgba(var(--color-primary-rgb), 0.1)' : ''
             }}
+            title={label}
         >
-            <Icon size={isExpanded ? 20 : 22} className="flex-shrink-0" />
-            {isExpanded && <span className="text-sm font-semibold">{label}</span>}
+            <Icon size={20} className="flex-shrink-0" />
+            {isExpanded && <span className="text-sm font-medium truncate">{label}</span>}
         </button>
     );
-}
+};
 
-export default function Sidebar({ className }) {
-    const {
+export default function Sidebar() {
+    const { 
+        currentView, 
+        handleViewChange, 
+        isSidebarExpanded, 
+        handleToggleSidebar,
+        handleLockApp,
+        appPin,
         settings,
-        currentView,
-        isSidebarExpanded,
-        handleCreateEntry,
-        handleViewChange,
-        handleToggleSidebar
+        currentUser
     } = useAppContext();
 
-    const getUsername = () => {
-        if (!settings) return 'User';
-        return settings.username || 'User';
-    };
-
-    const getProfilePicUrl = () => {
-        if (!settings) return null;
-        return settings.profilePicUrl || null;
-    };
-
     return (
-        <aside
-            className={`flex flex-col border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 transition-all duration-300 ease-in-out ${
-                isSidebarExpanded ? 'w-64' : 'w-16'
-            } ${className}`}
+        <motion.div
+            layout
+            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+            className={`flex flex-col h-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 shadow-lg ${isSidebarExpanded ? 'w-64' : 'w-16'}`}
         >
-            <div className={`p-4 ${isSidebarExpanded ? 'flex justify-between' : 'flex justify-center'}`}>
+            <div className={`flex items-center h-16 px-3 border-b border-slate-200 dark:border-slate-700 ${isSidebarExpanded ? 'justify-between' : 'justify-center'}`}>
                 {isSidebarExpanded && (
                     <div className="flex items-center space-x-2">
-                        <Logo className="w-8 h-8 flex-shrink-0" />
-                        <span
-                            style={{ fontFamily: 'var(--font-logo)' }}
-                            className="text-2xl text-slate-900 dark:text-white"
-                        >
-                            Curiosity
-                        </span>
+                        <Logo className="w-8 h-8" />
+                        <span style={{ fontFamily: 'var(--font-logo)' }} className="text-2xl text-slate-900 dark:text-white">Curiosity</span>
                     </div>
                 )}
-                <button
-                    onClick={handleToggleSidebar}
-                    className="p-1 rounded-full text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                    title={isSidebarExpanded ? "Collapse" : "Expand"}
+                <button 
+                    onClick={handleToggleSidebar} 
+                    className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
-                    {isSidebarExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+                    {isSidebarExpanded ? <ArrowLeftToLine size={18} /> : <ArrowRightToLine size={18} />}
                 </button>
             </div>
-
-            <div className="p-3">
-                <CreateEntryMenu onCreate={handleCreateEntry} position="right">
-                    <button
-                        className="flex items-center justify-center space-x-2 w-full text-white font-semibold py-3 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2"
-                        style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
-                    >
-                        <Plus size={isSidebarExpanded ? 20 : 22} />
-                        {isSidebarExpanded && <span>New Entry</span>}
-                    </button>
-                </CreateEntryMenu>
+            
+            <div className="flex-1 flex flex-col p-3 space-y-2 overflow-y-auto">
+                <CreateEntryMenu isExpanded={isSidebarExpanded} />
+                
+                <nav className="space-y-1">
+                    <NavItem 
+                        icon={LayoutDashboard} 
+                        label="Dashboard" 
+                        isActive={currentView === 'dashboard'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('dashboard')}
+                    />
+                    <NavItem 
+                        icon={Book} 
+                        label="Entries" 
+                        isActive={currentView === 'list'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('list')}
+                    />
+                    <NavItem 
+                        icon={Calendar} 
+                        label="Calendar" 
+                        isActive={currentView === 'calendar'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('calendar')}
+                    />
+                    <NavItem 
+                        icon={Target} 
+                        label="Goals" 
+                        isActive={currentView === 'goals'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('goals')}
+                    />
+                    <NavItem 
+                        icon={Shield} 
+                        label="Vault" 
+                        isActive={currentView === 'vault'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('vault')}
+                    />
+                    <NavItem 
+                        icon={Bell} 
+                        label="Reminders" 
+                        isActive={currentView === 'reminders'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('reminders')}
+                    />
+                </nav>
             </div>
-
-            <nav className="flex-1 p-3 space-y-2">
-                <NavButton
-                    icon={BookOpen}
-                    label="Entries"
-                    onClick={() => handleViewChange('list')}
-                    isActive={currentView === 'list' || currentView === 'editor'}
-                    isExpanded={isSidebarExpanded}
-                />
-                <NavButton
-                    icon={Calendar}
-                    label="Calendar"
-                    onClick={() => handleViewChange('calendar')}
-                    isActive={currentView === 'calendar'}
-                    isExpanded={isSidebarExpanded}
-                />
-            </nav>
-
-            <div className="p-3 mt-auto">
-                <button
+            
+            <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                {appPin && (
+                     <NavItem 
+                        icon={Lock} 
+                        label="Lock App" 
+                        isActive={false}
+                        isExpanded={isSidebarExpanded}
+                        onClick={handleLockApp}
+                    />
+                )}
+                <div 
                     onClick={() => handleViewChange('settings')}
-                    className={`flex items-center w-full rounded-lg transition-colors duration-200 ${
-                        currentView === 'settings'
-                            ? 'bg-primary-light text-primary-dark'
-                            : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    } ${isSidebarExpanded ? 'p-3 space-x-3' : 'p-3 justify-center'}`}
-                    style={{
-                        backgroundColor: currentView === 'settings' ? 'var(--color-primary-light)' : 'transparent',
-                        color: currentView === 'settings' ? 'var(--color-primary-hex)' : '',
-                    }}
+                    className="flex items-center space-x-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
-                    <ThemedAvatar
-                        profilePicUrl={getProfilePicUrl()}
-                        username={getUsername()}
-                        className={isSidebarExpanded ? 'w-8 h-8' : 'w-8 h-8'}
+                    <ThemedAvatar 
+                        profilePicUrl={settings?.profilePicUrl || currentUser?.photoURL}
+                        username={settings?.username}
+                        className="w-8 h-8"
                     />
                     {isSidebarExpanded && (
-                        <div className="flex flex-col items-start overflow-hidden">
-                            <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                {getUsername()}
-                            </span>
-                            <span className="text-xs text-slate-500 dark:text-gray-400">
-                                View Settings
+                        <div className="flex-1 truncate">
+                            <span className="text-sm font-semibold text-slate-800 dark:text-white block truncate">
+                                {settings?.username || 'Curious User'}
                             </span>
                         </div>
                     )}
-                </button>
+                </div>
             </div>
-        </aside>
+        </motion.div>
     );
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&family=Lora:ital,wght@0,400;0,700;1,400&family=Pacifico&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&family=Lora:ital,wght@0,400;0;700;1,400&family=Pacifico&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,18 +10,21 @@
     --color-primary-rgb: 20, 184, 172;
     --color-primary-light: rgba(var(--color-primary-rgb), 0.1);
     --color-primary-dark: #0f766e;
-    --color-bg-base: #ffffff;
     
     --font-sans: 'Inter', sans-serif;
     --font-serif: 'Lora', serif;
     --font-mono: 'JetBrains Mono', monospace;
-    --font-logo: 'Pacifico', cursive;
+    --font-logo: 'Lora', serif;
     
-    --font-body: var(--font-sans);
+    --font-body: var(--font-serif);
+    
+    --color-bg-base: #f8fafc; /* slate-50 */
+    --color-bg-content: #ffffff; /* white */
   }
   
   .dark {
-     --color-bg-base: #0f172a;
+    --color-bg-base: #0f172a; /* slate-900 */
+    --color-bg-content: #1e293b; /* slate-800 */
   }
   
   html, body, #root {
@@ -30,6 +33,7 @@
   
   body {
     font-family: var(--font-body);
+    @apply bg-slate-50 dark:bg-slate-900;
   }
 }
 
@@ -66,6 +70,7 @@
   .editor-toolbar {
     @apply bg-slate-50 dark:bg-slate-800 border-none rounded-t-lg;
     @apply opacity-100 transition-opacity;
+    background-color: var(--color-bg-base) !important;
   }
   .editor-toolbar.fullscreen {
     @apply rounded-none;
@@ -93,6 +98,9 @@
     @apply h-full min-h-[400px] text-base;
     @apply bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200;
     font-family: var(--font-body);
+    line-height: 1.7;
+    font-size: 1.05rem;
+    background-color: var(--color-bg-content) !important;
   }
   
   .CodeMirror, .CodeMirror-scroll {
@@ -122,7 +130,13 @@
     @apply bg-white dark:bg-slate-900;
     @apply text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-slate-700 rounded-b-lg;
     @apply py-1 px-4;
+    background-color: var(--color-bg-content) !important;
   }
+  
+  .editor-focus-mode .editor-statusbar {
+    @apply hidden;
+  }
+  
   .editor-statusbar.fullscreen {
      @apply rounded-none;
   }
@@ -135,12 +149,63 @@
      @apply min-h-screen;
   }
   
-  /* --- THIS IS THE CORRECTED RULE --- */
-  /* Make editor fill height in our app */
-  .h-full .EasyMDEContainer,
-  .h-full .EasyMDEContainer .CodeMirror,
-  .h-full .EasyMDEContainer .CodeMirror-scroll {
+  /* Container for 100% height */
+  .simplemde-container,
+  .simplemde-container .EasyMDEContainer,
+  .simplemde-container .EasyMDEContainer .CodeMirror,
+  .simplemde-container .EasyMDEContainer .CodeMirror-scroll {
       height: 100%;
       min-height: 100%;
+  }
+
+  .editor-focus-mode .CodeMirror-lines {
+    @apply px-4 md:px-16 lg:px-24;
+  }
+
+  /* Exit Focus Mode Button */
+  .exit-focus-mode-btn {
+    @apply fixed bottom-6 right-6 z-[10000];
+    @apply p-3 rounded-full bg-slate-800 text-white shadow-lg;
+    @apply hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  /* --- Calendar Theme --- */
+  .react-calendar-themed {
+    @apply border-none p-2 font-sans; /* Use sans-serif for UI elements */
+  }
+  .react-calendar-themed .react-calendar__navigation button {
+    @apply text-slate-900 dark:text-white font-semibold;
+  }
+  .react-calendar-themed .react-calendar__navigation button:hover,
+  .react-calendar-themed .react-calendar__navigation button:focus {
+    @apply bg-slate-100 dark:bg-slate-800;
+  }
+  .react-calendar-themed .react-calendar__month-view__weekdays__weekday {
+    @apply text-slate-600 dark:text-gray-400 font-semibold;
+  }
+  .react-calendar-themed .react-calendar__tile {
+    @apply rounded-lg text-slate-700 dark:text-gray-300;
+  }
+  .react-calendar-themed .react-calendar__tile:hover,
+  .react-calendar-themed .react-calendar__tile:focus {
+    @apply bg-slate-100 dark:bg-slate-800;
+  }
+  .react-calendar-themed .react-calendar__tile--now {
+    @apply font-semibold;
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-hex);
+  }
+  .react-calendar-themed .react-calendar__tile--active {
+    @apply text-white font-semibold;
+    background-color: var(--color-primary-hex) !important;
+  }
+  .react-calendar-themed .react-calendar__tile--active .react-calendar__tile__dots {
+    /* Hide dots on active day if needed */
+  }
+  .react-calendar-themed .react-calendar__tile__dots {
+    @apply space-x-0.5;
+  }
+  .react-calendar-themed .react-calendar__tile__dots span {
+    @apply h-1.5 w-1.5 rounded-full;
   }
 }

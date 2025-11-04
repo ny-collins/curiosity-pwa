@@ -1,58 +1,141 @@
 import React from 'react';
-import { Trash2 } from 'lucide-react';
-import { formatTimestamp, stripMarkdown } from '../utils';
+import { motion } from 'framer-motion';
+import { LayoutDashboard, Book, Calendar, Target, Shield, Bell, Settings, ArrowLeftToLine, ArrowRightToLine, Lock } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import Logo from './Logo';
+import CreateEntryMenu from './CreateEntryMenu';
+import ThemedAvatar from './ThemedAvatar';
 
-function SidebarEntry({ entry, onSelect, onDelete, isActive }) {
-    const handleDelete = (e) => {
-        e.stopPropagation();
-        onDelete(entry.id);
-    };
+const NavItem = ({ icon, label, isActive, isExpanded, onClick }) => {
+    const Icon = icon;
+    const activeClass = isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700';
     
-    const previewText = stripMarkdown(entry.content || '');
+    return (
+        <button
+            onClick={onClick}
+            className={`flex items-center space-x-3 h-10 px-3 rounded-lg transition-colors duration-150 ${activeClass} ${isExpanded ? 'w-full' : 'w-10'}`}
+            style={{ 
+                color: isActive ? 'var(--color-primary-hex)' : '',
+                backgroundColor: isActive ? 'rgba(var(--color-primary-rgb), 0.1)' : ''
+            }}
+            title={label}
+        >
+            <Icon size={20} className="flex-shrink-0" />
+            {isExpanded && <span className="text-sm font-medium truncate">{label}</span>}
+        </button>
+    );
+};
+
+export default function Sidebar() {
+    const { 
+        currentView, 
+        handleViewChange, 
+        isSidebarExpanded, 
+        handleToggleSidebar,
+        handleLockApp,
+        appPin,
+        settings,
+        currentUser
+    } = useAppContext();
 
     return (
-        <div
-            onClick={() => onSelect(entry.id)}
-            className={`p-3 rounded-lg cursor-pointer transition-colors duration-200 ${isActive ? 'bg-slate-700' : 'hover:bg-slate-800'}`}
+        <motion.div
+            layout
+            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+            className={`flex flex-col h-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 shadow-lg ${isSidebarExpanded ? 'w-64' : 'w-16'}`}
         >
-            <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-white truncate w-4/5">{entry.title || 'Untitled'}</h3>
-                <button
-                    onClick={handleDelete}
-                    className="p-1 rounded-full text-gray-500 hover:text-red-400 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    aria-label="Delete entry"
+            <div className={`flex items-center h-16 px-3 border-b border-slate-200 dark:border-slate-700 ${isSidebarExpanded ? 'justify-between' : 'justify-center'}`}>
+                {isSidebarExpanded && (
+                    <div className="flex items-center space-x-2">
+                        <Logo className="w-8 h-8" animate={false} />
+                        <span style={{ fontFamily: 'var(--font-logo)' }} className="text-2xl text-slate-900 dark:text-white italic">Curiosity</span>
+                    </div>
+                )}
+                <button 
+                    onClick={handleToggleSidebar} 
+                    className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
-                    <Trash2 size={16} />
+                    {isSidebarExpanded ? <ArrowLeftToLine size={18} /> : <ArrowRightToLine size={18} />}
                 </button>
             </div>
             
-            {entry.tags && entry.tags.length > 0 && (
-                <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1.5">
-                    {entry.tags.slice(0, 3).map(tag => (
-                        <span 
-                            key={tag} 
-                            className="text-xs px-1.5 py-0.5 rounded" 
-                            style={{
-                                color: 'var(--color-primary-hex)', 
-                                backgroundColor: 'rgba(var(--color-primary-rgb, 20, 184, 172), 0.1)'
-                            }}
-                        >
-                            #{tag}
-                        </span>
-                    ))}
-                </div>
-            )}
+            <div className="flex-1 flex flex-col p-3 space-y-2 overflow-y-auto">
+                <CreateEntryMenu isExpanded={isSidebarExpanded} />
+                
+                <nav className="space-y-1">
+                    <NavItem 
+                        icon={LayoutDashboard} 
+                        label="Dashboard" 
+                        isActive={currentView === 'dashboard'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('dashboard')}
+                    />
+                    <NavItem 
+                        icon={Book} 
+                        label="Entries" 
+                        isActive={currentView === 'list'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('list')}
+                    />
+                    <NavItem 
+                        icon={Calendar} 
+                        label="Calendar" 
+                        isActive={currentView === 'calendar'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('calendar')}
+                    />
+                    <NavItem 
+                        icon={Target} 
+                        label="Goals" 
+                        isActive={currentView === 'goals'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('goals')}
+                    />
+                    <NavItem 
+                        icon={Shield} 
+                        label="Vault" 
+                        isActive={currentView === 'vault'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('vault')}
+                    />
+                    <NavItem 
+                        icon={Bell} 
+                        label="Reminders" 
+                        isActive={currentView === 'reminders'}
+                        isExpanded={isSidebarExpanded}
+                        onClick={() => handleViewChange('reminders')}
+                    />
+                </nav>
+            </div>
             
-            <p className="text-sm text-gray-400 truncate mt-1.5">
-                {previewText ? (
-                    previewText.substring(0, 40) + (previewText.length > 40 ? '...' : '')
-                 ) : (
-                    <span className="italic">No content</span>
-                 )}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">{formatTimestamp(entry.updatedAt)}</p>
-        </div>
+            <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                {appPin && (
+                     <NavItem 
+                        icon={Lock} 
+                        label="Lock App" 
+                        isActive={false}
+                        isExpanded={isSidebarExpanded}
+                        onClick={handleLockApp}
+                    />
+                )}
+                <div 
+                    onClick={() => handleViewChange('settings')}
+                    className="flex items-center space-x-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                    <ThemedAvatar 
+                        profilePicUrl={settings?.profilePicUrl || currentUser?.photoURL}
+                        username={settings?.username}
+                        className="w-8 h-8"
+                    />
+                    {isSidebarExpanded && (
+                        <div className="flex-1 truncate">
+                            <span className="text-sm font-semibold text-slate-800 dark:text-white block truncate">
+                                {settings?.username || 'Curious User'}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </motion.div>
     );
 }
-
-export default SidebarEntry;
