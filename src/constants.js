@@ -36,13 +36,48 @@ export const THEME_COLORS = [
   { name: 'Violet', hex: '#8b5cf6' },
   { name: 'Orange', hex: '#f97316' },
   { name: 'Green', hex: '#22c55e' },
+  { name: 'Amber', hex: '#f59e0b' },
+  { name: 'Lime', hex: '#84cc16' },
+  { name: 'Cyan', hex: '#06b6d4' },
+  { name: 'Pink', hex: '#ec4899' },
+  { name: 'Slate', hex: '#64748b' },
+  { name: 'Red', hex: '#ef4444' },
 ];
 
-export const FONT_OPTIONS = [
-  { name: 'Sans', value: "var(--font-sans)" },
-  { name: 'Serif', value: "var(--font-serif)" },
-  { name: 'Mono', value: "var(--font-mono)" },
+export const FONT_CATEGORIES = [
+    {
+        name: 'Sans Serif',
+        fonts: [
+          { name: 'Inter', value: "var(--font-sans)", import: "Inter:wght@400;500;600;700" },
+          { name: 'Roboto', value: "'Roboto', sans-serif", import: "Roboto:ital,wght@0,400;0,700;1,400" },
+          { name: 'Lato', value: "'Lato', sans-serif", import: "Lato:ital,wght@0,400;0,700;1,400" },
+        ]
+    },
+    {
+        name: 'Serif',
+        fonts: [
+          { name: 'Lora', value: "var(--font-serif)", import: "Lora:ital,wght@0,400;0,700;1,400" },
+          { name: 'Merriweather', value: "'Merriweather', serif", import: "Merriweather:ital,wght@0,400;0,700;1,400" },
+          { name: 'Playfair Display', value: "'Playfair Display', serif", import: "Playfair+Display:ital,wght@0,400;0,700;1,400" },
+        ]
+    },
+    {
+        name: 'Mono',
+        fonts: [
+            { name: 'JetBrains Mono', value: "var(--font-mono)", import: "JetBrains+Mono:wght@400;700" },
+            { name: 'Source Code Pro', value: "'Source Code Pro', monospace", import: "Source+Code+Pro:ital,wght@0,400;0,700;1,400" },
+        ]
+    },
+    {
+        name: 'Stylistic',
+        fonts: [
+            { name: 'Pacifico', value: "'Pacifico', cursive", import: "Pacifico" },
+            { name: 'Caveat', value: "'Caveat', cursive", import: "Caveat:wght@400;700" },
+        ]
+    }
 ];
+
+export const FONT_OPTIONS = FONT_CATEGORIES.flatMap(c => c.fonts);
 
 export const FONT_SIZES = [
     { name: 'Small', value: '14px', icon: CaseLower },

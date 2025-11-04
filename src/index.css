@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&family=Lora:ital,wght@0,400;0;700;1,400&family=Pacifico&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Pacifico&family=Roboto:ital,wght@0,400;0,700;1,400&family=Lato:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Code+Pro:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -18,11 +18,13 @@
     
     --font-body: var(--font-serif);
     
+    /* Set base background colors here */
     --color-bg-base: #f8fafc; /* slate-50 */
     --color-bg-content: #ffffff; /* white */
   }
   
   .dark {
+    /* Set dark mode base background colors here */
     --color-bg-base: #0f172a; /* slate-900 */
     --color-bg-content: #1e293b; /* slate-800 */
   }

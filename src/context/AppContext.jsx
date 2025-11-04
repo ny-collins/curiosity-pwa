@@ -369,7 +369,7 @@ export function AppProvider({ children }) {
     const handleSaveNewEntry = useCallback(async (data) => {
         if (!userId) {
             toast.error("You must be logged in to save.");
-            return;
+            return null;
         }
         try {
             const newEntry = {
@@ -386,8 +386,7 @@ export function AppProvider({ children }) {
                 setActiveEntryId(newEntry.id);
                 setIsCreating(false);
             }
-            if (!pendingView) {
-            } else {
+            if (pendingView) {
                 handleEditorSaveComplete();
             }
             return newEntry.id;
@@ -396,7 +395,7 @@ export function AppProvider({ children }) {
             toast.error("Failed to save entry.");
             return null;
         }
-    }, [userId, isCreating, pendingView, toast, handleEditorSaveComplete, setIsEditorDirty, setIsCreating, setActiveEntryId]);
+    }, [userId, isCreating, pendingView, toast, handleEditorSaveComplete]);
 
     const handleUpdateEntry = useCallback(async (id, updates) => {
         if (!userId) {
@@ -420,7 +419,7 @@ export function AppProvider({ children }) {
             console.error("Local update error:", error);
             toast.error("Failed to update entry.");
         }
-    }, [userId, toast, pendingView, handleEditorSaveComplete, setIsEditorDirty]);
+    }, [userId, toast, pendingView, handleEditorSaveComplete]);
 
     const handleDeleteEntry = useCallback(async (id) => {
         if (!userId) {
@@ -597,11 +596,7 @@ export function AppProvider({ children }) {
          try {
              const fullSettings = { 
                  ...localSettings, 
-                 ...newSettings, 
-                 themeMode, 
-                 themeColor, 
-                 fontFamily: themeFont,
-                 fontSize
+                 ...newSettings,
              };
              await dbSaveSettings(fullSettings);
              toast.success("Settings saved!");
@@ -629,7 +624,7 @@ export function AppProvider({ children }) {
             setIsLocked(false);
             toast.success("PIN removed.");
         }
-    }, [localSettings, themeMode, themeColor, themeFont, fontSize, toast, setIsLocked]);
+    }, [localSettings, toast, setIsLocked]);
 
     const handleOnboardingComplete = useCallback(async (username, themeColor) => {
         const newSettings = {
