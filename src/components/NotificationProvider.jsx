@@ -1,9 +1,9 @@
 import React from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { useTheme } from '../hooks';
+import { useAppState } from '../contexts/StateProvider';
 
 export default function NotificationProvider() {
-  const { themeColor, themeMode, themeFont } = useTheme();
+  const { themeColor, themeMode, themeFont } = useAppState();
 
   return (
     <Toaster

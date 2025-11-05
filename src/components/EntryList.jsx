@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, X, Calendar, List, Tag, SlidersHorizontal, BookOpen, CheckSquare, Brain } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppState } from '../contexts/StateProvider';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { ENTRY_TYPES, getEntryType } from '../constants';
 
@@ -35,6 +35,10 @@ const EntryCard = ({ entry, onSelect }) => {
             transition={{ duration: 0.2 }}
             onClick={() => onSelect(entry.id)}
             className="bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-slate-200 dark:border-slate-700 overflow-hidden"
+            style={{
+                backgroundColor: 'var(--color-bg-content)',
+                borderColor: 'var(--color-border)'
+            }}
         >
             <div className="p-4">
                 <div className="flex justify-between items-center mb-2">
@@ -44,14 +48,14 @@ const EntryCard = ({ entry, onSelect }) => {
                             {type.label}
                         </span>
                     </div>
-                    <span className="text-xs text-slate-500 dark:text-gray-400">
+                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                         {formattedDate}
                     </span>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2 truncate">
+                <h3 className="text-lg font-semibold mb-2 truncate" style={{ color: 'var(--color-text-primary)' }}>
                     {entry.title || "Untitled Entry"}
                 </h3>
-                <p className="text-sm text-slate-600 dark:text-gray-300 line-clamp-2 mb-3">
+                <p className="text-sm line-clamp-2 mb-3" style={{ color: 'var(--color-text-secondary)' }}>
                     {entry.content?.replace(/<[^>]+>/g, '') || "No content"}
                 </p>
                 {entry.tags && entry.tags.length > 0 && (
@@ -78,7 +82,7 @@ const Filters = () => {
         availableYears, availableTags,
         handleClearFilters, handleViewChange,
         currentView
-    } = useAppContext();
+    } = useAppState();
 
     return (
         <div className="p-4 space-y-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
@@ -186,7 +190,7 @@ const Filters = () => {
 };
 
 export default function EntryList() {
-    const { filteredEntries, handleSelectEntry, handleCreateEntry } = useAppContext();
+    const { filteredEntries, handleSelectEntry, handleCreateEntry } = useAppState();
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">

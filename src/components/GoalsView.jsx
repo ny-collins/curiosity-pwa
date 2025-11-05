@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Check, CheckCircle, Circle, ChevronDown, ChevronRight, Target, Edit2 } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppState } from '../contexts/StateProvider';
 import { formatDistanceToNow } from 'date-fns';
 
 const TaskItem = ({ task }) => {
-    const { handleToggleTask, handleDeleteTask } = useAppContext();
+    const { handleToggleTask, handleDeleteTask } = useAppState();
     return (
         <div className="flex items-center space-x-2 py-2 group">
             <button onClick={() => handleToggleTask(task.id, !task.completed)}>
@@ -29,7 +29,7 @@ const TaskItem = ({ task }) => {
 };
 
 const GoalCard = ({ goal, tasks }) => {
-    const { handleUpdateGoalStatus, handleDeleteGoal, handleAddTask, toast } = useAppContext();
+    const { handleUpdateGoalStatus, handleDeleteGoal, handleAddTask, toast } = useAppState();
     const [taskText, setTaskText] = useState('');
     const [isExpanded, setIsExpanded] = useState(true);
 
@@ -149,7 +149,7 @@ const GoalCard = ({ goal, tasks }) => {
 };
 
 export default function GoalsView() {
-    const { goals, tasks, handleAddGoal } = useAppContext();
+    const { goals, tasks, handleAddGoal } = useAppState();
     const [newGoalTitle, setNewGoalTitle] = useState('');
     const [newGoalDesc, setNewGoalDesc] = useState('');
     const [showCreator, setShowCreator] = useState(false);

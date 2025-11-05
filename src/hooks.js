@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { STORAGE_KEYS } from './constants';
 
 export function useDebounce(value, delay) {
@@ -47,24 +47,26 @@ const useLocalStorage = (key, initialValue) => {
   return [storedValue, setValue];
 };
 
-export const useTheme = (defaultSettings) => {
+export const useTheme = (localSettings) => {
   const [themeMode, setThemeMode] = useLocalStorage(STORAGE_KEYS.THEME_MODE, 'system');
   const [themeColor, setThemeColor] = useLocalStorage(STORAGE_KEYS.THEME_COLOR, '#14b8a6');
   const [themeFont, setThemeFont] = useLocalStorage(STORAGE_KEYS.THEME_FONT, "'Inter', sans-serif");
   const [fontSize, setFontSize] = useLocalStorage(STORAGE_KEYS.FONT_SIZE, '16px');
-  
-  const [isInitialized, setIsInitialized] = useState(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (defaultSettings && !isInitialized) {
-      if (defaultSettings.themeColor) setThemeColor(defaultSettings.themeColor);
-      if (defaultSettings.fontFamily) setThemeFont(defaultSettings.fontFamily);
-      if (defaultSettings.fontSize) setFontSize(defaultSettings.fontSize);
-      setIsInitialized(true);
+    if (localSettings && !initializedRef.current) {
+      if (localSettings.themeMode) setThemeMode(localSettings.themeMode);
+      if (localSettings.themeColor) setThemeColor(localSettings.themeColor);
+      if (localSettings.fontFamily) setThemeFont(localSettings.fontFamily);
+      if (localSettings.fontSize) setFontSize(localSettings.fontSize);
+      initializedRef.current = true;
     }
-  }, [defaultSettings, isInitialized, setThemeColor, setThemeFont, setFontSize]);
+  }, [localSettings, setThemeMode, setThemeColor, setThemeFont, setFontSize]);
 
+  // Apply theme immediately from localStorage, then update when IndexedDB loads
   useEffect(() => {
+    console.log("Applying theme settings:", { themeMode, themeColor, themeFont, fontSize });
     const root = window.document.documentElement;
     
     if (themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -75,6 +77,7 @@ export const useTheme = (defaultSettings) => {
   }, [themeMode]);
 
   useEffect(() => {
+    console.log("Updating theme color:", themeColor);
     const root = window.document.documentElement;
     root.style.setProperty('--color-primary-hex', themeColor);
     
@@ -88,11 +91,13 @@ export const useTheme = (defaultSettings) => {
   }, [themeColor]);
 
   useEffect(() => {
+    console.log("Updating theme font:", themeFont);
     const root = window.document.documentElement;
     root.style.setProperty('--font-body', themeFont);
   }, [themeFont]);
 
   useEffect(() => {
+    console.log("Updating font size:", fontSize);
     const root = window.document.documentElement;
     root.style.setProperty('font-size', fontSize);
   }, [fontSize]);

@@ -1,12 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { useTheme } from '../hooks.js';
 import { db, saveSettings as dbSaveSettings, getSettings as dbGetSettings } from '../db.js';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { nanoid } from 'nanoid';
-import { auth, app, functions, storage, appId, GoogleAuthProvider, firestoreDb, messaging } from '../firebaseConfig.js';
-import { PIN_STORAGE_KEY } from '../constants.js';
-import { signInAnonymously, onAuthStateChanged, linkWithPopup, signInWithPopup } from "firebase/auth";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { onAuthStateChanged, signInAnonymously, linkWithPopup, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth, app, functions, storage, appId, firestoreDb, messaging } from '../firebaseConfig.js';
 import {
     doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
     collection, query, serverTimestamp, getDocs, where, writeBatch,
@@ -19,105 +17,81 @@ import 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 import { useToaster } from '../components/NotificationProvider.jsx';
 import { parseISO } from 'date-fns';
+import { useTheme } from '../hooks';
+import {
+  startRegistration,
+  startAuthentication,
+} from '@simplewebauthn/browser';
+import { PIN_STORAGE_KEY, WEBAUTHN_CREDENTIAL_ID_KEY } from '../constants';
 
-const AppContext = createContext();
+const StateContext = createContext();
 
-export function AppProvider({ children }) {
+export function StateProvider({ children }) {
     const toast = useToaster();
 
-    const {
-        themeMode, setThemeMode,
-        themeColor, setThemeColor,
-        themeFont, setThemeFont,
-        fontSize, setFontSize
-    } = useTheme();
-
-    const [isLoading, setIsLoading] = useState(true);
-    const [checkingPin, setCheckingPin] = useState(true);
-    const [isLocked, setIsLocked] = useState(false);
-    const [appPin, setAppPin] = useState(null);
-    const [unlockedPin, setUnlockedPin] = useState(null);
-    const [activeEntryId, setActiveEntryId] = useState(null);
-    const [currentView, setCurrentView] = useState('dashboard');
-    const [userId, setUserId] = useState(null);
-    const [isAnonymous, setIsAnonymous] = useState(true);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
-    const [isCreating, setIsCreating] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterYear, setFilterYear] = useState('All');
-    const [filterMonth, setFilterMonth] = useState('All');
-    const [filterTag, setFilterTag] = useState('All');
-    const [filterType, setFilterType] = useState('All');
-    const [installPromptEvent, setInstallPromptEvent] = useState(null);
-    const [isAppInstalled, setIsAppInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches);
-    const [isEditorDirty, setIsEditorDirty] = useState(false);
-    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-    const [pendingView, setPendingView] = useState(null);
-    const [forceEditorSave, setForceEditorSave] = useState(false);
-    const [showOnboarding, setShowOnboarding] = useState(false);
-    const [newEntryType, setNewEntryType] = useState('note');
-    const [isAppFocusMode, setAppFocusMode] = useState(false);
-
-    const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-
+    // DATA QUERIES
     const allEntries = useLiveQuery(() => db.entries.toArray(), [], []);
     const remindersData = useLiveQuery(() => db.reminders.toArray(), [], []);
     const goals = useLiveQuery(() => db.goals.toArray(), [], []);
     const tasks = useLiveQuery(() => db.tasks.toArray(), [], []);
     const vaultItems = useLiveQuery(() => db.vaultItems.toArray(), [], []);
     const localSettings = useLiveQuery(() => dbGetSettings(), [], null);
-
-    const settings = useMemo(() => {
-        if (!localSettings) return null;
-        return {
-            ...localSettings,
-            themeMode: themeMode,
-            themeColor: themeColor,
-            fontFamily: themeFont,
-            fontSize: fontSize
-        };
-    }, [localSettings, themeMode, themeColor, themeFont, fontSize]);
     
-    const reminders = useMemo(() => {
-        if (!remindersData) return [];
-        return remindersData.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
-    }, [remindersData]);
+    // THEME
+    const {
+        themeMode, setThemeMode,
+        themeColor, setThemeColor,
+        themeFont, setThemeFont,
+        fontSize, setFontSize
+    } = useTheme(localSettings);
 
-    useDataSync(userId, toast);
+    // AUTH
+    const [userId, setUserId] = useState(null);
+    const [isAnonymous, setIsAnonymous] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [appPin, setAppPin] = useState(null);
+    const [unlockedKey, setUnlockedKey] = useState(null);
+    const [biometricCredentialId, setBiometricCredentialId] = useState(null);
+    const [isLocked, setIsLocked] = useState(false);
+    const [checkingPin, setCheckingPin] = useState(true);
+
+    // DATA
+    const [activeEntryId, setActiveEntryId] = useState(null);
+    const [isCreating, setIsCreating] = useState(false);
+    const [isEditorDirty, setIsEditorDirty] = useState(false);
+    const [forceEditorSave, setForceEditorSave] = useState(false);
+    const [newEntryType, setNewEntryType] = useState('note');
+
+    // UI
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+    const [currentView, setCurrentView] = useState('dashboard');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterYear, setFilterYear] = useState('All');
+    const [filterMonth, setFilterMonth] = useState('All');
+    const [filterTag, setFilterTag] = useState('All');
+    const [filterType, setFilterType] = useState('All');
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [isAppFocusMode, setAppFocusMode] = useState(false);
+    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+    const [pendingView, setPendingView] = useState(null);
+
+    // FEATURE
+    const [installPromptEvent, setInstallPromptEvent] = useState(null);
+    const [isAppInstalled, setIsAppInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches);
+    const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
     useEffect(() => {
-        if (settings) {
-            const color = settings.themeColor || '#14b8a6';
-            let rgb = [20, 184, 172];
-            if (/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.test(color)) {
-                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
-                rgb = result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : rgb;
-            }
-            document.documentElement.style.setProperty('--color-primary-rgb', `${rgb[0]},${rgb[1]},${rgb[2]}`);
-        }
-    }, [settings?.themeColor]);
-    
-    useEffect(() => {
-        if (localSettings) {
-             setThemeColor(localSettings.themeColor || '#14b8a6');
-             setThemeFont(localSettings.fontFamily || "var(--font-sans)");
-             setThemeMode(localSettings.themeMode || 'system');
-             setFontSize(localSettings.fontSize || '16px');
-        }
-    }, [localSettings, setThemeColor, setThemeFont, setThemeMode, setFontSize]);
-
-    useEffect(() => {
-        if (VAPID_PUBLIC_KEY === 'YOUR_VAPID_PUBLIC_KEY_HERE') {
-            console.warn("VAPID public key is not set in App.jsx. Notifications will fail.");
-        }
         try {
             const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
+            const storedCredentialId = localStorage.getItem(WEBAUTHN_CREDENTIAL_ID_KEY);
             if (storedPin) {
                 setAppPin(storedPin);
                 setIsLocked(true);
             } else {
                 setIsLocked(false);
+            }
+            if (storedCredentialId) {
+                setBiometricCredentialId(storedCredentialId);
             }
             setCheckingPin(false);
 
@@ -130,85 +104,42 @@ export function AppProvider({ children }) {
                     setUserId(null);
                     setIsAnonymous(true);
                     setCurrentUser(null);
-                    db.entries.clear();
-                    db.reminders.clear();
-                    db.goals.clear();
-                    db.tasks.clear();
-                    db.vaultItems.clear();
-                    signInAnonymously(auth).catch((error) => { console.error("Auth error:", error); setIsLoading(false); });
+                    // Data clearing will be handled in DataContext
+                    signInAnonymously(auth).catch((error) => { console.error("Auth error:", error); });
                 }
             });
 
-            const handler = (e) => {
-                e.preventDefault();
-                setInstallPromptEvent(e);
-            };
-            window.addEventListener('beforeinstallprompt', handler);
-
-            const mediaQueryList = window.matchMedia('(display-mode: standalone)');
-            const updateInstallStatus = (e) => setIsAppInstalled(e.matches);
-            mediaQueryList.addEventListener('change', updateInstallStatus);
-
             return () => {
                 unsubscribeAuth();
-                window.removeEventListener('beforeinstallprompt', handler);
-                mediaQueryList.removeEventListener('change', updateInstallStatus);
             };
-        } catch (error) { console.error("Initial setup error:", error); setIsLoading(false); setCheckingPin(false); }
+        } catch (error) {
+            console.error("Initial setup error:", error);
+            setCheckingPin(false);
+        }
     }, []);
 
-    useEffect(() => {
-        if (!app || !messaging) return;
-        let unsubscribeOnMessage;
-        try {
-            unsubscribeOnMessage = onMessage(messaging, (payload) => {
-                console.log("Message received in foreground: ", payload);
-                const notification = payload.notification;
-                toast.success(`Reminder: ${notification.body}`);
-            });
-        } catch (error) {
-            console.error("Error setting up foreground message handler:", error);
-        }
-        return () => {
-            if (unsubscribeOnMessage) unsubscribeOnMessage();
-        };
-    }, [app, messaging, toast]);
-    
-    useEffect(() => {
-        if (checkingPin) {
-            return;
-        }
 
-        if (localSettings === null) {
-            console.log("No local settings found, creating defaults.");
-            const defaultSettings = {
-                id: 1,
-                username: 'Curious User',
-                profilePicUrl: '',
-                themeColor: '#14b8a6',
-                fontFamily: "var(--font-sans)",
-                themeMode: 'system',
-                fontSize: '16px',
-                updatedAt: new Date()
-            };
-            dbSaveSettings(defaultSettings).catch(err => {
-                console.error("Failed to save default settings:", err);
-            });
-            return;
-        }
-        
-        if (localSettings && allEntries && reminders && goals && tasks && vaultItems) {
-            setIsLoading(false);
-        }
-    }, [checkingPin, localSettings, allEntries, reminders, goals, tasks, vaultItems]);
-    
+
     useEffect(() => {
-         if (!isAnonymous && !isLoading && localSettings && !localSettings.username) {
-             setShowOnboarding(true);
-         } else {
-             setShowOnboarding(false);
-         }
-    }, [isAnonymous, isLoading, localSettings]);
+        const initializeSettings = async () => {
+            const existingSettings = await dbGetSettings();
+            if (!existingSettings) {
+                const defaultSettings = {
+                    id: 1,
+                    username: 'Curious User',
+                    profilePicUrl: '',
+                    themeColor: '#14b8a6',
+                    fontFamily: 'var(--font-sans)',
+                    themeMode: 'system',
+                    fontSize: '16px',
+                    updatedAt: new Date()
+                };
+                await dbSaveSettings(defaultSettings);
+            }
+        };
+
+        initializeSettings();
+    }, []);
 
     const availableYears = useMemo(() => {
         if (!allEntries) return [];
@@ -255,7 +186,7 @@ export function AppProvider({ children }) {
                 return timeB - timeA;
             });
     }, [allEntries, searchTerm, filterYear, filterMonth, filterTag, filterType]);
-    
+
     const onThisDayEntries = useMemo(() => {
         if (!allEntries) return [];
         const todayMonth = new Date().getMonth();
@@ -266,10 +197,10 @@ export function AppProvider({ children }) {
             return entryDate.getMonth() === todayMonth && entryDate.getDate() === todayDate;
         });
     }, [allEntries]);
-    
+
     const activeGoals = useMemo(() => {
         if (!goals || !tasks) return [];
-        
+
         return goals
             .filter(goal => goal.status !== 'completed')
             .map(goal => {
@@ -291,6 +222,206 @@ export function AppProvider({ children }) {
         return allEntries.find(entry => entry.id === activeEntryId);
     }, [allEntries, activeEntryId]);
 
+    const handleLinkAccount = useCallback(async () => {
+        if (!auth.currentUser || !auth.currentUser.isAnonymous) return;
+        const provider = new GoogleAuthProvider();
+        try {
+            const result = await linkWithPopup(auth.currentUser, provider);
+            const user = result.user;
+            toast.success(`Account linked to ${user.email}!`);
+            if (localSettings) {
+                const updates = {};
+                if ((!localSettings.username || localSettings.username === 'Curious User') && user.displayName) {
+                    updates.username = user.displayName;
+                }
+                 if (!localSettings.profilePicUrl && user.photoURL) {
+                     updates.profilePicUrl = user.photoURL;
+                }
+                if (Object.keys(updates).length > 0) {
+                     await dbSaveSettings({ ...localSettings, ...updates });
+                }
+            }
+        } catch (error) {
+            console.error("Error linking account:", error);
+            if (error.code === 'auth/credential-already-in-use') {
+                 toast.error("This Google account is already in use.");
+            } else { toast.error("Error linking account."); }
+        }
+    }, [localSettings, toast]);
+
+    const handleForgotPin = useCallback(async () => {
+         const provider = new GoogleAuthProvider();
+         try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            if (user && !user.isAnonymous) {
+                 toast.success("Identity verified. PIN removed.");
+                localStorage.removeItem(PIN_STORAGE_KEY);
+                setAppPin(null);
+                setUnlockedKey(null);
+                setIsLocked(false);
+            } else {
+                 toast.error("Please link your account in Settings first.");
+            }
+         } catch (error) {
+              console.error("Error during PIN reset sign-in:", error);
+              toast.error("Could not verify your identity.");
+         }
+    }, [toast, setIsLocked]);
+
+    const checkPin = useCallback(async (pin) => {
+        if (!appPin) return false;
+        const isValid = await comparePin(pin, appPin);
+        if (isValid) {
+            setUnlockedKey(pin);
+        }
+        return isValid;
+    }, [appPin]);
+
+    const handleRegisterBiometric = useCallback(async () => {
+        if (!appPin) {
+            toast.error("Please set a PIN before enabling biometrics.");
+            return;
+        }
+
+        // Ensure user has recently verified their PIN
+        if (!unlockedKey) {
+            toast.error("Please unlock the app with your PIN first.");
+            return;
+        }
+
+        const username = localSettings?.username || 'Curious User';
+
+        let attestation;
+        try {
+            attestation = await startRegistration({
+                rp: { name: 'Curiosity', id: window.location.hostname },
+                user: { id: userId, name: username, displayName: username },
+                challenge: nanoid(32),
+                pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+                authenticatorSelection: {
+                    authenticatorAttachment: 'platform',
+                    userVerification: 'required',
+                },
+            });
+        } catch (error) {
+            console.error("WebAuthn registration failed:", error);
+            if (error.name === 'NotAllowedError') {
+                toast.error("Biometric registration was cancelled.");
+            } else if (error.name === 'NotSupportedError') {
+                toast.error("Your browser or device does not support biometrics.");
+            } else {
+                toast.error("Failed to register biometric.");
+            }
+            return;
+        }
+
+        const credentialId = attestation.id;
+
+        try {
+            const encryptedPin = encryptData(unlockedKey, credentialId);
+
+            localStorage.setItem(WEBAUTHN_CREDENTIAL_ID_KEY, credentialId);
+            await dbSaveSettings({ ...localSettings, biometricPin: encryptedPin });
+            setBiometricCredentialId(credentialId);
+            toast.success("Biometrics enabled!");
+
+        } catch (error) {
+            console.error("Error saving biometric credential:", error);
+            toast.error("Failed to save biometric data.");
+        }
+    }, [appPin, unlockedKey, localSettings, userId, toast]);
+
+    const handleDisableBiometric = useCallback(async () => {
+        try {
+            localStorage.removeItem(WEBAUTHN_CREDENTIAL_ID_KEY);
+            await dbSaveSettings({ ...localSettings, biometricPin: null });
+            setBiometricCredentialId(null);
+            toast.success("Biometrics disabled.");
+        } catch (error) {
+            console.error("Error disabling biometric:", error);
+            toast.error("Failed to disable biometrics.");
+        }
+    }, [localSettings, toast]);
+
+    const handleBiometricLogin = useCallback(async () => {
+        if (!biometricCredentialId) return false;
+
+        let assertion;
+        try {
+            assertion = await startAuthentication({
+                challenge: nanoid(32),
+                allowCredentials: [{
+                    id: biometricCredentialId,
+                    type: 'public-key',
+                }],
+                userVerification: 'required',
+            });
+        } catch (error) {
+            console.error("WebAuthn authentication failed:", error);
+            // Don't show error for user cancellation - just fall back to PIN
+            if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
+                console.warn("Biometric authentication failed with error:", error.name);
+            }
+            return false;
+        }
+
+        if (assertion) {
+            try {
+                const decryptedPin = decryptData(localSettings?.biometricPin, assertion.id);
+                if (decryptedPin) {
+                    setUnlockedKey(decryptedPin);
+                    return true;
+                }
+            } catch (error) {
+                console.error("Failed to decrypt PIN with biometric credential:", error);
+                return false;
+            }
+        }
+        return false;
+    }, [biometricCredentialId, localSettings]);
+    
+    const handleLockApp = useCallback(() => {
+        setUnlockedKey(null);
+        if (appPin) {
+            setIsLocked(true);
+        }
+    }, [appPin]);
+
+    // FUNCTIONS
+    const handleToggleSidebar = useCallback(() => setIsSidebarExpanded(!isSidebarExpanded), [isSidebarExpanded]);
+
+    const handleFilterYearChange = useCallback((year) => {
+        setFilterYear(year);
+        if (year === 'All') {
+            setFilterMonth('All');
+        }
+    }, []);
+
+    const handleClearFilters = useCallback(() => {
+        setSearchTerm('');
+        setFilterYear('All');
+        setFilterMonth('All');
+        setFilterTag('All');
+        setFilterType('All');
+    }, []);
+
+    const handleModalCancel = useCallback(() => {
+        setShowUnsavedModal(false);
+        setPendingView(null);
+    }, []);
+
+    const handleViewChange = useCallback((newView) => {
+        if ((isCreating || activeEntryId) && isEditorDirty) {
+            setPendingView(newView);
+            setShowUnsavedModal(true);
+        } else {
+            setCurrentView(newView);
+            if (isCreating) setIsCreating(false);
+            if (activeEntryId) setActiveEntryId(null);
+        }
+    }, [isCreating, activeEntryId, isEditorDirty]);
+
     const handleCloseEditor = useCallback(() => {
         if (isCreating && isEditorDirty) {
             setPendingView('dashboard');
@@ -305,66 +436,11 @@ export function AppProvider({ children }) {
         setAppFocusMode(false);
     }, [isCreating, isEditorDirty, currentView]);
 
-    const handleCreateEntry = useCallback((type = 'note') => {
-        if (!userId) return;
-        setActiveEntryId(null);
-        setNewEntryType(type);
+    const handleCreateEntry = useCallback((entryType) => {
+        setNewEntryType(entryType);
         setIsCreating(true);
         setCurrentView('editor');
-    }, [userId]);
-
-    const handleViewChange = useCallback((newView) => {
-        if ((isCreating || activeEntryId) && isEditorDirty) {
-            setPendingView(newView);
-            setShowUnsavedModal(true);
-        } else {
-            setCurrentView(newView);
-            if (isCreating) setIsCreating(false);
-            if (activeEntryId) setActiveEntryId(null);
-        }
-    }, [isCreating, activeEntryId, isEditorDirty]);
-
-    const handleSelectEntry = useCallback((id) => {
-        if (isCreating && isEditorDirty) {
-            setPendingView(id);
-            setShowUnsavedModal(true);
-        } else {
-            setActiveEntryId(id);
-            setIsCreating(false);
-            setCurrentView('editor');
-        }
-    }, [isCreating, isEditorDirty]);
-
-    const handleModalSave = useCallback(() => {
-        setForceEditorSave(true);
     }, []);
-
-    const handleModalDiscard = useCallback(() => {
-        setShowUnsavedModal(false);
-        setIsEditorDirty(false);
-        setIsCreating(false);
-        setForceEditorSave(false);
-        if (pendingView && typeof pendingView === 'string' && pendingView !== 'editor') {
-            setCurrentView(pendingView);
-            setActiveEntryId(null);
-        } else if (pendingView) {
-            setActiveEntryId(pendingView);
-            setCurrentView('editor');
-        } else {
-            setActiveEntryId(null);
-        }
-        setPendingView(null);
-    }, [pendingView]);
-
-    const handleModalCancel = useCallback(() => {
-        setShowUnsavedModal(false);
-        setPendingView(null);
-    }, []);
-
-    const handleEditorSaveComplete = useCallback(() => {
-        setForceEditorSave(false);
-        handleModalDiscard();
-    }, [handleModalDiscard]);
 
     const handleSaveNewEntry = useCallback(async (data) => {
         if (!userId) {
@@ -386,16 +462,13 @@ export function AppProvider({ children }) {
                 setActiveEntryId(newEntry.id);
                 setIsCreating(false);
             }
-            if (pendingView) {
-                handleEditorSaveComplete();
-            }
             return newEntry.id;
         } catch (error) {
             console.error("Error saving new entry locally:", error);
             toast.error("Failed to save entry.");
             return null;
         }
-    }, [userId, isCreating, pendingView, toast, handleEditorSaveComplete]);
+    }, [userId, isCreating, toast]);
 
     const handleUpdateEntry = useCallback(async (id, updates) => {
         if (!userId) {
@@ -411,15 +484,12 @@ export function AppProvider({ children }) {
             };
             await db.entries.update(id, entryUpdates);
             setIsEditorDirty(false);
-            if (pendingView) {
-                handleEditorSaveComplete();
-            }
         }
         catch (error) {
             console.error("Local update error:", error);
             toast.error("Failed to update entry.");
         }
-    }, [userId, toast, pendingView, handleEditorSaveComplete]);
+    }, [userId, toast]);
 
     const handleDeleteEntry = useCallback(async (id) => {
         if (!userId) {
@@ -468,7 +538,7 @@ export function AppProvider({ children }) {
             toast.error("Failed to delete reminder.");
         }
     }, [userId, toast]);
-    
+
     const handleAddGoal = useCallback(async (title, description) => {
         if (!userId) return;
         try {
@@ -488,7 +558,7 @@ export function AppProvider({ children }) {
             toast.error("Failed to add goal.");
         }
     }, [userId, toast]);
-    
+
     const handleDeleteGoal = useCallback(async (goalId) => {
         if (!userId) return;
         try {
@@ -501,7 +571,7 @@ export function AppProvider({ children }) {
             toast.error("Failed to delete goal.");
         }
     }, [userId, toast]);
-    
+
     const handleUpdateGoalStatus = useCallback(async (goalId, status) => {
         if (!userId) return;
         try {
@@ -531,7 +601,7 @@ export function AppProvider({ children }) {
             toast.error("Failed to add task.");
         }
     }, [userId, toast]);
-    
+
     const handleDeleteTask = useCallback(async (taskId) => {
          if (!userId) return;
         try { 
@@ -543,7 +613,7 @@ export function AppProvider({ children }) {
             toast.error("Failed to delete task.");
         }
     }, [userId, toast]);
-    
+
     const handleToggleTask = useCallback(async (taskId, completed) => {
          if (!userId) return;
         try { 
@@ -554,14 +624,14 @@ export function AppProvider({ children }) {
             toast.error("Failed to update task.");
         }
     }, [userId, toast]);
-    
+
     const handleAddVaultItem = useCallback(async (title, type, data) => {
         if (!userId) return toast.error("You must be logged in.");
-        if (!unlockedPin) return toast.error("Vault is locked.");
-        
-        const encryptedData = encryptData(data, unlockedPin);
+        if (!unlockedKey) return toast.error("Vault is locked.");
+
+        const encryptedData = encryptData(data, unlockedKey);
         if (!encryptedData) return toast.error("Encryption failed.");
-        
+
         try {
             const newItem = {
                 id: nanoid(),
@@ -578,7 +648,7 @@ export function AppProvider({ children }) {
             console.error("Error saving vault item:", error);
             toast.error("Failed to save item.");
         }
-    }, [userId, unlockedPin, toast]);
+    }, [userId, unlockedKey, toast]);
 
     const handleDeleteVaultItem = useCallback(async (id) => {
         if (!userId) return;
@@ -593,43 +663,32 @@ export function AppProvider({ children }) {
     }, [userId, toast]);
 
     const handleSaveSettings = useCallback(async ({ settings: newSettings, pin: newPin }) => {
-         try {
-             const fullSettings = { 
-                 ...localSettings, 
-                 ...newSettings,
-             };
-             await dbSaveSettings(fullSettings);
-             toast.success("Settings saved!");
-         }
-        catch (error) { 
-            console.error("Save local settings error:", error); 
-            toast.error("Failed to save settings.");
-        }
-        
-        if (newPin && newPin.length > 0) {
-            try {
+        const latestSettings = await dbGetSettings(); // Fetch the latest settings directly from the DB
+        const fullSettings = { ...latestSettings, ...newSettings };
+        console.log("Saving merged settings:", fullSettings);
+        await dbSaveSettings(fullSettings);
+        console.log("Settings saved successfully.");
+
+        // Handle PIN saving separately
+        if (newPin !== undefined) {
+            if (newPin === null || newPin === '') {
+                // Remove PIN
+                localStorage.removeItem(PIN_STORAGE_KEY);
+                setAppPin(null);
+                setIsLocked(false);
+            } else {
+                // Save new PIN
                 const hashedPin = await hashPin(newPin);
                 localStorage.setItem(PIN_STORAGE_KEY, hashedPin);
                 setAppPin(hashedPin);
-                setUnlockedPin(newPin);
-                toast.success("PIN updated!");
-            } catch (error) {
-                console.error("Error hashing pin:", error);
-                toast.error("Error setting new PIN.");
+                setIsLocked(true);
             }
-        } else if (newPin === '') { 
-            localStorage.removeItem(PIN_STORAGE_KEY);
-            setAppPin(null);
-            setUnlockedPin(null);
-            setIsLocked(false);
-            toast.success("PIN removed.");
         }
-    }, [localSettings, toast, setIsLocked]);
+    }, [toast]);
 
     const handleOnboardingComplete = useCallback(async (username, themeColor) => {
         const newSettings = {
             username: username,
-            profilePicUrl: currentUser?.photoURL || '',
             themeColor: themeColor,
             fontFamily: "var(--font-sans)",
             themeMode: 'system',
@@ -639,38 +698,13 @@ export function AppProvider({ children }) {
         };
         try {
             await dbSaveSettings(newSettings);
-            setShowOnboarding(false);
             toast.success(`Welcome, ${username}!`);
         } catch (error) {
             console.error("Error saving onboarding settings:", error);
             toast.error("Could not save settings.");
         }
-    }, [currentUser, toast]);
+    }, [toast]);
 
-    const handleToggleSidebar = useCallback(() => setIsSidebarExpanded(!isSidebarExpanded), [isSidebarExpanded]);
-    
-    const handleLockApp = useCallback(() => {
-        setUnlockedPin(null);
-        if (appPin) {
-            setIsLocked(true);
-        }
-    }, [appPin]);
-    
-    const handleFilterYearChange = useCallback((year) => {
-        setFilterYear(year);
-        if (year === 'All') {
-            setFilterMonth('All');
-        }
-    }, []);
-    
-    const handleClearFilters = useCallback(() => {
-        setSearchTerm('');
-        setFilterYear('All');
-        setFilterMonth('All');
-        setFilterTag('All');
-        setFilterType('All');
-    }, []);
-    
     const downloadFile = useCallback((data, filename, mimeType) => {
         const blob = new Blob([data], { type: mimeType });
         const url = URL.createObjectURL(blob);
@@ -682,7 +716,7 @@ export function AppProvider({ children }) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }, []);
-    
+
     const handleExportData = useCallback(async (format) => {
         toast.success(`Exporting as ${format.toUpperCase()}...`);
         const exportDate = new Date().toISOString().split('T')[0];
@@ -690,7 +724,7 @@ export function AppProvider({ children }) {
         const dataToExport = {
             settings: { ...localSettings },
             entries: allEntries,
-            reminders: reminders,
+            reminders: remindersData,
             goals: goals,
             tasks: tasks,
         };
@@ -704,51 +738,30 @@ export function AppProvider({ children }) {
                 const zip = new JSZip();
                 zip.file('settings.json', JSON.stringify(dataToExport.settings, null, 2));
                 zip.file('reminders.json', JSON.stringify(dataToExport.reminders, null, 2));
-                
+
                 const entriesFolder = zip.folder('entries');
                 if (dataToExport.entries) {
                     dataToExport.entries.forEach(entry => {
                         const entryDate = entry.createdAt ? new Date(entry.createdAt).toISOString().split('T')[0] : 'no-date';
                         const safeTitle = (entry.title || 'untitled').replace(/[^a-z0-9]/gi, '_').toLowerCase();
                         const entryFilename = `${entryDate}_${safeTitle}.md`;
-                        let mdContent = `---
-id: ${entry.id}
-type: ${entry.type || 'note'}
-createdAt: ${entry.createdAt ? new Date(entry.createdAt).toISOString() : 'unknown'}
-updatedAt: ${entry.updatedAt ? new Date(entry.updatedAt).toISOString() : 'unknown'}
-tags: [${(entry.tags || []).join(', ')}]
----
-
-# ${entry.title || 'Untitled'}
-
-${entry.content || ''}
-`;
+                        let mdContent = `--- 
+id: ${entry.id}\ntype: ${entry.type || 'note'}\ncreatedAt: ${entry.createdAt ? new Date(entry.createdAt).toISOString() : 'unknown'}\nupdatedAt: ${entry.updatedAt ? new Date(entry.updatedAt).toISOString() : 'unknown'}\ntags: [${(entry.tags || []).join(', ')}]\n---\n\n# ${entry.title || 'Untitled'}\n\n${entry.content || ''}\n`;
                         entriesFolder.file(entryFilename, mdContent);
                     });
                 }
-                
+
                 const goalsFolder = zip.folder('goals');
                 if (dataToExport.goals) {
                     dataToExport.goals.forEach(goal => {
                         const goalTasks = dataToExport.tasks ? dataToExport.tasks.filter(t => t.goalId === goal.id) : [];
-                        let mdContent = `---
-id: ${goal.id}
-status: ${goal.status}
-createdAt: ${goal.createdAt ? new Date(goal.createdAt).toISOString() : 'unknown'}
-updatedAt: ${goal.updatedAt ? new Date(goal.updatedAt).toISOString() : 'unknown'}
----
-
-# ${goal.title}
-
-${goal.description || ''}
-
-## Tasks
-${goalTasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.text}`).join('\n')}
-`;
+                        let mdContent = `--- 
+id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(goal.createdAt).toISOString() : 'unknown'}\nupdatedAt: ${goal.updatedAt ? new Date(goal.updatedAt).toISOString() : 'unknown'}
+---\n\n# ${goal.title}\n\n${goal.description || ''}\n\n## Tasks\n${goalTasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.text}`).join('\n')}\n`;
                         goalsFolder.file(`${goal.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`, mdContent);
                     });
                 }
-                
+
                 const zipContent = await zip.generateAsync({ type: 'blob' });
                 downloadFile(zipContent, `${filename}.zip`, 'application/zip');
             }
@@ -766,7 +779,7 @@ ${goalTasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.text}`).join('\n')}
                 doc.text(`Total Entries: ${sortedEntries.length}`, 10, 36);
                 doc.text(`Total Reminders: ${(dataToExport.reminders || []).length}`, 10, 42);
                 doc.text(`Total Goals: ${(dataToExport.goals || []).length}`, 10, 48);
-                
+
                 sortedEntries.forEach((entry, index) => {
                     if (index > 0) doc.addPage();
                     doc.setFontSize(18);
@@ -792,7 +805,33 @@ ${goalTasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.text}`).join('\n')}
             console.error(`Error exporting data as ${format}:`, error);
             toast.error(`Failed to export as ${format.toUpperCase()}.`);
         }
-    }, [localSettings, allEntries, reminders, goals, tasks, downloadFile, toast]);
+    }, [localSettings, allEntries, remindersData, goals, tasks, downloadFile, toast]);
+
+    const handleModalSave = useCallback(() => {
+        setForceEditorSave(true);
+    }, []);
+
+    const handleModalDiscard = useCallback(() => {
+        setShowUnsavedModal(false);
+        setIsEditorDirty(false);
+        setIsCreating(false);
+        setForceEditorSave(false);
+        if (pendingView && typeof pendingView === 'string' && pendingView !== 'editor') {
+            setCurrentView(pendingView);
+            setActiveEntryId(null);
+        } else if (pendingView) {
+            setActiveEntryId(pendingView);
+            setCurrentView('editor');
+        } else {
+            setActiveEntryId(null);
+        }
+        setPendingView(null);
+    }, [pendingView, setCurrentView, setPendingView, setShowUnsavedModal]);
+
+    const handleEditorSaveComplete = useCallback(() => {
+        setForceEditorSave(false);
+        handleModalDiscard();
+    }, [handleModalDiscard]);
 
     const handleInstallApp = useCallback(async () => {
         if (!installPromptEvent) {
@@ -835,7 +874,7 @@ ${goalTasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.text}`).join('\n')}
             toast.error('Push notifications are not supported by this browser.');
             return null;
         }
-         if (!app || !messaging) { console.error("Firebase app not initialized."); return null; }
+         if (!messaging) { console.error("Firebase app not initialized."); return null; }
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
@@ -853,11 +892,11 @@ ${goalTasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.text}`).join('\n')}
              toast.error('Error enabling notifications.');
             return Notification?.permission || 'default';
         }
-    }, [app, messaging, VAPID_PUBLIC_KEY, saveTokenToFirestore, toast]);
-    
+    }, [messaging, VAPID_PUBLIC_KEY, saveTokenToFirestore, toast]);
+
     const handleDisableNotifications = useCallback(async () => {
          if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
-         if (!app || !userId || !firestoreDb) return Notification?.permission || 'default';
+         if (!userId || !firestoreDb) return Notification?.permission || 'default';
         try {
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
@@ -884,123 +923,36 @@ ${goalTasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.text}`).join('\n')}
              toast.error("Error disabling notifications.");
         }
          return Notification?.permission || 'default';
-    }, [app, userId, getSubscriptionsCollection, toast]);
-
-    const handleLinkAccount = useCallback(async () => {
-        if (!auth.currentUser || !auth.currentUser.isAnonymous) return;
-        const provider = new GoogleAuthProvider();
-        try {
-            const result = await linkWithPopup(auth.currentUser, provider);
-            const user = result.user;
-            toast.success(`Account linked to ${user.email}!`);
-            if (localSettings) {
-                const updates = {};
-                if ((!localSettings.username || localSettings.username === 'Curious User') && user.displayName) {
-                    updates.username = user.displayName;
-                }
-                 if (!localSettings.profilePicUrl && user.photoURL) {
-                     updates.profilePicUrl = user.photoURL;
-                }
-                if (Object.keys(updates).length > 0) {
-                     await dbSaveSettings({ ...localSettings, ...updates });
-                }
-            }
-        } catch (error) {
-            console.error("Error linking account:", error);
-            if (error.code === 'auth/credential-already-in-use') {
-                 toast.error("This Google account is already in use.");
-            } else { toast.error("Error linking account."); }
-        }
-    }, [localSettings, toast]);
-    
-    const handleForgotPin = useCallback(async () => {
-         if (!app) return;
-         const provider = new GoogleAuthProvider();
-         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            if (user && !user.isAnonymous) {
-                 toast.success("Identity verified. PIN removed.");
-                localStorage.removeItem(PIN_STORAGE_KEY);
-                setAppPin(null);
-                setUnlockedPin(null);
-                setIsLocked(false);
-            } else {
-                 toast.error("Please link your account in Settings first.");
-            }
-         } catch (error) {
-              console.error("Error during PIN reset sign-in:", error);
-              toast.error("Could not verify your identity.");
-         }
-    }, [app, toast, setIsLocked]);
-    
-    const checkPin = useCallback(async (pin) => {
-        if (!appPin) return false;
-        const isValid = await comparePin(pin, appPin);
-        if (isValid) {
-            setUnlockedPin(pin);
-        }
-        return isValid;
-    }, [appPin]);
-
+    }, [userId, getSubscriptionsCollection, toast]);
 
     const value = {
-        isLoading, checkingPin, isLocked, appPin, allEntries, reminders, goals, tasks, vaultItems, activeEntryId, settings,
-        currentView, userId, isAnonymous, currentUser, isSidebarExpanded, isCreating,
-        searchTerm, filterYear, filterMonth, filterTag, filterType, installPromptEvent,
-        isAppInstalled, isEditorDirty, showUnsavedModal, pendingView, forceEditorSave,
-        showOnboarding, newEntryType,
-        
-        isAppFocusMode, setAppFocusMode,
-        
-        onThisDayEntries,
-        activeGoals,
-        
-        unlockedPin, setUnlockedPin,
-
-        themeMode, themeColor, themeFont, fontSize,
-
-        availableYears, availableTags, filteredEntries, activeEntry,
-
-        setIsLocked, setAppPin, setActiveEntryId, setCurrentView, setIsSidebarExpanded,
-        setIsCreating, setSearchTerm, setFilterYear, setFilterMonth, setFilterTag,
-        setFilterType, setIsEditorDirty, setShowUnsavedModal, setForceEditorSave,
-
-        setThemeMode, setThemeColor, setThemeFont, setFontSize,
-        
-        checkPin,
-
-        handleCreateEntry, handleViewChange, handleSelectEntry, handleModalSave,
-        handleModalDiscard, handleModalCancel, handleEditorSaveComplete, handleSaveNewEntry,
-        handleUpdateEntry, handleDeleteEntry, handleAddReminder, handleDeleteReminder,
-        
-        handleAddGoal, handleDeleteGoal, handleUpdateGoalStatus, handleAddTask, 
-        handleDeleteTask, handleToggleTask,
-        
-        handleAddVaultItem, handleDeleteVaultItem,
-        
-        handleSaveSettings, handleOnboardingComplete, handleCloseEditor, handleToggleSidebar,
-        handleLockApp,
-        handleFilterYearChange, handleClearFilters, handleExportData, handleInstallApp,
-        handleRequestNotificationPermission, handleDisableNotifications, handleLinkAccount,
-        handleForgotPin,
-
+        // THEME
+        themeMode, setThemeMode,
+        themeColor, setThemeColor,
+        themeFont, setThemeFont,
+        fontSize, setFontSize,
+        // AUTH
+        userId, isAnonymous, currentUser, appPin, unlockedKey, biometricCredentialId, isLocked, checkingPin,
+        setAppPin, setIsLocked, checkPin, handleBiometricLogin, handleRegisterBiometric, handleDisableBiometric,
+        handleLinkAccount, handleForgotPin, handleLockApp,
+        // DATA
+        allEntries, reminders: remindersData, goals, tasks, vaultItems, localSettings, activeEntryId, setActiveEntryId,
+        isCreating, setIsCreating, isEditorDirty, setIsEditorDirty, forceEditorSave, setForceEditorSave,
+        newEntryType, setNewEntryType, availableYears, availableTags, filteredEntries, onThisDayEntries,
+        activeGoals, activeEntry, handleCreateEntry, handleSaveNewEntry, handleUpdateEntry, handleDeleteEntry, handleAddReminder,
+        handleDeleteReminder, handleAddGoal, handleDeleteGoal, handleUpdateGoalStatus, handleAddTask,
+        handleDeleteTask, handleToggleTask, handleAddVaultItem, handleDeleteVaultItem, handleSaveSettings,
+        handleOnboardingComplete, handleExportData,
+        // UI
+        isSidebarExpanded, currentView, searchTerm, filterYear, filterMonth, filterTag, filterType,
+        showOnboarding, isAppFocusMode, showUnsavedModal, pendingView, handleToggleSidebar,
+        handleFilterYearChange, handleClearFilters, handleModalCancel, handleViewChange, handleCloseEditor,
+        // FEATURE
+        installPromptEvent, isAppInstalled, handleInstallApp, handleRequestNotificationPermission, handleDisableNotifications,
         toast
     };
 
-    return (
-        <AppContext.Provider value={value}>
-            {children}
-        </AppContext.Provider>
-    );
-}
-
-export function useAppContext() {
-    const context = useContext(AppContext);
-    if (context === undefined) {
-        throw new Error('useAppContext must be used within an AppProvider');
-    }
-    return context;
+    return <StateContext.Provider value={value}>{children}</StateContext.Provider>;
 }
 
 function useDataSync(userId, toast) {
@@ -1009,7 +961,7 @@ function useDataSync(userId, toast) {
 
         let unsubscribers = [];
         let isSyncing = false;
-        
+
         const syncCollection = async (localStore, collectionRefName) => {
             let localItems = [];
             try {
@@ -1021,14 +973,14 @@ function useDataSync(userId, toast) {
             }
 
             if (localItems.length === 0) return;
-            
+
             const collectionRef = collection(firestoreDb, `artifacts/${appId}/users/${userId}/${collectionRefName}`);
 
             for (const item of localItems) {
                 try {
                     const { isSynced, ...dataToSync } = item;
                     const docRef = doc(collectionRef, item.id);
-                    
+
                     if (dataToSync.isDeleted) {
                         await deleteDoc(docRef);
                     } else {
@@ -1048,7 +1000,7 @@ function useDataSync(userId, toast) {
         const syncLocalToCloud = async () => {
             if (isSyncing) return;
             isSyncing = true;
-            
+
             try {
                 const settingsToSync = await db.settings.get(1);
                 if (settingsToSync) {
@@ -1071,17 +1023,14 @@ function useDataSync(userId, toast) {
             } catch (err) {
                  console.error("Error during sync collections:", err);
             }
-            
+
             isSyncing = false;
         };
-
-        const syncInterval = setInterval(syncLocalToCloud, 10000);
-        syncLocalToCloud();
 
         const syncCloudToLocal = (collectionRefName, localStore) => {
             const collectionRef = collection(firestoreDb, `artifacts/${appId}/users/${userId}/${collectionRefName}`);
             const q = query(collectionRef);
-            
+
             const unsubscribe = onSnapshot(q, async (snapshot) => {
                 try {
                     await db.transaction('rw', localStore, async () => {
@@ -1089,7 +1038,7 @@ function useDataSync(userId, toast) {
                         for (const change of changes) {
                             const docData = change.doc.data();
                             const docId = change.doc.id;
-                            
+
                             const localData = {
                                 ...docData,
                                 id: docId,
@@ -1097,7 +1046,7 @@ function useDataSync(userId, toast) {
                                 updatedAt: docData.updatedAt?.toDate ? docData.updatedAt.toDate() : new Date(),
                                 isSynced: true
                             };
-                            
+
                             if (change.type === 'added' || change.type === 'modified') {
                                 const localEntry = await localStore.get(localData.id);
                                 if (!localEntry || (localEntry.updatedAt.getTime() < localData.updatedAt.getTime())) {
@@ -1143,7 +1092,7 @@ function useDataSync(userId, toast) {
             });
             return unsubscribe;
         };
-        
+
         unsubscribers.push(syncCloudToLocal('entries', db.entries));
         unsubscribers.push(syncCloudToLocal('reminders', db.reminders));
         unsubscribers.push(syncCloudToLocal('goals', db.goals));
@@ -1151,9 +1100,19 @@ function useDataSync(userId, toast) {
         unsubscribers.push(syncCloudToLocal('vaultItems', db.vaultItems));
         unsubscribers.push(syncSettingsToLocal());
 
+        const syncInterval = setInterval(syncLocalToCloud, 30000); // Sync every 30 seconds
+
         return () => {
             clearInterval(syncInterval);
             unsubscribers.forEach(unsub => unsub());
         };
     }, [userId, toast]);
+}
+
+export function useAppState() {
+    const context = useContext(StateContext);
+    if (context === undefined) {
+        throw new Error('useAppState must be used within a StateProvider');
+    }
+    return context;
 }

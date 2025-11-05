@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import { useAppContext } from '../context/AppContext';
+import { useAppState } from '../contexts/StateProvider';
 import { format, isSameDay } from 'date-fns';
 import { BookOpen } from 'lucide-react';
 import { getEntryType } from '../constants';
@@ -27,14 +27,14 @@ const EntryTile = ({ entry, onSelect }) => {
 };
 
 export default function CalendarView() {
-    const { entries, handleSelectEntry } = useAppContext();
+    const { allEntries, handleSelectEntry } = useAppState();
     const [activeDate, setActiveDate] = useState(new Date());
 
     const entriesByDate = useMemo(() => {
         const map = new Map();
-        if (!entries) return map;
+        if (!allEntries) return map;
         
-        entries.forEach(entry => {
+        allEntries.forEach(entry => {
             const date = entry.createdAt;
             if (!date) return;
             
@@ -45,7 +45,7 @@ export default function CalendarView() {
             map.get(dateKey).push(entry);
         });
         return map;
-    }, [entries]);
+    }, [allEntries]);
 
     const entriesOnSelectedDate = useMemo(() => {
         const dateKey = format(activeDate, 'yyyy-MM-dd');

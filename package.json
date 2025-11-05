@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
-    "bcryptjs": "^2.4.3",
+    "@simplewebauthn/browser": "^13.2.2",
+    "bcrypt-ts": "^7.1.0",
     "clsx": "^2.1.1",
     "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",

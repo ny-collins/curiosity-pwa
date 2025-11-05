@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Key, Delete } from 'lucide-react';
+import { Fingerprint, Delete } from 'lucide-react';
 import { LIMITS } from '../constants.js';
-import { useAppContext } from '../context/AppContext.jsx';
+import { useAppState } from '../contexts/StateProvider';
 
 const PinDigit = ({ hasValue }) => {
     return (
@@ -31,9 +31,10 @@ const PinKey = ({ value, onClick, children }) => (
 );
 
 export default function PinLockScreen({ onUnlock, onForgotPin, checkPin }) {
-    const { setUnlockedPin } = useAppContext();
+    const { setUnlockedKey, biometricCredentialId, handleBiometricLogin } = useAppState();
     const [pin, setPin] = useState('');
     const [error, setError] = useState(false);
+    const [isCheckingBiometrics, setIsCheckingBiometrics] = useState(true);
     
     const pinLength = LIMITS.PIN_LENGTH;
 
@@ -57,13 +58,12 @@ export default function PinLockScreen({ onUnlock, onForgotPin, checkPin }) {
         
         const isValid = await checkPin(pin);
         if (isValid) {
-            setUnlockedPin(pin);
             onUnlock();
         } else {
             setError(true);
             setTimeout(() => setPin(''), 500);
         }
-    }, [checkPin, pin, onUnlock, setUnlockedPin]);
+    }, [checkPin, pin, onUnlock]);
 
     useEffect(() => {
         if (pin.length === pinLength) {
@@ -73,6 +73,22 @@ export default function PinLockScreen({ onUnlock, onForgotPin, checkPin }) {
             setError(false);
         }
     }, [pin, handleSubmit, error, pinLength]);
+    
+    useEffect(() => {
+        if (biometricCredentialId) {
+            const tryBiometrics = async () => {
+                const success = await handleBiometricLogin();
+                if (success) {
+                    onUnlock();
+                } else {
+                    setIsCheckingBiometrics(false);
+                }
+            };
+            tryBiometrics();
+        } else {
+            setIsCheckingBiometrics(false);
+        }
+    }, [biometricCredentialId, handleBiometricLogin, onUnlock]);
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -98,12 +114,14 @@ export default function PinLockScreen({ onUnlock, onForgotPin, checkPin }) {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col items-center"
             >
-                <Key 
+                <Fingerprint 
                     size={48} 
-                    className="mb-4 text-primary"
+                    className={`mb-4 text-primary ${isCheckingBiometrics ? 'animate-pulse' : ''}`}
                     style={{ color: 'var(--color-primary-hex)' }}
                 />
-                <span className="text-lg font-medium mt-4 mb-2">Enter your PIN</span>
+                <span className="text-lg font-medium mt-4 mb-2">
+                    {isCheckingBiometrics ? 'Checking biometrics...' : 'Enter your PIN'}
+                </span>
             </motion.div>
 
             <motion.div

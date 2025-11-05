@@ -1,13 +1,13 @@
 import React from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ChevronDown, Plus, BookOpen, CheckSquare, Brain } from 'lucide-react';
-import { useAppContext } from '../context/AppContext.jsx';
+import { useAppState } from '../contexts/StateProvider';
 import { ENTRY_TYPES, getEntryType } from '../constants.js';
 
 const menuItems = ENTRY_TYPES;
 
 export default function CreateEntryMenu({ isExpanded }) {
-    const { handleCreateEntry } = useAppContext();
+    const { handleCreateEntry } = useAppState();
 
     if (!isExpanded) {
         return (

@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, 
     LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper, 
-    Loader2, UserCircle, Palette, Lock, SlidersHorizontal, Database
+    Loader2, UserCircle, Palette, Lock, SlidersHorizontal, Database, Fingerprint
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { functions, storage, appId } from '../firebaseConfig'; 
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
-import { useAppContext } from '../context/AppContext';
+import { useAppState } from '../contexts/StateProvider';
 import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
 import ExportModal from './ExportModal';
@@ -23,7 +23,7 @@ const settingsTabs = [
 ];
 
 function SettingsPage() {
-    const { handleViewChange } = useAppContext();
+    const { handleViewChange } = useAppState();
     const [activeTab, setActiveTab] = useState('profile');
 
     const renderActiveTab = () => {
@@ -44,37 +44,46 @@ function SettingsPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center space-x-2 flex-shrink-0 bg-white dark:bg-slate-900 z-10">
-                <button 
-                    onClick={() => handleViewChange('dashboard')} 
-                    className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden focus:outline-none focus:ring-2" 
-                    style={{'--tw-ring-color': 'var(--color-primary-hex)'}} 
-                    aria-label="Back to dashboard" 
+        <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900" style={{ backgroundColor: 'var(--color-bg-base)' }}>
+            {/* Mobile Header - Simplified */}
+            <div className="md:hidden p-4 flex justify-between items-center space-x-2 flex-shrink-0 border-b"
+                 style={{
+                     borderBottomColor: 'var(--color-border)',
+                     backgroundColor: 'var(--color-bg-content)'
+                 }}>
+                <button
+                    onClick={() => handleViewChange('dashboard')}
+                    className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2"
+                    style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
+                    aria-label="Back to dashboard"
                     title="Back to dashboard"
                 >
                     <ArrowLeft size={22} />
                 </button>
-                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
                     Settings
                 </h2>
                 <div className="w-8"></div>
             </div>
-            
+
             <div className="flex-1 flex overflow-hidden">
-                <nav className="hidden md:flex flex-col w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4 space-y-1">
-                    {settingsTabs.map(tab => (
-                        <SettingsTabButton
-                            key={tab.id}
-                            icon={tab.icon}
-                            label={tab.name}
-                            isActive={activeTab === tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                        />
-                    ))}
-                </nav>
-                
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-800">
+                {/* Mobile Tab Navigation - Improved spacing */}
+                <div className="md:hidden border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0">
+                    <div className="flex">
+                        {settingsTabs.map(tab => (
+                            <MobileSettingsTabButton
+                                key={tab.id}
+                                icon={tab.icon}
+                                label={tab.name}
+                                isActive={activeTab === tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Mobile Content Area */}
+                <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-800 pb-20">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -86,6 +95,37 @@ function SettingsPage() {
                             {renderActiveTab()}
                         </motion.div>
                     </AnimatePresence>
+                </div>
+
+                {/* Desktop Layout */}
+                <div className="hidden md:flex flex-1 overflow-hidden">
+                    {/* Desktop Sidebar Navigation */}
+                    <nav className="flex flex-col w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4 space-y-1 flex-shrink-0">
+                        {settingsTabs.map(tab => (
+                            <SettingsTabButton
+                                key={tab.id}
+                                icon={tab.icon}
+                                label={tab.name}
+                                isActive={activeTab === tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                            />
+                        ))}
+                    </nav>
+
+                    {/* Desktop Content Area */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-800">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeTab}
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.15 }}
+                            >
+                                {renderActiveTab()}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,6 +151,25 @@ const SettingsTabButton = ({ icon, label, isActive, onClick }) => {
     );
 };
 
+const MobileSettingsTabButton = ({ icon, label, isActive, onClick }) => {
+    const Icon = icon;
+    const activeClass = isActive ? 'border-primary text-primary' : 'border-transparent text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white';
+    
+    return (
+        <button
+            onClick={onClick}
+            className={`flex flex-col items-center justify-center space-y-1 min-w-0 flex-1 px-3 py-3 border-b-2 transition-colors duration-150 ${activeClass}`}
+            style={{ 
+                color: isActive ? 'var(--color-primary-hex)' : '',
+                borderBottomColor: isActive ? 'var(--color-primary-hex)' : ''
+            }}
+        >
+            <Icon size={18} className="flex-shrink-0" />
+            <span className="text-xs font-medium truncate">{label}</span>
+        </button>
+    );
+};
+
 const SettingsSection = ({ title, children }) => (
     <section className="space-y-6">
         <h3 className="text-xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
@@ -123,22 +182,22 @@ const SettingsSection = ({ title, children }) => (
 );
 
 const SettingsProfile = () => {
-    const { settings, currentUser, isAnonymous, handleLinkAccount, handleSaveSettings, toast } = useAppContext();
+    const { localSettings, handleSaveSettings, currentUser, isAnonymous, handleLinkAccount, toast } = useAppState();
     const [username, setUsername] = useState('');
     const [profilePicUrl, setProfilePicUrl] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
-        if (settings) {
-            setUsername(settings.username || (currentUser && !isAnonymous ? currentUser.displayName : ''));
-            setProfilePicUrl(settings.profilePicUrl || (currentUser && !isAnonymous ? currentUser.photoURL : ''));
+        if (localSettings) {
+            setUsername(localSettings.username || (currentUser && !isAnonymous ? currentUser.displayName : ''));
+            setProfilePicUrl(localSettings.profilePicUrl || (currentUser && !isAnonymous ? currentUser.photoURL : ''));
         }
-    }, [settings, currentUser, isAnonymous]);
+    }, [localSettings, currentUser, isAnonymous]);
     
     const handleSave = () => {
         handleSaveSettings({
-            settings: { ...settings, username, profilePicUrl },
+            settings: { ...localSettings, username, profilePicUrl },
             pin: null
         });
         toast.success("Profile saved!");
@@ -163,7 +222,7 @@ const SettingsProfile = () => {
             const downloadURL = await getDownloadURL(snapshot.ref);
             setProfilePicUrl(downloadURL); 
             handleSaveSettings({
-                settings: { ...settings, username, profilePicUrl: downloadURL },
+                settings: { ...localSettings, username, profilePicUrl: downloadURL },
                 pin: null
             });
             toast.success("Profile picture updated!");
@@ -255,33 +314,22 @@ const SettingsProfile = () => {
 
 const SettingsAppearance = () => {
     const { 
-        settings, handleSaveSettings, toast,
-        themeMode: contextThemeMode, setThemeMode,
-        themeColor: contextThemeColor, setThemeColor,
-        themeFont: contextThemeFont, setThemeFont,
-        fontSize: contextFontSize, setFontSize
-    } = useAppContext();
-
-    const [activeThemeMode, setActiveThemeMode] = useState(contextThemeMode);
-    const [activeThemeColor, setActiveThemeColor] = useState(contextThemeColor);
-    const [activeFont, setActiveFont] = useState(contextThemeFont);
-    const [activeFontSize, setActiveFontSize] = useState(contextFontSize);
-
-    useEffect(() => {
-        setActiveThemeMode(contextThemeMode);
-        setActiveThemeColor(contextThemeColor);
-        setActiveFont(contextThemeFont);
-        setActiveFontSize(contextFontSize);
-    }, [contextThemeMode, contextThemeColor, contextThemeFont, contextFontSize]);
+        localSettings, handleSaveSettings,
+        themeMode, setThemeMode,
+        themeColor, setThemeColor,
+        themeFont, setThemeFont,
+        fontSize, setFontSize,
+        toast
+    } = useAppState();
 
     const handleSave = () => {
         handleSaveSettings({
             settings: { 
-                ...settings,
-                themeMode: activeThemeMode,
-                themeColor: activeThemeColor,
-                fontFamily: activeFont,
-                fontSize: activeFontSize
+                ...localSettings,
+                themeMode: themeMode,
+                themeColor: themeColor,
+                fontFamily: themeFont,
+                fontSize: fontSize
             },
             pin: null
         });
@@ -289,22 +337,18 @@ const SettingsAppearance = () => {
     };
     
     const handleModeChange = (mode) => {
-        setActiveThemeMode(mode);
         setThemeMode(mode);
     };
     
     const handleColorChange = (color) => {
-        setActiveThemeColor(color);
         setThemeColor(color);
     };
     
     const handleFontChange = (font) => {
-        setActiveFont(font);
         setThemeFont(font);
     };
     
     const handleFontSizeChange = (size) => {
-        setActiveFontSize(size);
         setFontSize(size);
     };
 
@@ -319,11 +363,11 @@ const SettingsAppearance = () => {
                                 key={mode.value}
                                 onClick={() => handleModeChange(mode.value)}
                                 className={`flex-1 flex justify-center items-center space-x-2 py-2 px-3 rounded-md text-sm transition-colors ${
-                                    activeThemeMode === mode.value
+                                    themeMode === mode.value
                                         ? 'bg-white dark:bg-slate-900 shadow-sm text-primary font-semibold'
                                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                 }`}
-                                style={{ color: activeThemeMode === mode.value ? 'var(--color-primary-hex)' : '' }}
+                                style={{ color: themeMode === mode.value ? 'var(--color-primary-hex)' : '' }}
                             >
                                 <mode.icon size={16} />
                                 <span>{mode.name}</span>
@@ -339,7 +383,7 @@ const SettingsAppearance = () => {
                                 key={color.hex}
                                 title={color.name}
                                 onClick={() => handleColorChange(color.hex)}
-                                className={`w-8 h-8 rounded-full cursor-pointer focus:outline-none transition-transform duration-100 ${activeThemeColor === color.hex ? 'ring-2 ring-offset-2 scale-110' : 'hover:scale-110'}`}
+                                className={`w-8 h-8 rounded-full cursor-pointer focus:outline-none transition-transform duration-100 ${themeColor === color.hex ? 'ring-2 ring-offset-2 scale-110' : 'hover:scale-110'}`}
                                 style={{ 
                                     backgroundColor: color.hex, 
                                     '--tw-ring-color': 'var(--color-primary-hex)',
@@ -359,10 +403,10 @@ const SettingsAppearance = () => {
                                 <button
                                     key={font.value}
                                     onClick={() => handleFontChange(font.value)}
-                                    className={`py-1 px-3 rounded-md text-sm transition-colors ${activeFont === font.value ? 'text-white font-semibold' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
+                                    className={`py-1 px-3 rounded-md text-sm transition-colors ${themeFont === font.value ? 'text-white font-semibold' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
                                     style={{ 
                                         fontFamily: font.value,
-                                        backgroundColor: activeFont === font.value ? 'var(--color-primary-hex)' : undefined 
+                                        backgroundColor: themeFont === font.value ? 'var(--color-primary-hex)' : undefined 
                                     }}
                                 >
                                     {font.name}
@@ -380,11 +424,11 @@ const SettingsAppearance = () => {
                                 key={size.value}
                                 onClick={() => handleFontSizeChange(size.value)}
                                 className={`flex-1 flex justify-center items-center space-x-2 py-2 px-3 rounded-md text-sm transition-colors ${
-                                    activeFontSize === size.value
+                                    fontSize === size.value
                                         ? 'bg-white dark:bg-slate-900 shadow-sm text-primary font-semibold'
                                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                 }`}
-                                style={{ color: activeFontSize === size.value ? 'var(--color-primary-hex)' : '' }}
+                                style={{ color: fontSize === size.value ? 'var(--color-primary-hex)' : '' }}
                             >
                                 <span style={{ fontSize: size.value }}>{size.name}</span>
                             </button>
@@ -405,7 +449,7 @@ const SettingsAppearance = () => {
 };
 
 const SettingsSecurity = () => {
-    const { appPin, handleSaveSettings, toast, handleLockApp } = useAppContext();
+    const { appPin, handleSaveSettings, handleLockApp, handleRegisterBiometric, handleDisableBiometric, biometricCredentialId, unlockedKey, toast } = useAppState();
     const [enableLock, setEnableLock] = useState(!!appPin);
     const [pin, setPin] = useState('');
     
@@ -426,6 +470,9 @@ const SettingsSecurity = () => {
             }
         } else {
             pinToSave = '';
+            if (biometricCredentialId) {
+                handleDisableBiometric();
+            }
         }
 
         handleSaveSettings({ settings: {}, pin: pinToSave });
@@ -465,6 +512,33 @@ const SettingsSecurity = () => {
                         </button>
                     </div>
                 )}
+                
+                {appPin && !biometricCredentialId && (
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Enable Biometric Unlock</span>
+                        <button
+                            onClick={handleRegisterBiometric}
+                            className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
+                        >
+                            <Fingerprint size={14}/>
+                            <span>Enable</span>
+                        </button>
+                    </div>
+                )}
+                
+                {biometricCredentialId && (
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Biometric Unlock</span>
+                        <button
+                            onClick={handleDisableBiometric}
+                            className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white focus:ring-red-500"
+                        >
+                            <Fingerprint size={14}/>
+                            <span>Disable</span>
+                        </button>
+                    </div>
+                )}
+                
                 <button
                     onClick={handleSave}
                     className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2"
@@ -481,7 +555,7 @@ const SettingsApplication = () => {
     const { 
         handleRequestNotificationPermission, handleDisableNotifications,
         handleInstallApp, installPromptEvent, isAppInstalled
-    } = useAppContext();
+    } = useAppState();
     const [notificationStatus, setNotificationStatus] = useState('default');
 
     useEffect(() => {
@@ -542,7 +616,7 @@ const SettingsApplication = () => {
 };
 
 const SettingsData = () => {
-    const { handleExportData, toast } = useAppContext();
+    const { handleExportData, toast } = useAppState();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false); 
     const [showExportModal, setShowExportModal] = useState(false);

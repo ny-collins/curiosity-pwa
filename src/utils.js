@@ -1,7 +1,7 @@
 import { format, isToday, isYesterday } from 'date-fns';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import bcrypt from 'bcryptjs';
+import { hash, compare } from 'bcrypt-ts';
 import CryptoJS from 'crypto-js';
 
 export function cn(...inputs) {
@@ -43,12 +43,12 @@ export function dateToKey(date) {
 
 export async function hashPin(pin) {
     const saltRounds = 10;
-    return await bcrypt.hash(pin, saltRounds);
+    return await hash(pin, saltRounds);
 }
 
 export async function comparePin(pin, hash) {
     if (!pin || !hash) return false;
-    return await bcrypt.compare(pin, hash);
+    return await compare(pin, hash);
 }
 
 export function stripMarkdown(markdown) {

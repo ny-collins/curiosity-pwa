@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
-import { AppProvider } from './context/AppContext.jsx';
+import { AppProvider } from './contexts/AppProvider.jsx';
 import NotificationProvider from './components/NotificationProvider.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

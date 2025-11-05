@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Plus, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppState } from '../contexts/StateProvider';
 import { format, parseISO, isPast, isToday, isFuture } from 'date-fns';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
@@ -40,7 +40,7 @@ const ReminderItem = ({ reminder, onDelete }) => {
 };
 
 const NotificationPrompt = () => {
-    const { handleRequestNotificationPermission } = useAppContext();
+    const { handleRequestNotificationPermission } = useAppState();
     const [status, setStatus] = useState(Notification.permission);
 
     if (status === 'granted') return null;
@@ -72,7 +72,7 @@ const NotificationPrompt = () => {
 };
 
 export default function RemindersView() {
-    const { reminders, handleAddReminder, handleDeleteReminder } = useAppContext();
+    const { reminders, handleAddReminder, handleDeleteReminder } = useAppState();
     const [newReminderText, setNewReminderText] = useState('');
     const [newReminderDate, setNewReminderDate] = useState(new Date());
 

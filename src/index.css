@@ -18,15 +18,27 @@
     
     --font-body: var(--font-serif);
     
-    /* Set base background colors here */
-    --color-bg-base: #f8fafc; /* slate-50 */
+    /* Light theme - improved contrast */
+    --color-bg-base: #f1f5f9; /* slate-100 - slightly darker than slate-50 */
     --color-bg-content: #ffffff; /* white */
+    --color-bg-secondary: #f8fafc; /* slate-50 */
+    --color-text-primary: #0f172a; /* slate-900 */
+    --color-text-secondary: #334155; /* slate-700 */
+    --color-text-muted: #64748b; /* slate-500 */
+    --color-border: #cbd5e1; /* slate-300 */
+    --color-border-light: #e2e8f0; /* slate-200 */
   }
   
   .dark {
-    /* Set dark mode base background colors here */
+    /* Dark theme - keep existing */
     --color-bg-base: #0f172a; /* slate-900 */
     --color-bg-content: #1e293b; /* slate-800 */
+    --color-bg-secondary: #334155; /* slate-700 */
+    --color-text-primary: #f1f5f9; /* slate-100 */
+    --color-text-secondary: #cbd5e1; /* slate-300 */
+    --color-text-muted: #94a3b8; /* slate-400 */
+    --color-border: #334155; /* slate-700 */
+    --color-border-light: #475569; /* slate-600 */
   }
   
   html, body, #root {
@@ -35,30 +47,33 @@
   
   body {
     font-family: var(--font-body);
-    @apply bg-slate-50 dark:bg-slate-900;
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
   }
 }
 
 @layer utilities {
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.slate.300') theme('colors.slate.100');
+    scrollbar-color: var(--color-border) var(--color-bg-secondary);
   }
   .dark .custom-scrollbar {
-    scrollbar-color: theme('colors.slate.600') theme('colors.slate.800');
+    scrollbar-color: var(--color-border) var(--color-bg-secondary);
   }
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-slate-100 dark:bg-slate-800 rounded-full;
+    background-color: var(--color-bg-secondary);
+    @apply rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+    background-color: var(--color-border);
+    @apply rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400 dark:bg-slate-500;
+    background-color: var(--color-text-muted);
   }
 }
 
@@ -70,21 +85,23 @@
   
   /* Toolbar */
   .editor-toolbar {
-    @apply bg-slate-50 dark:bg-slate-800 border-none rounded-t-lg;
+    background-color: var(--color-bg-secondary);
+    @apply border-none rounded-t-lg;
     @apply opacity-100 transition-opacity;
-    background-color: var(--color-bg-base) !important;
   }
   .editor-toolbar.fullscreen {
     @apply rounded-none;
   }
 
   .editor-toolbar button {
-    @apply text-slate-600 dark:text-gray-400 border-none;
+    color: var(--color-text-secondary);
+    @apply border-none;
   }
   
   .editor-toolbar button:hover,
   .editor-toolbar button.active {
-    @apply bg-slate-200 dark:bg-slate-700 border-none;
+    background-color: var(--color-bg-base);
+    @apply border-none;
   }
   
   .editor-toolbar button.active {
@@ -92,47 +109,169 @@
   }
   
   .editor-toolbar i.separator {
-    @apply border-r border-slate-300 dark:border-slate-600;
+    border-right-color: var(--color-border);
   }
   
   /* Main text area */
   .CodeMirror {
     @apply h-full min-h-[400px] text-base;
-    @apply bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200;
+    background-color: var(--color-bg-content) !important;
+    color: var(--color-text-primary) !important;
     font-family: var(--font-body);
     line-height: 1.7;
     font-size: 1.05rem;
-    background-color: var(--color-bg-content) !important;
   }
-  
+
   .CodeMirror, .CodeMirror-scroll {
     @apply min-h-[400px];
+    background-color: var(--color-bg-content) !important;
   }
 
   .CodeMirror-lines {
     @apply p-4 md:p-6;
+    background-color: var(--color-bg-content) !important;
   }
-  
+
   .CodeMirror-cursor {
     border-color: var(--color-primary-hex);
   }
 
+  /* CodeMirror syntax highlighting */
+  .cm-s-easymde {
+    background-color: var(--color-bg-content) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  /* Override CodeMirror base styles */
+  .cm-s-easymde.CodeMirror {
+    color: var(--color-text-primary) !important;
+    background-color: var(--color-bg-content) !important;
+  }
+
+  /* Main text content - most important for regular text */
+  .cm-s-easymde .CodeMirror-line {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .CodeMirror-code {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde pre {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde span {
+    color: var(--color-text-primary) !important;
+  }
+
   .cm-s-easymde .cm-header {
-    @apply text-slate-900 dark:text-white;
+    color: var(--color-text-primary) !important;
   }
+
   .cm-s-easymde .cm-quote {
-    @apply text-slate-500;
+    color: var(--color-text-muted) !important;
   }
+
   .cm-s-easymde .cm-link {
-    color: var(--color-primary-hex);
+    color: var(--color-primary-hex) !important;
+  }
+
+  .cm-s-easymde .cm-strong {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-em {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-comment {
+    color: var(--color-text-muted) !important;
+  }
+
+  .cm-s-easymde .cm-keyword {
+    color: var(--color-primary-hex) !important;
+  }
+
+  .cm-s-easymde .cm-atom {
+    color: var(--color-primary-hex) !important;
+  }
+
+  .cm-s-easymde .cm-number {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-def {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-variable {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-variable-2 {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-variable-3 {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-property {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-operator {
+    color: var(--color-text-secondary) !important;
+  }
+
+  .cm-s-easymde .cm-string {
+    color: var(--color-primary-hex) !important;
+  }
+
+  .cm-s-easymde .cm-string-2 {
+    color: var(--color-primary-hex) !important;
+  }
+
+  .cm-s-easymde .cm-meta {
+    color: var(--color-text-muted) !important;
+  }
+
+  .cm-s-easymde .cm-qualifier {
+    color: var(--color-text-muted) !important;
+  }
+
+  .cm-s-easymde .cm-builtin {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-bracket {
+    color: var(--color-text-secondary) !important;
+  }
+
+  .cm-s-easymde .cm-tag {
+    color: var(--color-primary-hex) !important;
+  }
+
+  .cm-s-easymde .cm-attribute {
+    color: var(--color-text-primary) !important;
+  }
+
+  .cm-s-easymde .cm-hr {
+    color: var(--color-border) !important;
+  }
+
+  .cm-s-easymde .cm-link {
+    color: var(--color-primary-hex) !important;
   }
 
   /* Status Bar */
   .editor-statusbar {
-    @apply bg-white dark:bg-slate-900;
-    @apply text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-slate-700 rounded-b-lg;
+    background-color: var(--color-bg-content);
+    color: var(--color-text-muted);
+    border-top-color: var(--color-border);
+    @apply text-xs rounded-b-lg;
     @apply py-1 px-4;
-    background-color: var(--color-bg-content) !important;
   }
   
   .editor-focus-mode .editor-statusbar {
@@ -145,10 +284,12 @@
 
   /* Fullscreen Mode */
   .EasyMDEContainer.fullscreen {
-    @apply bg-white dark:bg-slate-900 z-[9998];
+    background-color: var(--color-bg-content) !important;
+    z-index: 9998;
   }
   .EasyMDEContainer.fullscreen .CodeMirror {
-     @apply min-h-screen;
+     min-height: 100vh;
+     background-color: var(--color-bg-content) !important;
   }
   
   /* Container for 100% height */
@@ -158,6 +299,7 @@
   .simplemde-container .EasyMDEContainer .CodeMirror-scroll {
       height: 100%;
       min-height: 100%;
+      background-color: var(--color-bg-content) !important;
   }
 
   .editor-focus-mode .CodeMirror-lines {
@@ -167,8 +309,15 @@
   /* Exit Focus Mode Button */
   .exit-focus-mode-btn {
     @apply fixed bottom-6 right-6 z-[10000];
-    @apply p-3 rounded-full bg-slate-800 text-white shadow-lg;
-    @apply hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply p-3 rounded-full shadow-lg;
+    @apply hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2;
+    background-color: var(--color-bg-content);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+  }
+
+  .exit-focus-mode-btn:hover {
+    background-color: var(--color-bg-secondary);
   }
 
   /* --- Calendar Theme --- */
@@ -176,21 +325,24 @@
     @apply border-none p-2 font-sans; /* Use sans-serif for UI elements */
   }
   .react-calendar-themed .react-calendar__navigation button {
-    @apply text-slate-900 dark:text-white font-semibold;
+    color: var(--color-text-primary);
+    @apply font-semibold;
   }
   .react-calendar-themed .react-calendar__navigation button:hover,
   .react-calendar-themed .react-calendar__navigation button:focus {
-    @apply bg-slate-100 dark:bg-slate-800;
+    background-color: var(--color-bg-secondary);
   }
   .react-calendar-themed .react-calendar__month-view__weekdays__weekday {
-    @apply text-slate-600 dark:text-gray-400 font-semibold;
+    color: var(--color-text-muted);
+    @apply font-semibold;
   }
   .react-calendar-themed .react-calendar__tile {
-    @apply rounded-lg text-slate-700 dark:text-gray-300;
+    @apply rounded-lg;
+    color: var(--color-text-secondary);
   }
   .react-calendar-themed .react-calendar__tile:hover,
   .react-calendar-themed .react-calendar__tile:focus {
-    @apply bg-slate-100 dark:bg-slate-800;
+    background-color: var(--color-bg-secondary);
   }
   .react-calendar-themed .react-calendar__tile--now {
     @apply font-semibold;
@@ -210,4 +362,33 @@
   .react-calendar-themed .react-calendar__tile__dots span {
     @apply h-1.5 w-1.5 rounded-full;
   }
+}
+
+/* --- TagsInput Component --- */
+.react-tagsinput {
+  border-color: var(--color-border);
+  background-color: var(--color-bg-content);
+  @apply rounded-md px-3 py-2 min-h-[2.5rem] flex flex-wrap items-center gap-1;
+}
+
+.react-tagsinput-input {
+  @apply bg-transparent border-none outline-none flex-1 min-w-[120px];
+  color: var(--color-text-primary);
+}
+
+.react-tagsinput-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.react-tagsinput-tag {
+  @apply inline-flex items-center px-2 py-1 rounded-md text-sm;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.react-tagsinput-remove {
+  @apply ml-1 cursor-pointer;
+  color: var(--color-text-muted);
+  @apply hover:text-slate-700 dark:hover:text-slate-300;
+  @apply before:content-['×'] before:text-lg before:leading-none;
 }

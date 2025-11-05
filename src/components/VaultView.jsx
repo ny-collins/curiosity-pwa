@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Plus, Trash2, Eye, EyeOff, Key, FileText, User, AlertTriangle, Copy, Check } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppState } from '../contexts/StateProvider';
 import { decryptData, formatTimestamp } from '../utils.js';
 import { LIMITS } from '../constants.js';
+import { useToaster } from './NotificationProvider.jsx';
 
 const VaultPinScreen = ({ onUnlock }) => {
-    const { checkPin, toast } = useAppContext();
+    const { checkPin } = useAppState();
+    const toast = useToaster();
     const [pin, setPin] = useState('');
     const [error, setError] = useState(false);
 
@@ -239,18 +241,18 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
 };
 
 export default function VaultView() {
-    const { vaultItems, unlockedPin, setUnlockedPin, checkPin, handleAddVaultItem, handleDeleteVaultItem, appPin } = useAppContext();
+    const { vaultItems, handleAddVaultItem, handleDeleteVaultItem, appPin, unlockedKey, setUnlockedKey, checkPin } = useAppState();
     const [showAddModal, setShowAddModal] = useState(false);
 
     const decryptedItems = useMemo(() => {
-        if (!unlockedPin || !vaultItems) return [];
+        if (!unlockedKey || !vaultItems) return [];
         return vaultItems
             .map(item => ({
                 ...item,
-                decryptedData: decryptData(item.encryptedData, unlockedPin)
+                decryptedData: decryptData(item.encryptedData, unlockedKey)
             }))
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    }, [vaultItems, unlockedPin]);
+    }, [vaultItems, unlockedKey]);
     
     if (!appPin) {
          return (
@@ -264,8 +266,8 @@ export default function VaultView() {
          );
     }
 
-    if (!unlockedPin) {
-        return <VaultPinScreen onUnlock={() => console.log("Vault unlocked")} />;
+    if (!unlockedKey) {
+        return <VaultPinScreen onUnlock={() => setUnlockedKey(true)} />;
     }
 
     return (

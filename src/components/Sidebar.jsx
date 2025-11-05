@@ -1,22 +1,23 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, Book, Calendar, Target, Shield, Bell, Settings, ArrowLeftToLine, ArrowRightToLine, Lock } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppState } from '../contexts/StateProvider';
 import Logo from './Logo';
 import CreateEntryMenu from './CreateEntryMenu';
 import ThemedAvatar from './ThemedAvatar';
 
 const NavItem = ({ icon, label, isActive, isExpanded, onClick }) => {
     const Icon = icon;
-    const activeClass = isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+    const activeClass = isActive ? 'text-primary' : 'text-secondary hover:bg-secondary';
     
     return (
         <button
             onClick={onClick}
             className={`flex items-center space-x-3 h-10 px-3 rounded-lg transition-colors duration-150 ${activeClass} ${isExpanded ? 'w-full' : 'w-10'}`}
             style={{ 
-                color: isActive ? 'var(--color-primary-hex)' : '',
-                backgroundColor: isActive ? 'rgba(var(--color-primary-rgb), 0.1)' : ''
+                color: isActive ? 'var(--color-primary-hex)' : 'var(--color-text-secondary)',
+                backgroundColor: isActive ? 'rgba(var(--color-primary-rgb), 0.1)' : '',
+                '--tw-hover-bg': isActive ? '' : 'var(--color-bg-secondary)'
             }}
             title={label}
         >
@@ -34,21 +35,26 @@ export default function Sidebar() {
         handleToggleSidebar,
         handleLockApp,
         appPin,
-        settings,
+        localSettings,
         currentUser
-    } = useAppContext();
+    } = useAppState();
 
     return (
         <motion.div
             layout
             transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-            className={`flex flex-col h-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 shadow-lg ${isSidebarExpanded ? 'w-64' : 'w-16'}`}
+            className={`flex flex-col h-full shadow-lg ${isSidebarExpanded ? 'w-64' : 'w-16'}`}
+            style={{
+                backgroundColor: 'var(--color-bg-content)',
+                borderRightColor: 'var(--color-border)'
+            }}
         >
-            <div className={`flex items-center h-16 px-3 border-b border-slate-200 dark:border-slate-700 ${isSidebarExpanded ? 'justify-between' : 'justify-center'}`}>
+            <div className={`flex items-center h-16 px-3 ${isSidebarExpanded ? 'justify-between' : 'justify-center'}`}
+                 style={{ borderBottomColor: 'var(--color-border)' }}>
                 {isSidebarExpanded && (
                     <div className="flex items-center space-x-2">
-                        <Logo className="w-8 h-8" />
-                        <span style={{ fontFamily: 'var(--font-logo)' }} className="text-2xl text-slate-900 dark:text-white">Curiosity</span>
+                        <Logo className="w-8 h-8" animate={false} />
+                        <span style={{ fontFamily: 'var(--font-logo)', color: 'var(--color-text-primary)' }} className="text-2xl italic">Curiosity</span>
                     </div>
                 )}
                 <button 
@@ -67,42 +73,42 @@ export default function Sidebar() {
                         icon={LayoutDashboard} 
                         label="Dashboard" 
                         isActive={currentView === 'dashboard'}
-                        isExpanded={isSidebarExpanded}
+                        isExpanded={true}
                         onClick={() => handleViewChange('dashboard')}
                     />
                     <NavItem 
                         icon={Book} 
                         label="Entries" 
                         isActive={currentView === 'list'}
-                        isExpanded={isSidebarExpanded}
+                        isExpanded={true}
                         onClick={() => handleViewChange('list')}
                     />
                     <NavItem 
                         icon={Calendar} 
                         label="Calendar" 
                         isActive={currentView === 'calendar'}
-                        isExpanded={isSidebarExpanded}
+                        isExpanded={true}
                         onClick={() => handleViewChange('calendar')}
                     />
                     <NavItem 
                         icon={Target} 
                         label="Goals" 
                         isActive={currentView === 'goals'}
-                        isExpanded={isSidebarExpanded}
+                        isExpanded={true}
                         onClick={() => handleViewChange('goals')}
                     />
                     <NavItem 
                         icon={Shield} 
                         label="Vault" 
                         isActive={currentView === 'vault'}
-                        isExpanded={isSidebarExpanded}
+                        isExpanded={true}
                         onClick={() => handleViewChange('vault')}
                     />
                     <NavItem 
                         icon={Bell} 
                         label="Reminders" 
                         isActive={currentView === 'reminders'}
-                        isExpanded={isSidebarExpanded}
+                        isExpanded={true}
                         onClick={() => handleViewChange('reminders')}
                     />
                 </nav>
@@ -123,14 +129,14 @@ export default function Sidebar() {
                     className="flex items-center space-x-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                     <ThemedAvatar 
-                        profilePicUrl={settings?.profilePicUrl || currentUser?.photoURL}
-                        username={settings?.username}
+                        profilePicUrl={localSettings?.profilePicUrl || currentUser?.photoURL}
+                        username={localSettings?.username}
                         className="w-8 h-8"
                     />
                     {isSidebarExpanded && (
                         <div className="flex-1 truncate">
                             <span className="text-sm font-semibold text-slate-800 dark:text-white block truncate">
-                                {settings?.username || 'Curious User'}
+                                {localSettings?.username || 'Curious User'}
                             </span>
                         </div>
                     )}

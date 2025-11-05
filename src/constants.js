@@ -19,9 +19,11 @@ export const STORAGE_KEYS = {
   THEME_FONT: 'curiosity-theme-font',
   FONT_SIZE: 'curiosity-font-size',
   PIN: 'curiosity-pin',
+  WEBAUTHN_CREDENTIAL_ID: 'curiosity-webauthn-id'
 };
 
 export const PIN_STORAGE_KEY = STORAGE_KEYS.PIN;
+export const WEBAUTHN_CREDENTIAL_ID_KEY = STORAGE_KEYS.WEBAUTHN_CREDENTIAL_ID;
 
 export const THEME_MODES = [
   { name: 'Light', value: 'light', icon: Sun },

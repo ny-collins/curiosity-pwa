@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppContext } from './context/AppContext';
+import { useAppState } from './contexts/StateProvider';
 import LoadingSpinner from './components/LoadingSpinner';
 import PinLockScreen from './components/PinLockScreen';
 import SettingsPage from './components/SettingsPage';
@@ -32,27 +33,29 @@ const viewTransition = {
 };
 
 const MobileHeader = ({ currentView }) => {
-    if (currentView === 'settings' || currentView === 'editor') {
+    if (currentView === 'settings' || currentView === 'editor' || currentView === 'dashboard') {
         return null;
     }
-    
+
     return (
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center space-x-2 md:hidden flex-shrink-0 bg-white dark:bg-slate-900">
-            <Logo className="w-8 h-8" animate={false} />
-            <span style={{ fontFamily: 'var(--font-logo)' }} className="text-2xl text-slate-900 dark:text-white italic">Curiosity</span>
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between md:hidden flex-shrink-0 bg-white dark:bg-slate-900">
+            <div className="flex items-center space-x-3">
+                <Logo className="w-7 h-7" animate={false} />
+                <span style={{ fontFamily: 'var(--font-logo)' }} className="text-lg text-slate-900 dark:text-white italic">Curiosity</span>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-gray-400">
+                {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </div>
         </div>
     );
 };
 
 export default function App() {
     const {
-        isLoading, checkingPin, isLocked,
-        currentView, isSidebarExpanded, isCreating, activeEntryId,
-        showUnsavedModal, showOnboarding, themeFont, fontSize,
-        handleOnboardingComplete, handleModalSave,
-        handleModalDiscard, handleModalCancel, handleForgotPin, setIsLocked,
-        checkPin, isAppFocusMode
-    } = useAppContext();
+        checkingPin, isLocked, handleForgotPin, setIsLocked, checkPin, 
+        currentView, isSidebarExpanded, showOnboarding, themeFont, fontSize, isAppFocusMode, 
+        isCreating, activeEntryId, handleOnboardingComplete, handleModalSave, handleModalDiscard, handleModalCancel, localSettings, showUnsavedModal 
+    } = useAppState();
 
     const [minSplashTimeElapsed, setMinSplashTimeElapsed] = useState(false);
 
@@ -64,7 +67,9 @@ export default function App() {
         return () => clearTimeout(timer);
     }, []);
 
-    if (checkingPin || isLoading || !minSplashTimeElapsed) {
+    console.log({ checkingPin, localSettings, minSplashTimeElapsed });
+
+    if (checkingPin || !localSettings || !minSplashTimeElapsed) {
         return <SplashScreen />;
     }
     
@@ -211,7 +216,7 @@ export default function App() {
                 
                 {!isAppFocusMode && <MobileHeader currentView={effectiveView} />}
 
-                <main className={`flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out ${isAppFocusMode ? 'md:pl-0' : (isSidebarExpanded ? 'md:pl-64' : 'md:pl-16')} ${effectiveView === 'settings' || effectiveView === 'editor' ? 'flex flex-col' : ''} ${effectiveView !== 'editor' && effectiveView !== 'settings' ? 'pt-16 md:pt-0' : ''}`}>
+                <main className={`flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out ${isAppFocusMode ? 'md:pl-0' : (isSidebarExpanded ? 'md:pl-64' : 'md:pl-16')} ${effectiveView === 'settings' || effectiveView === 'editor' ? 'flex flex-col' : ''} ${effectiveView === 'dashboard' ? 'pt-0 md:pt-0' : effectiveView !== 'editor' && effectiveView !== 'settings' ? 'pt-12 md:pt-0' : ''}`}>
                     <AnimatePresence mode="wait">
                         {mainContent}
                     </AnimatePresence>
