@@ -1,0 +1,186 @@
+# Changelog
+
+All notable changes to Curiosity PWA will be documented in this file.
+
+## [1.0.0] - 2025-11-07
+
+### 🎉 Initial Production Release
+
+#### ✨ Features
+
+**Core Functionality**
+- Rich text editor with markdown support
+- Journal entries with tags and categories
+- Calendar view for entry visualization
+- Search and filter capabilities
+- Export data (PDF, CSV, JSON, Excel)
+
+**Dashboard**
+- Beautiful animated dashboard with Framer Motion
+- Quick action buttons for common tasks
+- Recent entries section
+- Active goals tracking
+- "On This Day" memories feature
+- Gradient backgrounds with decorative elements
+- Responsive design for mobile and desktop
+
+**Security & Privacy**
+- PIN lock with customizable timeout
+- Biometric authentication (WebAuthn)
+- Local-first architecture with IndexedDB
+- Optional cloud sync via Firebase
+- Secure password hashing
+- PIN deletion with account data
+
+**User Experience**
+- Initial setup modal with live preview
+- Real-time accent color changes
+- Dynamic font selection preview
+- Onboarding flow for new users
+- Splash screen with app branding
+- Mobile hamburger menu with sidebar overlay
+- Dark mode with system preference detection
+
+**Customization**
+- 6 accent colors (Teal, Blue, Purple, Rose, Amber, Emerald)
+- 4 font families (Inter, Lora, Merriweather, Roboto Mono)
+- Adjustable font size
+- Theme mode (Light, Dark, System)
+
+**Goals & Tasks**
+- Goal creation and tracking
+- Task management with checkboxes
+- Progress indicators
+- Completion status
+
+**Additional Features**
+- Reminders with notifications
+- Secure vault for sensitive items
+- Profile customization with avatar
+- Cloud account linking
+- Data import/export
+- Offline support with service worker
+
+#### 🎨 Design
+
+- Mobile-first responsive design
+- Vibrant color schemes
+- Smooth animations and transitions
+- Lucide React icons throughout
+- Tailwind CSS styling
+- Custom theming system
+
+#### 🔧 Technical
+
+- React 19 with modern hooks
+- Vite build system
+- Firebase integration (Auth, Firestore, Storage, Functions)
+- IndexedDB with Dexie.js
+- PWA with service worker
+- Workbox for caching strategies
+- Framer Motion for animations
+
+#### 🐛 Bug Fixes
+
+- Fixed header text clipping on mobile and desktop
+- Fixed icon sizes (Clock, Target, Gift)
+- Fixed avatar wrapping on mobile by hiding it
+- Fixed logo positioning issues
+- Improved mobile header spacing and padding
+- Optimized touch targets for mobile
+
+#### 🧹 Code Quality
+
+- Removed all debug console.log statements
+- Retained console.error for production debugging
+- Cleaned up commented code
+- Added comprehensive .gitignore
+- Created .env.example for deployment
+- Added production deployment checklist
+- Improved build configuration
+
+#### 📚 Documentation
+
+- Comprehensive README.md
+- Deployment checklist (DEPLOYMENT.md)
+- Environment variable examples
+- Firebase setup instructions
+- Security rules documentation
+
+#### 🚀 Performance
+
+- Optimized bundle size
+- Code splitting with dynamic imports
+- Service worker caching
+- Offline-first architecture
+- Fast initial load time
+
+---
+
+## Version History
+
+### Pre-release Versions
+
+#### [0.3.0] - 2025-11-06
+- Added live preview in setup modal
+- Implemented dynamic theming with CSS custom properties
+- Enhanced Dashboard with animations
+
+#### [0.2.0] - 2025-11-05
+- Improved mobile navigation
+- Added hamburger menu with sidebar overlay
+- Removed cramped bottom navbar
+
+#### [0.1.0] - 2025-11-04
+- Initial development version
+- Basic journaling functionality
+- Firebase integration
+- PWA setup
+
+---
+
+## Upgrade Notes
+
+### From 0.x to 1.0.0
+
+This is the first stable release. If upgrading from a development version:
+
+1. Clear browser cache and IndexedDB
+2. Re-login to your account
+3. Re-enable biometric authentication if used
+4. Verify data sync from cloud
+
+---
+
+## Future Roadmap
+
+### Planned for 1.1.0
+- [ ] AI-powered insights and suggestions
+- [ ] Advanced search with filters
+- [ ] Multiple journal types
+- [ ] Collaboration features
+- [ ] Import from other journal apps
+
+### Planned for 1.2.0
+- [ ] Voice notes
+- [ ] Image attachments in entries
+- [ ] Rich formatting toolbar
+- [ ] Templates for entries
+- [ ] Custom categories
+
+### Long-term Vision
+- [ ] Mobile native apps (iOS/Android)
+- [ ] Desktop apps (Electron)
+- [ ] Browser extensions
+- [ ] API for third-party integrations
+- [ ] Advanced analytics and insights
+
+---
+
+## Contributing
+
+See issues tagged with `good-first-issue` or `help-wanted` on GitHub.
+
+---
+
+[1.0.0]: https://github.com/ny-collins/curiosity-pwa/releases/tag/v1.0.0

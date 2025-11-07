@@ -25,7 +25,6 @@ export async function saveSettings(settings) {
     id: 1,
     updatedAt: new Date()
   };
-  console.log("Saving settings to database:", settingsToSave);
   return await db.settings.put(settingsToSave);
 }
 

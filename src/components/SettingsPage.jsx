@@ -6,9 +6,11 @@ import {
     Loader2, UserCircle, Palette, Lock, SlidersHorizontal, Database, Fingerprint
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { functions, storage, appId } from '../firebaseConfig'; 
+import { functions, storage, appId, firestoreDb } from '../firebaseConfig';
+import { collection, query, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
 import { useAppState } from '../contexts/StateProvider';
+import { db } from '../db';
 import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
 import ExportModal from './ExportModal';
@@ -66,24 +68,28 @@ function SettingsPage() {
                 <div className="w-8"></div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
-                {/* Mobile Tab Navigation - Improved spacing */}
-                <div className="md:hidden border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0">
-                    <div className="flex">
-                        {settingsTabs.map(tab => (
-                            <MobileSettingsTabButton
-                                key={tab.id}
-                                icon={tab.icon}
-                                label={tab.name}
-                                isActive={activeTab === tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                            />
-                        ))}
-                    </div>
+            {/* Mobile Tab Navigation */}
+            <div className="md:hidden border-b flex-shrink-0 overflow-x-auto"
+                 style={{
+                     borderBottomColor: 'var(--color-border)',
+                     backgroundColor: 'var(--color-bg-content)'
+                 }}>
+                <div className="flex min-w-max">
+                    {settingsTabs.map(tab => (
+                        <MobileSettingsTabButton
+                            key={tab.id}
+                            icon={tab.icon}
+                            label={tab.name}
+                            isActive={activeTab === tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                        />
+                    ))}
                 </div>
+            </div>
 
+            <div className="flex-1 flex overflow-hidden">
                 {/* Mobile Content Area */}
-                <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-800 pb-20">
+                <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar p-4 bg-slate-50 dark:bg-slate-800">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -158,14 +164,14 @@ const MobileSettingsTabButton = ({ icon, label, isActive, onClick }) => {
     return (
         <button
             onClick={onClick}
-            className={`flex flex-col items-center justify-center space-y-1 min-w-0 flex-1 px-3 py-3 border-b-2 transition-colors duration-150 ${activeClass}`}
+            className={`flex flex-col items-center justify-center space-y-1 px-4 py-3 border-b-2 transition-colors duration-150 ${activeClass}`}
             style={{ 
                 color: isActive ? 'var(--color-primary-hex)' : '',
                 borderBottomColor: isActive ? 'var(--color-primary-hex)' : ''
             }}
         >
             <Icon size={18} className="flex-shrink-0" />
-            <span className="text-xs font-medium truncate">{label}</span>
+            <span className="text-xs font-medium whitespace-nowrap">{label}</span>
         </button>
     );
 };
@@ -616,23 +622,84 @@ const SettingsApplication = () => {
 };
 
 const SettingsData = () => {
-    const { handleExportData, toast } = useAppState();
+    const { handleExportData, toast, userId } = useAppState();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false); 
     const [showExportModal, setShowExportModal] = useState(false);
 
     const handleConfirmDelete = async () => {
         setIsDeleting(true);
-        console.log("Calling 'deleteAllUserData' cloud function...");
+        setShowDeleteModal(false);
+        console.log("Deleting all user data...");
+        
+        let localDataCleared = false;
+        let cloudDataCleared = false;
+        
         try {
-            const deleteAllUserData = httpsCallable(functions, 'deleteAllUserData');
-            const result = await deleteAllUserData({ appId: appId });
-            console.log("Cloud function result:", result.data);
-            toast.success("All your data has been permanently deleted.");
-            window.location.reload(); 
+            console.log("Clearing local IndexedDB data...");
+            try {
+                await db.entries.clear();
+                await db.reminders.clear();
+                await db.goals.clear();
+                await db.tasks.clear();
+                await db.vaultItems.clear();
+                await db.settings.clear();
+                const { PIN_STORAGE_KEY, WEBAUTHN_CREDENTIAL_ID_KEY } = await import('../constants');
+                localStorage.removeItem(PIN_STORAGE_KEY);
+                localStorage.removeItem(WEBAUTHN_CREDENTIAL_ID_KEY);
+                console.log("PIN and security credentials cleared");
+                
+                localDataCleared = true;
+                console.log("Local data cleared successfully");
+            } catch (localError) {
+                console.error("Error clearing local data:", localError);
+                throw new Error("Failed to clear local data");
+            }
+            if (userId && firestoreDb) {
+                console.log("Attempting to delete cloud data for user:", userId);
+                
+                try {
+                    const collectionsToDelete = ['entries', 'reminders', 'goals', 'tasks', 'vaultItems'];
+                    
+                    for (const collectionName of collectionsToDelete) {
+                        const collectionRef = collection(firestoreDb, `users/${userId}/${collectionName}`);
+                        const snapshot = await getDocs(query(collectionRef));
+                        
+                        if (!snapshot.empty) {
+                            const batch = writeBatch(firestoreDb);
+                            snapshot.docs.forEach(doc => {
+                                batch.delete(doc.ref);
+                            });
+                            await batch.commit();
+                            console.log(`Deleted ${snapshot.docs.length} documents from ${collectionName}`);
+                        }
+                    }
+                    
+                    cloudDataCleared = true;
+                    console.log("Cloud data deleted successfully");
+                } catch (cloudError) {
+                    console.warn("Could not delete cloud data (permissions issue):", cloudError.message);
+                    // Don't throw - local data is more important
+                }
+            }
+
+            // Show appropriate success message
+            if (localDataCleared && cloudDataCleared) {
+                toast.success("All your data has been permanently deleted.");
+            } else if (localDataCleared && !cloudDataCleared) {
+                toast.success("Local data deleted. Cloud data may require manual deletion from Firebase Console.");
+            } else if (localDataCleared) {
+                toast.success("Local data has been permanently deleted.");
+            }
+            
+            // Reload the page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+            
         } catch (error) {
-            console.error("Error calling deleteAllUserData:", error);
-            toast.error(`An error occurred: ${error.message}`);
+            console.error("Error deleting data:", error);
+            toast.error(`Failed to delete data: ${error.message}`);
             setIsDeleting(false);
         }
     };

@@ -1,153 +1,181 @@
 # Curiosity PWA
 
-A modern, secure, and beautiful Progressive Web App for journaling, note-taking, and personal knowledge management. Built with React, Firebase, and WebAuthn biometric authentication.
+> Your personal AI-powered journal for documenting questions, discoveries, and goals
 
-![Curiosity PWA](https://img.shields.io/badge/PWA-Ready-green) ![React](https://img.shields.io/badge/React-18.2.0-blue) ![Firebase](https://img.shields.io/badge/Firebase-9.22.0-orange) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.3.0-38B2AC)
+A modern, secure, and beautiful Progressive Web App for journaling, note-taking, and personal knowledge management. Built with React 19, Firebase, and WebAuthn biometric authentication.
 
-## � Live Preview
+![Version](https://img.shields.io/badge/version-1.0.0-blue) ![PWA](https://img.shields.io/badge/PWA-Ready-green) ![React](https://img.shields.io/badge/React-19.1.1-61dafb) ![Firebase](https://img.shields.io/badge/Firebase-12.4.0-orange) ![License](https://img.shields.io/badge/License-MIT-yellow)
+
+## 🌐 Live Preview
 
 Try Curiosity PWA live: **[https://curiosity-pwa.web.app](https://curiosity-pwa.web.app)**
 
-## �🌟 Features
+## ✨ Features
 
 ### Core Functionality
-- **📝 Rich Text Journaling** - Create journal entries, notes, and tasks with Markdown support
-- **📅 Calendar View** - Visualize your entries by date with an interactive calendar
-- **🎯 Goals Tracking** - Set and track personal goals with progress indicators
+- **📝 Rich Journaling** - Create entries with markdown support and rich text editing
+- **📅 Calendar View** - Visualize your timeline with an interactive calendar
+- **🎯 Goals & Tasks** - Track personal goals and daily tasks with progress indicators
 - **🔒 Secure Vault** - Store sensitive information with PIN and biometric protection
-- **🔔 Smart Reminders** - Set reminders for important dates and tasks
-- **📱 Mobile-First Design** - Fully responsive with native mobile navigation
+- **🔔 Smart Reminders** - Never miss important dates and tasks
+- **� Data Export** - Export your data to PDF, CSV, JSON, or Excel
+- **🎁 On This Day** - Revisit memories from past years
+- **🔍 Search & Filter** - Quickly find entries with powerful search
+
+### Beautiful Design
+- **🎨 Animated Dashboard** - Vibrant dashboard with Framer Motion animations
+- **🌓 Dark Mode** - System-aware theme switching
+- **🎨 6 Accent Colors** - Teal, Blue, Purple, Rose, Amber, Emerald
+- **📝 4 Font Families** - Inter, Lora, Merriweather, Roboto Mono
+- **📱 Mobile-First** - Optimized for mobile with hamburger navigation
+- **✨ Live Preview** - See theme changes in real-time during setup
 
 ### Security & Privacy
-- **🔐 Biometric Authentication** - WebAuthn support for fingerprint/face unlock
-- **🔑 PIN Protection** - Secure PIN-based app locking
-- **🔒 End-to-End Security** - Client-side encryption for sensitive data
-- **👤 User Accounts** - Firebase Authentication with Google sign-in
+- **🔐 Biometric Auth** - WebAuthn support for fingerprint/face unlock
+- **🔑 PIN Lock** - Secure PIN-based app protection with configurable timeout
+- **� Local-First** - IndexedDB storage for offline-first architecture
+- **☁️ Optional Cloud Sync** - Firebase sync when you need it
+- **� Secure Encryption** - Client-side encryption for sensitive data
 
-### PWA Features
-- **📲 Installable** - Install on mobile devices and desktops
-- **⚡ Offline Support** - Core functionality works offline
-- **🔄 Auto-Updates** - Automatic updates via service workers
-- **🏠 Home Screen Integration** - Native app-like experience
+### Progressive Web App
+- **📲 Installable** - Add to home screen on mobile and desktop
+- **⚡ Offline Support** - Full functionality without internet
+- **🔄 Auto-Updates** - Seamless updates via service worker
+- **🚀 Fast Loading** - Optimized with code splitting and caching
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- Firebase CLI
-- Git
+- **Node.js** 18+ and npm
+- **Firebase CLI** (for deployment)
+- **Git**
 
-### Installation
+### Local Development
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/ny-collins/curiosity-pwa.git
-   cd curiosity-pwa
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/ny-collins/curiosity-pwa.git
+cd curiosity-pwa
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   cd functions && npm install && cd ..
-   ```
+# Install dependencies
+npm install
 
-3. **Firebase Setup**
-   ```bash
-   # Login to Firebase
-   firebase login
+# Create environment file
+cp .env.example .env
+# Edit .env with your Firebase config
 
-   # Initialize or use existing project
-   firebase use curiosity-pwa
+# Start development server
+npm run dev
+```
 
-   # Set WebAuthn configuration
-   firebase functions:config:set webauthn.relying_party_id="your-domain.com"
-   firebase functions:config:set webauthn.expected_origin="https://your-domain.com"
-   ```
+The app will be available at `http://localhost:5173`
 
-4. **Environment Configuration**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Firebase config
-   ```
+### Production Build
 
-5. **Development**
-   ```bash
-   npm run dev
-   ```
+```bash
+# Build for production
+npm run build
 
-6. **Build & Deploy**
-   ```bash
-   npm run build
-   firebase deploy
-   ```
+# Preview production build
+npm run preview
+```
+
+### Deployment
+
+See the [Deployment Guide](./docs/DEPLOYMENT.md) for detailed instructions on deploying to Firebase, Vercel, or Netlify.
 
 ## 📖 Documentation
 
-Detailed documentation is available in the [`docs/`](./docs/) folder:
+Comprehensive documentation is available in the [`docs/`](./docs/) folder:
 
-- [🏗️ Architecture Overview](./docs/architecture.md)
-- [🛠️ Developer Setup](./docs/setup.md)
-- [📱 User Guide](./docs/user-guide.md)
-- [🔧 API Reference](./docs/api.md)
-- [🚀 Deployment Guide](./docs/deployment.md)
-- [🤝 Contributing](./docs/contributing.md)
-- [🔍 Troubleshooting](./docs/troubleshooting.md)
+### Getting Started
+- [📋 Quick Reference](./docs/QUICK-REFERENCE.md) - Common commands and tasks
+- [🛠️ Developer Setup](./docs/setup.md) - Development environment setup
+- [� Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment checklist
+- [✅ Production Ready](./docs/PRODUCTION-READY.md) - Production readiness status
+
+### Technical Documentation
+- [🏗️ Architecture](./docs/architecture.md) - System design and data models
+- [🔧 API Reference](./docs/api.md) - Technical API documentation
+- [🧪 Testing Guide](./docs/test-guide.md) - Testing strategies
+
+### User & Contributor Guides
+- [📱 User Guide](./docs/user-guide.md) - Complete feature walkthrough
+- [🤝 Contributing](./docs/contributing.md) - Contribution guidelines
+- [🔍 Troubleshooting](./docs/troubleshooting.md) - Common issues and solutions
+
+### Release Information
+- [📝 Changelog](./docs/CHANGELOG.md) - Version history and release notes
 
 ## 🏗️ Tech Stack
 
 ### Frontend
-- **React 18** - Modern React with hooks and concurrent features
-- **Vite** - Fast build tool and dev server
-- **TailwindCSS** - Utility-first CSS framework
-- **Framer Motion** - Smooth animations and transitions
-- **SimpleMDE** - Markdown editor with live preview
+- **React 19.1.1** - Latest React with modern hooks
+- **Vite 7.1.7** - Lightning-fast build tool and dev server
+- **Tailwind CSS 3.4.4** - Utility-first CSS framework
+- **Framer Motion 12.23.24** - Beautiful animations and transitions
+- **Lucide React 0.546.0** - Modern icon library
+- **Dexie 4.0.8** - IndexedDB wrapper for offline storage
 - **React Calendar** - Interactive calendar component
+- **React Markdown** - Markdown rendering
 
 ### Backend & Infrastructure
-- **Firebase** - Backend-as-a-Service platform
-  - Firestore - NoSQL database
-  - Cloud Functions - Serverless backend
-  - Firebase Auth - User authentication
-  - Firebase Hosting - CDN hosting
-  - Cloud Storage - File storage
-- **WebAuthn** - Modern biometric authentication
-- **Dexie** - IndexedDB wrapper for offline storage
+- **Firebase 12.4.0** - Backend-as-a-Service platform
+  - **Firestore** - NoSQL database with real-time sync
+  - **Cloud Functions** - Serverless backend
+  - **Firebase Auth** - User authentication (Google OAuth)
+  - **Firebase Hosting** - CDN-backed hosting
+  - **Cloud Storage** - Secure file storage
+- **SimpleWebAuthn** - WebAuthn biometric authentication
+- **bcrypt-ts** - Secure password hashing
 
-### Development Tools
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **Vitest** - Unit testing
-- **Firebase Emulator** - Local development
+### PWA & Performance
+- **Vite PWA Plugin** - Service worker generation
+- **Workbox** - Advanced caching strategies
+- **Code Splitting** - Optimized bundle sizes
+- **Service Worker** - Offline-first architecture
 
 ## 🎨 Design Philosophy
 
-Curiosity embraces a **mobile-first, privacy-focused** approach to personal knowledge management:
+Curiosity embraces a **mobile-first, local-first, privacy-focused** approach:
 
-- **Minimalist UI** - Clean, distraction-free interface
-- **Dark/Light Themes** - Automatic theme switching with user preference
-- **Accessible** - WCAG compliant with keyboard navigation
-- **Performant** - Optimized for speed and battery life
-- **Secure** - End-to-end encryption for sensitive data
+- **Beautiful & Vibrant** - Animated dashboard with delightful interactions
+- **Mobile-First** - Optimized for mobile with responsive design
+- **Local-First** - Your data stays on your device by default
+- **Privacy-Focused** - PIN lock and biometric authentication
+- **Customizable** - Multiple themes, fonts, and colors
+- **Accessible** - Keyboard navigation and screen reader support
+- **Fast** - Optimized for performance and battery life
 
 ## 📊 Project Structure
 
 ```
-curiosity-pwa/
-├── public/                 # Static assets
+curiosity-pwa-vite/
 ├── src/
 │   ├── components/         # React components
-│   │   ├── Dashboard.jsx   # Main dashboard
+│   │   ├── Dashboard.jsx   # Animated dashboard with Framer Motion
 │   │   ├── Editor.jsx      # Rich text editor
-│   │   ├── SettingsPage.jsx # Settings interface
+│   │   ├── SettingsPage.jsx # Settings and customization
+│   │   ├── CalendarView.jsx # Calendar visualization
+│   │   ├── PinLockScreen.jsx # PIN authentication
 │   │   └── ...             # Other components
-│   ├── contexts/           # React contexts
-│   ├── constants.js        # App constants
-│   ├── firebaseConfig.js   # Firebase configuration
-│   └── utils.js            # Utility functions
-├── functions/              # Firebase Cloud Functions
-├── docs/                   # Documentation
-├── dist/                   # Build output
-└── package.json
+│   ├── contexts/
+│   │   ├── AppContext.jsx  # Global app state
+│   │   └── StateProvider.jsx # State management
+│   ├── constants.js        # App constants and config
+│   ├── firebaseConfig.js   # Firebase initialization
+│   ├── db.js              # IndexedDB setup (Dexie)
+│   └── utils.js           # Utility functions
+├── public/
+│   ├── icons/             # PWA icons
+│   ├── manifest.json      # PWA manifest
+│   └── custom-sw.js       # Custom service worker
+├── functions/             # Firebase Cloud Functions
+├── docs/                  # Documentation
+├── firebase.json          # Firebase configuration
+├── firestore.rules        # Firestore security rules
+├── vite.config.js         # Vite configuration
+└── package.json           # Dependencies
 ```
 
 ## 🤝 Contributing
@@ -167,17 +195,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [SimpleWebAuthn](https://github.com/MasterKale/SimpleWebAuthn) for WebAuthn implementation
-- [TailwindCSS](https://tailwindcss.com/) for the amazing utility-first CSS framework
-- [Firebase](https://firebase.google.com/) for the robust backend platform
-- [React](https://reactjs.org/) for the powerful frontend library
+- [SimpleWebAuthn](https://github.com/MasterKale/SimpleWebAuthn) - WebAuthn implementation
+- [Lucide](https://lucide.dev/) - Beautiful icon library
+- [Framer Motion](https://www.framer.com/motion/) - Amazing animations
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Firebase](https://firebase.google.com/) - Backend platform
+- [React](https://react.dev/) - UI library
+- [Vite](https://vitejs.dev/) - Build tool
 
 ## 📞 Support
 
-- 📧 **Email**: [mwangicollins391@gmail.com]
+- 📧 **Email**: mwangicollins391@gmail.com
 - 🐛 **Issues**: [GitHub Issues](https://github.com/ny-collins/curiosity-pwa/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/ny-collins/curiosity-pwa/discussions)
+- 📚 **Documentation**: [docs/](./docs/)
 
 ---
 
-**Made with ❤️ for curious minds everywhere**
+**Made with ❤️ by Collins** • [Version 1.0.0](./docs/CHANGELOG.md) • November 2025

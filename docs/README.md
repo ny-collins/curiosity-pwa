@@ -10,8 +10,12 @@ Welcome to the Curiosity PWA documentation! This index provides an overview of a
 | [🛠️ Setup Guide](./setup.md) | Development environment setup and configuration | New Contributors |
 | [📱 User Guide](./user-guide.md) | Complete user manual and feature walkthrough | End Users |
 | [🔧 API Reference](./api.md) | Technical API documentation and data structures | Developers |
-| [🚀 Deployment](./deployment.md) | Production deployment and hosting setup | DevOps, Developers |
+| [🚀 Deployment](./DEPLOYMENT.md) | Production deployment checklist and hosting setup | DevOps, Developers |
+| [📝 Quick Reference](./QUICK-REFERENCE.md) | Common commands and development tasks | Developers |
+| [📋 Changelog](./CHANGELOG.md) | Version history and release notes | All Users |
+| [✅ Production Ready](./PRODUCTION-READY.md) | Production readiness summary and status | Developers, DevOps |
 | [🤝 Contributing](./contributing.md) | How to contribute to the project | Contributors |
+| [🧪 Testing Guide](./test-guide.md) | Comprehensive testing strategies and checklists | Developers, QA |
 | [🔍 Troubleshooting](./troubleshooting.md) | Common issues and solutions | All Users |
 
 ## 🚀 Quick Start
@@ -27,8 +31,10 @@ Welcome to the Curiosity PWA documentation! This index provides an overview of a
 4. See [Contributing](./contributing.md) for contribution guidelines
 
 ### For Deployment
-1. Review the [Deployment Guide](./deployment.md) for production setup
-2. Use the [Troubleshooting](./troubleshooting.md) guide for deployment issues
+1. Review the [Deployment Checklist](./DEPLOYMENT.md) for production setup
+2. Check [Production Ready](./PRODUCTION-READY.md) for deployment status
+3. Use [Quick Reference](./QUICK-REFERENCE.md) for common commands
+4. See [Troubleshooting](./troubleshooting.md) guide for deployment issues
 
 ## 📖 Key Topics
 
@@ -68,16 +74,19 @@ Welcome to the Curiosity PWA documentation! This index provides an overview of a
 ## 📊 Project Status
 
 ### Current Version
-- **Version**: 2.0.1
+- **Version**: 1.0.0
 - **Status**: Production Ready
-- **Last Updated**: November 2025
+- **Last Updated**: November 7, 2025
 
 ### Feature Status
-- ✅ **Core Features**: Journaling, goals, vault, reminders
-- ✅ **Authentication**: Google OAuth, WebAuthn biometrics
-- ✅ **PWA**: Offline support, installable, push notifications
-- ✅ **Mobile**: Responsive design, touch optimization
-- ✅ **Security**: End-to-end encryption, secure vault
+- ✅ **Core Features**: Journaling, goals, tasks, reminders, vault
+- ✅ **Authentication**: Google OAuth, WebAuthn biometrics, PIN lock
+- ✅ **PWA**: Offline support, installable, service worker caching
+- ✅ **Mobile**: Mobile-first responsive design, hamburger navigation
+- ✅ **Security**: PIN protection, biometric auth, local-first architecture
+- ✅ **Customization**: 6 themes, 4 fonts, dark mode
+- ✅ **Dashboard**: Animated dashboard with Framer Motion
+- ✅ **Export**: PDF, CSV, JSON, Excel export options
 - 🚧 **Advanced Features**: AI-powered insights, team collaboration
 
 ### Browser Support

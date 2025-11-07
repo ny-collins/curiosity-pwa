@@ -48,6 +48,7 @@ export default defineConfig({
           'workbox-*.js', 
           'firebase-messaging-sw.js' // Add this line
         ],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB (increased from 2 MB default)
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',

@@ -18,15 +18,12 @@ function ReloadPrompt() {
   // This effect runs when needRefresh changes to true
   useEffect(() => {
     if (needRefresh) {
-      console.log('New PWA version detected. Attempting auto-update...');
-      
       // Create a listener that waits for the new service worker
       // to take control of the page.
       if (navigator.serviceWorker) {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           // This event fires *after* the new SW has activated.
           // It's now safe to reload the page.
-          console.log('Service Worker controller changed. Reloading page...');
           window.location.reload();
         }, { once: true }); // Use { once: true } so the listener cleans itself up.
       }

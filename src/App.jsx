@@ -6,8 +6,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import PinLockScreen from './components/PinLockScreen';
 import SettingsPage from './components/SettingsPage';
 import Sidebar from './components/Sidebar';
-import Editor from './components/Editor';
-import BottomNavBar from './components/BottomNavBar';
+import ModernEditor from './components/ModernEditor';
 import EntryList from './components/EntryList';
 import CalendarView from './components/CalendarView';
 import GoalsView from './components/GoalsView';
@@ -19,6 +18,7 @@ import SplashScreen from './components/SplashScreen';
 import Logo from './components/Logo';
 import UnsavedChangesModal from './components/UnsavedChangesModal';
 import OnboardingModal from './components/OnboardingModal';
+import InitialSetupModal from './components/InitialSetupModal';
 
 const viewVariants = {
     initial: { opacity: 0, x: 10 },
@@ -32,13 +32,21 @@ const viewTransition = {
     duration: 0.2
 };
 
-const MobileHeader = ({ currentView }) => {
+const MobileHeader = ({ currentView, onMenuClick }) => {
     if (currentView === 'settings' || currentView === 'editor' || currentView === 'dashboard') {
         return null;
     }
 
     return (
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between md:hidden flex-shrink-0 bg-white dark:bg-slate-900">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between md:hidden flex-shrink-0 bg-white dark:bg-slate-900 z-10">
+            <button
+                onClick={onMenuClick}
+                className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+                <svg className="w-6 h-6 text-slate-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
             <div className="flex items-center space-x-3">
                 <Logo className="w-7 h-7" animate={false} />
                 <span style={{ fontFamily: 'var(--font-logo)' }} className="text-lg text-slate-900 dark:text-white italic">Curiosity</span>
@@ -54,7 +62,9 @@ export default function App() {
     const {
         checkingPin, isLocked, handleForgotPin, setIsLocked, checkPin, 
         currentView, isSidebarExpanded, showOnboarding, themeFont, fontSize, isAppFocusMode, 
-        isCreating, activeEntryId, handleOnboardingComplete, handleModalSave, handleModalDiscard, handleModalCancel, localSettings, showUnsavedModal 
+        isCreating, activeEntryId, activeEntry, newEntryType, handleEditorSaveComplete, forceEditorSave,
+        handleOnboardingComplete, handleInitialSetup, handleModalSave, handleModalDiscard, handleModalCancel, localSettings, showUnsavedModal,
+        handleToggleSidebar
     } = useAppState();
 
     const [minSplashTimeElapsed, setMinSplashTimeElapsed] = useState(false);
@@ -67,10 +77,13 @@ export default function App() {
         return () => clearTimeout(timer);
     }, []);
 
-    console.log({ checkingPin, localSettings, minSplashTimeElapsed });
-
     if (checkingPin || !localSettings || !minSplashTimeElapsed) {
         return <SplashScreen />;
+    }
+
+    // Show initial setup for new users
+    if (!localSettings.hasCompletedSetup) {
+        return <InitialSetupModal onComplete={handleInitialSetup} />;
     }
     
     if (isLocked) {
@@ -102,14 +115,20 @@ export default function App() {
                 exit="out" 
                 transition={viewTransition}
             >
-                <Editor />
+                <ModernEditor 
+                    entry={activeEntry}
+                    isCreating={isCreating}
+                    newEntryType={newEntryType}
+                    handleEditorSaveComplete={handleEditorSaveComplete}
+                    forceEditorSave={forceEditorSave}
+                />
             </motion.div>
         );
     } else if (effectiveView === 'settings') {
          mainContent = (
             <motion.div 
                 key="settings" 
-                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                className="flex flex-col flex-grow h-full pb-16 md:pb-0"
                 variants={viewVariants} 
                 initial="initial" 
                 animate="in" 
@@ -123,7 +142,7 @@ export default function App() {
         mainContent = (
              <motion.div 
                 key="list" 
-                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                className="flex flex-col flex-grow h-full pb-16 md:pb-0"
                 variants={viewVariants} 
                 initial="initial" 
                 animate="in" 
@@ -137,7 +156,7 @@ export default function App() {
         mainContent = (
              <motion.div 
                 key="calendar" 
-                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                className="flex flex-col flex-grow h-full pb-16 md:pb-0"
                 variants={viewVariants} 
                 initial="initial" 
                 animate="in" 
@@ -151,7 +170,7 @@ export default function App() {
         mainContent = (
              <motion.div 
                 key="goals" 
-                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                className="flex flex-col flex-grow h-full pb-16 md:pb-0"
                 variants={viewVariants} 
                 initial="initial" 
                 animate="in" 
@@ -165,7 +184,7 @@ export default function App() {
         mainContent = (
              <motion.div 
                 key="vault" 
-                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                className="flex flex-col flex-grow h-full pb-16 md:pb-0"
                 variants={viewVariants} 
                 initial="initial" 
                 animate="in" 
@@ -179,7 +198,7 @@ export default function App() {
         mainContent = (
              <motion.div 
                 key="reminders" 
-                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                className="flex flex-col flex-grow h-full pb-16 md:pb-0"
                 variants={viewVariants} 
                 initial="initial" 
                 animate="in" 
@@ -193,7 +212,7 @@ export default function App() {
          mainContent = (
              <motion.div 
                 key="dashboard" 
-                className="flex flex-col flex-grow h-full overflow-hidden pb-16 md:pb-0"
+                className="flex flex-col flex-grow h-full pb-16 md:pb-0"
                 variants={viewVariants} 
                 initial="initial" 
                 animate="in" 
@@ -209,20 +228,41 @@ export default function App() {
         <>
             <div className="h-full relative flex md:flex-row overflow-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200" style={{ fontFamily: themeFont, fontSize: fontSize }}>
                  {!isAppFocusMode && (
-                    <div className="hidden md:block fixed top-0 left-0 h-full z-30">
-                        <Sidebar />
-                    </div>
+                    <>
+                        {/* Desktop Sidebar */}
+                        <div className="hidden md:block fixed top-0 left-0 h-full z-30">
+                            <Sidebar />
+                        </div>
+                        
+                        {/* Mobile Sidebar Overlay */}
+                        {isSidebarExpanded && (
+                            <>
+                                {/* Backdrop */}
+                                <div 
+                                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                                    onClick={handleToggleSidebar}
+                                />
+                                {/* Sidebar */}
+                                <div className="fixed top-0 left-0 h-full z-50 md:hidden">
+                                    <Sidebar />
+                                </div>
+                            </>
+                        )}
+                    </>
                  )}
                 
-                {!isAppFocusMode && <MobileHeader currentView={effectiveView} />}
+                {!isAppFocusMode && <MobileHeader currentView={effectiveView} onMenuClick={handleToggleSidebar} />}
 
-                <main className={`flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out ${isAppFocusMode ? 'md:pl-0' : (isSidebarExpanded ? 'md:pl-64' : 'md:pl-16')} ${effectiveView === 'settings' || effectiveView === 'editor' ? 'flex flex-col' : ''} ${effectiveView === 'dashboard' ? 'pt-0 md:pt-0' : effectiveView !== 'editor' && effectiveView !== 'settings' ? 'pt-12 md:pt-0' : ''}`}>
+                <main 
+                    className={`flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out ${effectiveView === 'settings' || effectiveView === 'editor' ? 'flex flex-col' : ''} ${effectiveView === 'dashboard' ? 'pt-0 md:pt-0' : effectiveView !== 'editor' && effectiveView !== 'settings' ? 'pt-12 md:pt-0' : ''} md:ml-0`}
+                    style={{
+                        paddingLeft: window.innerWidth >= 768 ? (isAppFocusMode ? '0' : (isSidebarExpanded ? '256px' : '64px')) : '0'
+                    }}
+                >
                     <AnimatePresence mode="wait">
                         {mainContent}
                     </AnimatePresence>
                 </main>
-
-                 {!isAppFocusMode && <BottomNavBar />}
             </div>
             
              <ReloadPrompt />

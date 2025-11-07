@@ -29,12 +29,27 @@ const StateContext = createContext();
 export function StateProvider({ children }) {
     const toast = useToaster();
 
-    // DATA QUERIES
-    const allEntries = useLiveQuery(() => db.entries.toArray(), [], []);
-    const remindersData = useLiveQuery(() => db.reminders.toArray(), [], []);
-    const goals = useLiveQuery(() => db.goals.toArray(), [], []);
-    const tasks = useLiveQuery(() => db.tasks.toArray(), [], []);
-    const vaultItems = useLiveQuery(() => db.vaultItems.toArray(), [], []);
+    // DATA QUERIES - Filter out deleted items
+    const allEntries = useLiveQuery(() => 
+        db.entries.filter(entry => !entry.isDeleted).toArray(), 
+        [], []
+    );
+    const remindersData = useLiveQuery(() => 
+        db.reminders.filter(reminder => !reminder.isDeleted).toArray(), 
+        [], []
+    );
+    const goals = useLiveQuery(() => 
+        db.goals.filter(goal => !goal.isDeleted).toArray(), 
+        [], []
+    );
+    const tasks = useLiveQuery(() => 
+        db.tasks.filter(task => !task.isDeleted).toArray(), 
+        [], []
+    );
+    const vaultItems = useLiveQuery(() => 
+        db.vaultItems.filter(item => !item.isDeleted).toArray(), 
+        [], []
+    );
     const localSettings = useLiveQuery(() => dbGetSettings(), [], null);
     
     // THEME
@@ -116,6 +131,27 @@ export function StateProvider({ children }) {
             console.error("Initial setup error:", error);
             setCheckingPin(false);
         }
+    }, []);
+
+    // Cleanup orphaned deleted entries on mount
+    useEffect(() => {
+        const cleanupDeletedEntries = async () => {
+            try {
+                // Find all entries that are marked as deleted
+                const deletedEntries = await db.entries
+                    .filter(entry => entry.isDeleted === true)
+                    .toArray();
+                
+                // Actually remove them from the database
+                if (deletedEntries.length > 0) {
+                    await Promise.all(deletedEntries.map(entry => db.entries.delete(entry.id)));
+                }
+            } catch (error) {
+                console.error("Error cleaning up deleted entries:", error);
+            }
+        };
+        
+        cleanupDeletedEntries();
     }, []);
 
 
@@ -290,35 +326,37 @@ export function StateProvider({ children }) {
             return;
         }
 
-        const username = localSettings?.username || 'Curious User';
-
-        let attestation;
         try {
-            attestation = await startRegistration({
-                rp: { name: 'Curiosity', id: window.location.hostname },
-                user: { id: userId, name: username, displayName: username },
-                challenge: nanoid(32),
-                pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
-                authenticatorSelection: {
-                    authenticatorAttachment: 'platform',
-                    userVerification: 'required',
-                },
-            });
-        } catch (error) {
-            console.error("WebAuthn registration failed:", error);
-            if (error.name === 'NotAllowedError') {
-                toast.error("Biometric registration was cancelled.");
-            } else if (error.name === 'NotSupportedError') {
-                toast.error("Your browser or device does not support biometrics.");
-            } else {
-                toast.error("Failed to register biometric.");
+            // Step 1: Get registration options from server
+            const generateOptions = httpsCallable(functions, 'generateRegistrationOptions');
+            const { data: options } = await generateOptions();
+
+            // Step 2: Browser creates credential
+            let attestation;
+            try {
+                attestation = await startRegistration(options);
+            } catch (error) {
+                console.error("WebAuthn registration failed:", error);
+                if (error.name === 'NotAllowedError') {
+                    toast.error("Biometric registration was cancelled.");
+                } else if (error.name === 'NotSupportedError') {
+                    toast.error("Your browser or device does not support biometrics.");
+                } else {
+                    toast.error("Failed to register biometric.");
+                }
+                return;
             }
-            return;
-        }
 
-        const credentialId = attestation.id;
+            // Step 3: Server verifies attestation
+            const verifyReg = httpsCallable(functions, 'verifyRegistration');
+            const { data: verification } = await verifyReg(attestation);
 
-        try {
+            if (!verification.verified) {
+                throw new Error("Server verification failed");
+            }
+
+            // Step 4: Save credential locally
+            const credentialId = attestation.id;
             const encryptedPin = encryptData(unlockedKey, credentialId);
 
             localStorage.setItem(WEBAUTHN_CREDENTIAL_ID_KEY, credentialId);
@@ -327,10 +365,10 @@ export function StateProvider({ children }) {
             toast.success("Biometrics enabled!");
 
         } catch (error) {
-            console.error("Error saving biometric credential:", error);
-            toast.error("Failed to save biometric data.");
+            console.error("Error during biometric registration:", error);
+            toast.error("Failed to register biometric.");
         }
-    }, [appPin, unlockedKey, localSettings, userId, toast]);
+    }, [appPin, unlockedKey, localSettings, userId, toast, functions]);
 
     const handleDisableBiometric = useCallback(async () => {
         try {
@@ -347,26 +385,34 @@ export function StateProvider({ children }) {
     const handleBiometricLogin = useCallback(async () => {
         if (!biometricCredentialId) return false;
 
-        let assertion;
         try {
-            assertion = await startAuthentication({
-                challenge: nanoid(32),
-                allowCredentials: [{
-                    id: biometricCredentialId,
-                    type: 'public-key',
-                }],
-                userVerification: 'required',
-            });
-        } catch (error) {
-            console.error("WebAuthn authentication failed:", error);
-            // Don't show error for user cancellation - just fall back to PIN
-            if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
-                console.warn("Biometric authentication failed with error:", error.name);
-            }
-            return false;
-        }
+            // Step 1: Get authentication options from server
+            const generateAuthOptions = httpsCallable(functions, 'generateAuthenticationOptions');
+            const { data: options } = await generateAuthOptions();
 
-        if (assertion) {
+            // Step 2: Browser signs challenge
+            let assertion;
+            try {
+                assertion = await startAuthentication(options);
+            } catch (error) {
+                console.error("WebAuthn authentication failed:", error);
+                // Don't show error for user cancellation - just fall back to PIN
+                if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
+                    console.warn("Biometric authentication failed with error:", error.name);
+                }
+                return false;
+            }
+
+            // Step 3: Server verifies signature
+            const verifyAuth = httpsCallable(functions, 'verifyAuthentication');
+            const { data: verification } = await verifyAuth(assertion);
+
+            if (!verification.verified) {
+                console.error("Server verification failed for biometric login");
+                return false;
+            }
+
+            // Step 4: Decrypt PIN and unlock
             try {
                 const decryptedPin = decryptData(localSettings?.biometricPin, assertion.id);
                 if (decryptedPin) {
@@ -377,6 +423,9 @@ export function StateProvider({ children }) {
                 console.error("Failed to decrypt PIN with biometric credential:", error);
                 return false;
             }
+        } catch (error) {
+            console.error("Error during biometric authentication:", error);
+            return false;
         }
         return false;
     }, [biometricCredentialId, localSettings]);
@@ -419,8 +468,12 @@ export function StateProvider({ children }) {
             setCurrentView(newView);
             if (isCreating) setIsCreating(false);
             if (activeEntryId) setActiveEntryId(null);
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth < 768 && isSidebarExpanded) {
+                setIsSidebarExpanded(false);
+            }
         }
-    }, [isCreating, activeEntryId, isEditorDirty]);
+    }, [isCreating, activeEntryId, isEditorDirty, isSidebarExpanded]);
 
     const handleCloseEditor = useCallback(() => {
         if (isCreating && isEditorDirty) {
@@ -440,6 +493,16 @@ export function StateProvider({ children }) {
         setNewEntryType(entryType);
         setIsCreating(true);
         setCurrentView('editor');
+        // Collapse sidebar when entering editor
+        setIsSidebarExpanded(false);
+    }, []);
+
+    const handleSelectEntry = useCallback((entryId) => {
+        setActiveEntryId(entryId);
+        setIsCreating(false);
+        setCurrentView('editor');
+        // Collapse sidebar when entering editor
+        setIsSidebarExpanded(false);
     }, []);
 
     const handleSaveNewEntry = useCallback(async (data) => {
@@ -497,9 +560,25 @@ export function StateProvider({ children }) {
             return;
         }
         try {
-            if (activeEntryId === id) { setActiveEntryId(null); }
-            await db.entries.delete(id);
-            await db.entries.put({ id: id, isDeleted: true, isSynced: false, updatedAt: new Date() });
+            // Clear active entry if it's the one being deleted
+            if (activeEntryId === id) { 
+                setActiveEntryId(null); 
+            }
+            
+            // Get the entry first
+            const entry = await db.entries.get(id);
+            if (!entry) {
+                toast.error("Entry not found.");
+                return;
+            }
+            
+            // Mark as deleted for sync, but don't create a blank entry
+            await db.entries.update(id, { 
+                isDeleted: true, 
+                isSynced: false, 
+                updatedAt: new Date() 
+            });
+            
             toast.success("Entry deleted.");
         } catch (error) {
             console.error("Local delete error:", error);
@@ -705,6 +784,31 @@ export function StateProvider({ children }) {
         }
     }, [toast]);
 
+    const handleInitialSetup = useCallback(async (setupData) => {
+        const newSettings = {
+            username: setupData.username,
+            themeColor: setupData.accentColor,
+            themeColorRgb: setupData.accentColorRgb,
+            fontFamily: setupData.themeFont,
+            themeMode: setupData.theme,
+            fontSize: '16px',
+            hasCompletedSetup: true,
+            id: 1,
+            updatedAt: new Date()
+        };
+        try {
+            await dbSaveSettings(newSettings);
+            // Apply theme immediately
+            setThemeMode(setupData.theme);
+            setThemeColor(setupData.accentColor);
+            setThemeFont(setupData.themeFont);
+            toast.success(`Welcome, ${setupData.username}! 🎉`);
+        } catch (error) {
+            console.error("Error saving initial setup:", error);
+            toast.error("Could not save settings.");
+        }
+    }, [toast, setThemeMode, setThemeColor, setThemeFont]);
+
     const downloadFile = useCallback((data, filename, mimeType) => {
         const blob = new Blob([data], { type: mimeType });
         const url = URL.createObjectURL(blob);
@@ -824,6 +928,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
             setCurrentView('editor');
         } else {
             setActiveEntryId(null);
+            setCurrentView('dashboard'); // Navigate back to dashboard when no pending view
         }
         setPendingView(null);
     }, [pendingView, setCurrentView, setPendingView, setShowUnsavedModal]);
@@ -939,14 +1044,15 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
         allEntries, reminders: remindersData, goals, tasks, vaultItems, localSettings, activeEntryId, setActiveEntryId,
         isCreating, setIsCreating, isEditorDirty, setIsEditorDirty, forceEditorSave, setForceEditorSave,
         newEntryType, setNewEntryType, availableYears, availableTags, filteredEntries, onThisDayEntries,
-        activeGoals, activeEntry, handleCreateEntry, handleSaveNewEntry, handleUpdateEntry, handleDeleteEntry, handleAddReminder,
+        activeGoals, activeEntry, handleCreateEntry, handleSelectEntry, handleSaveNewEntry, handleUpdateEntry, handleDeleteEntry, handleAddReminder,
         handleDeleteReminder, handleAddGoal, handleDeleteGoal, handleUpdateGoalStatus, handleAddTask,
         handleDeleteTask, handleToggleTask, handleAddVaultItem, handleDeleteVaultItem, handleSaveSettings,
-        handleOnboardingComplete, handleExportData,
+        handleOnboardingComplete, handleInitialSetup, handleExportData,
         // UI
         isSidebarExpanded, currentView, searchTerm, filterYear, filterMonth, filterTag, filterType,
-        showOnboarding, isAppFocusMode, showUnsavedModal, pendingView, handleToggleSidebar,
+        showOnboarding, isAppFocusMode, setAppFocusMode, showUnsavedModal, pendingView, handleToggleSidebar,
         handleFilterYearChange, handleClearFilters, handleModalCancel, handleViewChange, handleCloseEditor,
+        handleEditorSaveComplete, handleModalSave, handleModalDiscard,
         // FEATURE
         installPromptEvent, isAppInstalled, handleInstallApp, handleRequestNotificationPermission, handleDisableNotifications,
         toast
@@ -982,7 +1088,10 @@ function useDataSync(userId, toast) {
                     const docRef = doc(collectionRef, item.id);
 
                     if (dataToSync.isDeleted) {
+                        // Delete from cloud
                         await deleteDoc(docRef);
+                        // Remove the tombstone locally after successful cloud deletion
+                        await localStore.delete(item.id);
                     } else {
                         const { createdAt, updatedAt, ...rest } = dataToSync;
                         const fsData = {
@@ -991,8 +1100,8 @@ function useDataSync(userId, toast) {
                             updatedAt: serverTimestamp()
                         };
                         await setDoc(docRef, fsData, { merge: true });
+                        await localStore.update(item.id, { isSynced: true });
                     }
-                    await localStore.update(item.id, { isSynced: true });
                 } catch (e) { console.error(`Error syncing item ${item.id} to ${collectionRefName}:`, e); }
             }
         };

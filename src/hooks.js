@@ -66,7 +66,6 @@ export const useTheme = (localSettings) => {
 
   // Apply theme immediately from localStorage, then update when IndexedDB loads
   useEffect(() => {
-    console.log("Applying theme settings:", { themeMode, themeColor, themeFont, fontSize });
     const root = window.document.documentElement;
     
     if (themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -77,7 +76,6 @@ export const useTheme = (localSettings) => {
   }, [themeMode]);
 
   useEffect(() => {
-    console.log("Updating theme color:", themeColor);
     const root = window.document.documentElement;
     root.style.setProperty('--color-primary-hex', themeColor);
     
@@ -91,13 +89,11 @@ export const useTheme = (localSettings) => {
   }, [themeColor]);
 
   useEffect(() => {
-    console.log("Updating theme font:", themeFont);
     const root = window.document.documentElement;
     root.style.setProperty('--font-body', themeFont);
   }, [themeFont]);
 
   useEffect(() => {
-    console.log("Updating font size:", fontSize);
     const root = window.document.documentElement;
     root.style.setProperty('font-size', fontSize);
   }, [fontSize]);

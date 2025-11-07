@@ -1,7 +1,7 @@
 {
   "name": "curiosity-pwa-vite",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -33,7 +33,6 @@
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
-    "react-simplemde-editor": "^5.2.0",
     "tailwind-merge": "^2.4.0",
     "xlsx": "^0.18.5"
   },
@@ -41,6 +40,7 @@
     "@eslint/js": "^9.36.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",

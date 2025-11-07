@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Calendar, List, Tag, SlidersHorizontal, BookOpen, CheckSquare, Brain } from 'lucide-react';
+import { Plus, Search, X, Calendar, List, Tag, SlidersHorizontal, BookOpen, CheckSquare, Brain, Trash2 } from 'lucide-react';
 import { useAppState } from '../contexts/StateProvider';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { ENTRY_TYPES, getEntryType } from '../constants';
@@ -12,7 +12,8 @@ const MONTHS = [
 
 const getMonthName = (monthNum) => MONTHS[monthNum - 1] || '';
 
-const EntryCard = ({ entry, onSelect }) => {
+const EntryCard = ({ entry, onSelect, onDelete }) => {
+    const [isHovered, setIsHovered] = useState(false);
     const type = getEntryType(entry.type);
     const date = entry.updatedAt || entry.createdAt;
     
@@ -25,6 +26,13 @@ const EntryCard = ({ entry, onSelect }) => {
             console.warn("Could not parse date:", date, error);
         }
     }
+    
+    const handleDelete = (e) => {
+        e.stopPropagation(); // Prevent card click
+        if (window.confirm('Are you sure you want to delete this entry?')) {
+            onDelete(entry.id);
+        }
+    };
 
     return (
         <motion.div
@@ -34,12 +42,33 @@ const EntryCard = ({ entry, onSelect }) => {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
             onClick={() => onSelect(entry.id)}
-            className="bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-slate-200 dark:border-slate-700 overflow-hidden"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="relative bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-slate-200 dark:border-slate-700 overflow-hidden group"
             style={{
                 backgroundColor: 'var(--color-bg-content)',
                 borderColor: 'var(--color-border)'
             }}
         >
+            {/* Delete Button */}
+            <AnimatePresence>
+                {isHovered && (
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={handleDelete}
+                        className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white shadow-lg"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        title="Delete entry"
+                    >
+                        <Trash2 size={16} />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+            
             <div className="p-4">
                 <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center space-x-2">
@@ -190,7 +219,7 @@ const Filters = () => {
 };
 
 export default function EntryList() {
-    const { filteredEntries, handleSelectEntry, handleCreateEntry } = useAppState();
+    const { filteredEntries, handleSelectEntry, handleCreateEntry, handleDeleteEntry } = useAppState();
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
@@ -201,7 +230,7 @@ export default function EntryList() {
                     {filteredEntries && filteredEntries.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredEntries.map(entry => (
-                                <EntryCard key={entry.id} entry={entry} onSelect={handleSelectEntry} />
+                                <EntryCard key={entry.id} entry={entry} onSelect={handleSelectEntry} onDelete={handleDeleteEntry} />
                             ))}
                         </div>
                     ) : (
