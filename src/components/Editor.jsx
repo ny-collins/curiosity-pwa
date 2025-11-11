@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Trash2, X, AlertTriangle, ChevronDown, Check, Loader2, Expand, Minimize, Settings, ChevronUp, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Trash2, X, AlertTriangle, ChevronDown, Check, Loader2, Expand, Minimize, Settings, ChevronUp, ChevronRight, Eye, EyeOff, HelpCircle } from 'lucide-react';
 import SimpleMDE from 'react-simplemde-editor';
 import "easymde/dist/easymde.min.css";
 import TagsInput from '/src/components/TagsInput.jsx';
@@ -10,6 +10,7 @@ import { ENTRY_TYPES, getEntryType } from '/src/constants.js';
 import { useAppState } from '../contexts/StateProvider';
 import { useDebounce } from '../hooks.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { withPerformanceTrace } from '/src/utils.js';
 
 const SaveStatusIndicator = ({ status }) => {
     return (
@@ -90,6 +91,8 @@ function Editor() {
     const [layoutMode, setLayoutMode] = useState('standard'); // 'minimal', 'standard', 'full'
     const [showWordCount, setShowWordCount] = useState(false);
 
+    const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+    
     const simpleMdeRef = useRef(null);
     const selectedType = getEntryType(entryType);
     
@@ -126,10 +129,79 @@ function Editor() {
                 e.preventDefault();
                 handleSave(false);
             }
+            // Cmd/Ctrl + B - Bold
+            if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+                e.preventDefault();
+                if (simpleMdeRef.current) {
+                    simpleMdeRef.current.codemirror.execCommand('singleSelection');
+                    simpleMdeRef.current.codemirror.execCommand('bold');
+                }
+            }
+            // Cmd/Ctrl + I - Italic
+            if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+                e.preventDefault();
+                if (simpleMdeRef.current) {
+                    simpleMdeRef.current.codemirror.execCommand('singleSelection');
+                    simpleMdeRef.current.codemirror.execCommand('italic');
+                }
+            }
+            // Cmd/Ctrl + Shift + 1-6 - Headings
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && ['1','2','3','4','5','6'].includes(e.key)) {
+                e.preventDefault();
+                const level = parseInt(e.key);
+                if (simpleMdeRef.current) {
+                    simpleMdeRef.current.codemirror.execCommand('singleSelection');
+                    // Insert heading markdown
+                    const cm = simpleMdeRef.current.codemirror;
+                    const doc = cm.getDoc();
+                    const cursor = doc.getCursor();
+                    const line = doc.getLine(cursor.line);
+                    const headingPrefix = '#'.repeat(level) + ' ';
+                    if (line.startsWith('#')) {
+                        // Replace existing heading
+                        const newLine = line.replace(/^#+\s*/, headingPrefix);
+                        doc.replaceRange(newLine, {line: cursor.line, ch: 0}, {line: cursor.line, ch: line.length});
+                    } else {
+                        // Add new heading
+                        doc.replaceRange(headingPrefix, {line: cursor.line, ch: 0});
+                    }
+                }
+            }
+            // Cmd/Ctrl + K - Link
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                if (simpleMdeRef.current) {
+                    simpleMdeRef.current.codemirror.execCommand('singleSelection');
+                    simpleMdeRef.current.codemirror.execCommand('link');
+                }
+            }
+            // Cmd/Ctrl + Shift + L - List
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'L') {
+                e.preventDefault();
+                if (simpleMdeRef.current) {
+                    simpleMdeRef.current.codemirror.execCommand('singleSelection');
+                    simpleMdeRef.current.codemirror.execCommand('unordered-list');
+                }
+            }
+            // Cmd/Ctrl + Shift + C - Code block
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'C') {
+                e.preventDefault();
+                if (simpleMdeRef.current) {
+                    simpleMdeRef.current.codemirror.execCommand('singleSelection');
+                    simpleMdeRef.current.codemirror.execCommand('code');
+                }
+            }
+            // Cmd/Ctrl + / - Toggle keyboard shortcuts help
+            if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+                e.preventDefault();
+                setShowKeyboardHelp(!showKeyboardHelp);
+            }
             // Escape - Close editor or exit focus mode
             if (e.key === 'Escape') {
                 if (isFocusMode) {
                     toggleFocusMode();
+                } else if (showKeyboardHelp) {
+                    setShowKeyboardHelp(false);
                 } else {
                     handleCloseEditor();
                 }
@@ -138,7 +210,7 @@ function Editor() {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isFocusMode, showMetadata]);
+    }, [isFocusMode, showMetadata, showKeyboardHelp]);
 
     const handleImageUpload = async (file, editor) => {
         if (!file) return;
@@ -249,30 +321,51 @@ function Editor() {
         setSaveStatus('unsaved');
     };
 
-    const handleSave = useCallback(async (isModalSave = false) => {
+    const handleSave = useCallback(withPerformanceTrace('editor_save', async (isModalSave = false) => {
         if (!isEditorDirty) {
             if (isModalSave) handleEditorSaveComplete();
             return;
         }
 
         setSaveStatus('saving');
+        setSaveError(null);
+
         const entryData = { title, content, tags, type: entryType };
-        
-        if (isCreating) {
-            const newId = await handleSaveNewEntry(entryData);
-            if (newId && isModalSave) {
-                handleEditorSaveComplete();
+
+        try {
+            if (isCreating) {
+                const newId = await handleSaveNewEntry(entryData);
+                if (newId) {
+                    setLastSaved(new Date());
+                    setIsEditorDirty(false);
+                    if (isModalSave) {
+                        handleEditorSaveComplete();
+                    }
+                } else {
+                    throw new Error('Failed to create entry');
+                }
+            } else if (entry) {
+                await handleUpdateEntry(entry.id, entryData);
+                setLastSaved(new Date());
+                setIsEditorDirty(false);
+                if (isModalSave) {
+                    handleEditorSaveComplete();
+                }
             }
-        } else if (entry) {
-            await handleUpdateEntry(entry.id, entryData);
-            if (isModalSave) {
-                handleEditorSaveComplete();
-            }
+
+            setSaveStatus('saved');
+        } catch (error) {
+            console.error('Save error:', error);
+            setSaveStatus('error');
+            setSaveError(error.message || 'Failed to save entry');
+            // Reset to unsaved after a delay so user can try again
+            setTimeout(() => {
+                if (saveStatus === 'error') {
+                    setSaveStatus('unsaved');
+                }
+            }, 3000);
         }
-        
-        setSaveStatus('saved');
-        
-    }, [title, content, tags, entryType, isCreating, entry, isEditorDirty, handleSaveNewEntry, handleUpdateEntry, handleEditorSaveComplete]);
+    }), [title, content, tags, entryType, isCreating, entry, isEditorDirty, handleSaveNewEntry, handleUpdateEntry, handleEditorSaveComplete, saveStatus]);
 
     useEffect(() => {
         if (forceEditorSave) {
@@ -401,7 +494,7 @@ function Editor() {
                                         animate={{ x: 0, opacity: 1 }}
                                         transition={{ delay: 0.2 }}
                                     >
-                                        <SaveStatusIndicator status={saveStatus} />
+                                        <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} error={saveError} />
                                     </motion.div>
                                 </div>
                             </div>
@@ -481,6 +574,23 @@ function Editor() {
                                     title="Focus Mode (Ctrl+Shift+F)"
                                 >
                                     <Expand size={18} />
+                                </motion.button>
+
+                                {/* Keyboard shortcuts help */}
+                                <motion.button
+                                    onClick={() => setShowKeyboardHelp(true)}
+                                    className="p-2 rounded-full hover:bg-secondary focus:outline-none focus:ring-2 transition-colors"
+                                    style={{
+                                        '--tw-ring-color': 'var(--color-primary-hex)',
+                                        color: 'var(--color-text-secondary)',
+                                        '--tw-hover-bg': 'var(--color-bg-secondary)'
+                                    }}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    aria-label="Keyboard Shortcuts"
+                                    title="Keyboard Shortcuts (Ctrl+/)"
+                                >
+                                    <HelpCircle size={18} />
                                 </motion.button>
 
                                 {/* Delete button */}
@@ -787,6 +897,156 @@ function Editor() {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Keyboard Shortcuts Help Modal */}
+            {showKeyboardHelp && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                    <motion.div
+                        className="rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
+                        style={{ backgroundColor: 'var(--color-bg-content)', borderColor: 'var(--color-border)' }}
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                                Keyboard Shortcuts
+                            </h3>
+                            <button
+                                onClick={() => setShowKeyboardHelp(false)}
+                                className="p-1 rounded-md hover:bg-secondary transition-colors"
+                                style={{ color: 'var(--color-text-secondary)' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Editing</h4>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Save</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+S</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Bold</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+B</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Italic</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+I</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Link</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+K</kbd>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Headings</h4>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Heading 1</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+Shift+1</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Heading 2</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+Shift+2</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Heading 3</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+Shift+3</kbd>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Lists & Code</h4>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Bullet List</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+Shift+L</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Code Block</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+Shift+C</kbd>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>View & Navigation</h4>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Focus Mode</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+Shift+F</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Toggle Metadata</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+Shift+M</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Keyboard Shortcuts</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Ctrl+/</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: 'var(--color-text-secondary)' }}>Close/Exit</span>
+                                        <kbd className="px-2 py-1 rounded text-xs font-mono" style={{
+                                            backgroundColor: 'var(--color-bg-secondary)',
+                                            border: '1px solid var(--color-border)'
+                                        }}>Esc</kbd>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                Pro tip: Use focus mode (Ctrl+Shift+F) for distraction-free writing
+                            </p>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </>

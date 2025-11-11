@@ -3,8 +3,8 @@ import { getFirestore, initializeFirestore, memoryLocalCache } from "firebase/fi
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
-import { getAnalytics } from "firebase/analytics";
-import { getMessaging } from "firebase/messaging";
+import { getAnalytics, isSupported } from "firebase/analytics";
+import { getPerformance } from "firebase/performance";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -24,7 +24,7 @@ let db;
 let storage;
 let functions;
 let analytics;
-let messaging;
+let performance;
 
 try {
   app = initializeApp(firebaseConfig);
@@ -38,8 +38,15 @@ try {
   functions = getFunctions(app);
   
   if (typeof window !== 'undefined') {
-    analytics = getAnalytics(app);
-    messaging = getMessaging(app);
+    // Initialize Analytics
+    isSupported().then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    });
+
+    // Initialize Performance Monitoring
+    performance = getPerformance(app);
   }
 
 } catch (error) {
@@ -51,10 +58,14 @@ try {
     storage = getStorage(app);
     functions = getFunctions(app);
     if (typeof window !== 'undefined') {
-      analytics = getAnalytics(app);
-      messaging = getMessaging(app);
+      isSupported().then((supported) => {
+        if (supported) {
+          analytics = getAnalytics(app);
+        }
+      });
+      performance = getPerformance(app);
     }
   }
 }
 
-export { db as firestoreDb, auth, app, functions, storage, analytics, messaging, GoogleAuthProvider };
+export { db as firestoreDb, auth, app, functions, storage, analytics, performance, GoogleAuthProvider };

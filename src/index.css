@@ -50,6 +50,40 @@
     background-color: var(--color-bg-base);
     color: var(--color-text-primary);
   }
+
+  /* PWA Splash Screen Prevention */
+  .splash-screen-hide {
+    display: none !important;
+  }
+
+  /* Prevent browser splash screen */
+  #root:empty::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-bg-base);
+    z-index: 9999;
+  }
+
+  #root:not(:empty)::before {
+    display: none;
+  }
+
+  /* PWA Icon improvements for mobile launchers */
+  @media (display-mode: standalone) {
+    body {
+      /* Ensure proper background when in standalone mode */
+      background-color: var(--color-bg-base);
+    }
+
+    /* Hide browser UI when in standalone mode */
+    .browser-ui-hide {
+      display: none !important;
+    }
+  }
 }
 
 @layer utilities {

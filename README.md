@@ -17,7 +17,7 @@ Try Curiosity PWA live: **[https://curiosity-pwa.web.app](https://curiosity-pwa.
 - **📅 Calendar View** - Visualize your timeline with an interactive calendar
 - **🎯 Goals & Tasks** - Track personal goals and daily tasks with progress indicators
 - **🔒 Secure Vault** - Store sensitive information with PIN and biometric protection
-- **🔔 Smart Reminders** - Never miss important dates and tasks
+- **🔔 Smart Reminders** - Get notified for important dates (requires app to be open)
 - **� Data Export** - Export your data to PDF, CSV, JSON, or Excel
 - **🎁 On This Day** - Revisit memories from past years
 - **🔍 Search & Filter** - Quickly find entries with powerful search
@@ -154,7 +154,7 @@ curiosity-pwa-vite/
 ├── src/
 │   ├── components/         # React components
 │   │   ├── Dashboard.jsx   # Animated dashboard with Framer Motion
-│   │   ├── Editor.jsx      # Rich text editor
+│   │   ├── ModernEditor.jsx # Rich text editor
 │   │   ├── SettingsPage.jsx # Settings and customization
 │   │   ├── CalendarView.jsx # Calendar visualization
 │   │   ├── PinLockScreen.jsx # PIN authentication
@@ -168,8 +168,7 @@ curiosity-pwa-vite/
 │   └── utils.js           # Utility functions
 ├── public/
 │   ├── icons/             # PWA icons
-│   ├── manifest.json      # PWA manifest
-│   └── custom-sw.js       # Custom service worker
+│   └── manifest.json      # PWA manifest
 ├── functions/             # Firebase Cloud Functions
 ├── docs/                  # Documentation
 ├── firebase.json          # Firebase configuration

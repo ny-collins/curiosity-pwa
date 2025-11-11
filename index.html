@@ -14,6 +14,15 @@
     <meta name="theme-color" content="#14b8a6" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
 
+    <!-- Prevent browser splash screen on mobile -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Curiosity">
+
+    <!-- Prevent browser splash screen -->
+    <link rel="apple-touch-startup-image" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
@@ -41,7 +50,7 @@
       })();
     </script>
     
-    <title>Curiosity - Your Personal AI Journal</title>
+    <title>Curiosity - Your Personal Journal</title>
   </head>
   <body class="bg-white dark:bg-slate-900">
     <div id="root"></div>

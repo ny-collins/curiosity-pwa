@@ -45,10 +45,9 @@ export default defineConfig({
         globIgnores: [
           '**/node_modules/**', 
           'sw.js', 
-          'workbox-*.js', 
-          'firebase-messaging-sw.js' // Add this line
+          'workbox-*.js'
         ],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB (increased from 2 MB default)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
@@ -65,11 +64,10 @@ export default defineConfig({
              handler: 'CacheFirst',
              options: { cacheName: 'image-cache', expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 7 } }
           }
-        ],
-         importScripts: ['./custom-sw.js'] 
+        ]
       },
       devOptions: {
-        enabled: true, 
+        enabled: false, // Disable PWA in development to avoid glob pattern warnings
         type: 'module', 
       }
     })

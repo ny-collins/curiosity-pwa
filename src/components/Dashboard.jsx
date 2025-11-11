@@ -2,20 +2,21 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useAppState } from '../contexts/StateProvider';
 import { format } from 'date-fns';
-import { Book, BookOpen, CheckSquare, Edit3, Clock, Gift, Target, ArrowRight, PenTool } from 'lucide-react';
+import { Book, BookOpen, CheckSquare, Edit3, Clock, Gift, Target, ArrowRight, PenTool, Trash2 } from 'lucide-react';
 import { getEntryType } from '../constants.js';
 import { stripMarkdown, formatTimestamp } from '../utils.js';
 import ThemedAvatar from './ThemedAvatar';
 import MotivationalQuote from './MotivationalQuote';
 import Logo from './Logo';
+import FeatureHighlights, { useFeatureHighlights } from './FeatureHighlights';
 
-const DashboardEntryItem = ({ entry, onSelect }) => {
+const DashboardEntryItem = ({ entry, onSelect, onDelete }) => {
     const entryType = getEntryType(entry.type);
     const snippet = stripMarkdown(entry.content || '').substring(0, 80);
 
     return (
         <motion.article
-            className="p-4 rounded-xl shadow-sm border transition-all cursor-pointer"
+            className="p-4 rounded-xl shadow-sm border transition-all cursor-pointer group relative"
             style={{
                 backgroundColor: 'var(--color-bg-content)',
                 borderColor: 'var(--color-border)'
@@ -24,6 +25,22 @@ const DashboardEntryItem = ({ entry, onSelect }) => {
             whileHover={{ y: -2, shadow: "lg" }}
             whileTap={{ scale: 0.98 }}
         >
+            {/* Delete button - appears on hover */}
+            {onDelete && (
+                <motion.button
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(entry.id);
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    title="Delete entry"
+                >
+                    <Trash2 size={14} />
+                </motion.button>
+            )}
+
             <div className="flex justify-between items-start mb-2">
                 <h3 className="text-base font-semibold line-clamp-1 flex-1 mr-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text-primary)' }}>
                     {entry.title || "Untitled Entry"}
@@ -97,6 +114,12 @@ export default function Dashboard() {
         handleViewChange,
         handleToggleSidebar
     } = useAppState();
+
+    const {
+        visibleHighlights,
+        dismissHighlight,
+        hasHighlights
+    } = useFeatureHighlights();
     
     const username = localSettings?.username || 'User';
     const profilePicUrl = localSettings?.profilePicUrl || '';
@@ -107,7 +130,7 @@ export default function Dashboard() {
     }, [allEntries]);
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto custom-scrollbar bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+        <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden custom-scrollbar bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
             {/* Mobile Header with Hamburger */}
             <header className="md:hidden px-4 py-4 border-b border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm sticky top-0 z-10">
                 <div className="flex items-center justify-between">
@@ -433,6 +456,39 @@ export default function Dashboard() {
                     )}
                 </aside>
             </div>
+
+            {/* Feature Highlights */}
+            {hasHighlights && (
+                <FeatureHighlights
+                    visibleHighlights={visibleHighlights}
+                    onHighlightDismiss={dismissHighlight}
+                    onAction={(actionType) => {
+                        // Handle feature highlight actions
+                        switch (actionType) {
+                            case 'create-entry':
+                                handleCreateEntry('journal');
+                                break;
+                            case 'search':
+                                handleViewChange('list');
+                                break;
+                            case 'tags':
+                                handleViewChange('list');
+                                break;
+                            case 'reminder':
+                                handleViewChange('reminders');
+                                break;
+                            case 'vault':
+                                handleViewChange('vault');
+                                break;
+                            case 'settings':
+                                handleViewChange('settings');
+                                break;
+                            default:
+                                break;
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }

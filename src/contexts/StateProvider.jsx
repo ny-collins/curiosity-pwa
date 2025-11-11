@@ -4,7 +4,8 @@ import { db, saveSettings as dbSaveSettings, getSettings as dbGetSettings } from
 import { useLiveQuery } from 'dexie-react-hooks';
 import { nanoid } from 'nanoid';
 import { onAuthStateChanged, signInAnonymously, linkWithPopup, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth, app, functions, storage, appId, firestoreDb, messaging } from '../firebaseConfig.js';
+import { auth, app, functions, storage, appId, firestoreDb } from '../firebaseConfig.js';
+import { httpsCallable } from "firebase/functions";
 import {
     doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
     collection, query, serverTimestamp, getDocs, where, writeBatch,
@@ -90,10 +91,8 @@ export function StateProvider({ children }) {
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [pendingView, setPendingView] = useState(null);
 
-    // FEATURE
     const [installPromptEvent, setInstallPromptEvent] = useState(null);
     const [isAppInstalled, setIsAppInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches);
-    const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
     useEffect(() => {
         try {
@@ -366,7 +365,21 @@ export function StateProvider({ children }) {
 
         } catch (error) {
             console.error("Error during biometric registration:", error);
-            toast.error("Failed to register biometric.");
+            
+            // Provide more specific error messages
+            let errorMessage = "Failed to register biometric.";
+            if (error.code === 'unauthenticated') {
+                errorMessage = "Authentication required. Please sign in again.";
+            } else if (error.message && error.message.includes('origin')) {
+                errorMessage = "Origin mismatch. Please use the production site (HTTPS).";
+            } else if (error.message && error.message.includes('challenge')) {
+                errorMessage = "Session expired. Please try again.";
+            } else if (error.code === 'internal') {
+                errorMessage = "Server error. Please check your connection and try again.";
+            }
+            
+            toast.error(errorMessage);
+            console.error("Detailed error:", JSON.stringify(error, null, 2));
         }
     }, [appPin, unlockedKey, localSettings, userId, toast, functions]);
 
@@ -388,7 +401,20 @@ export function StateProvider({ children }) {
         try {
             // Step 1: Get authentication options from server
             const generateAuthOptions = httpsCallable(functions, 'generateAuthenticationOptions');
-            const { data: options } = await generateAuthOptions();
+            let options;
+            
+            try {
+                const response = await generateAuthOptions();
+                options = response.data;
+            } catch (error) {
+                // Handle case where credential doesn't exist on server anymore
+                if (error.code === 'failed-precondition' && error.message.includes('No registered credentials')) {
+                    console.warn('Biometric credential not found on server, clearing local data');
+                    await handleDisableBiometric();
+                    return false;
+                }
+                throw error;
+            }
 
             // Step 2: Browser signs challenge
             let assertion;
@@ -590,13 +616,17 @@ export function StateProvider({ children }) {
         if (!userId || !text || !date) return;
         try {
             const dateString = date.toISOString();
+            const timestamp = date.getTime(); // Add timestamp in milliseconds
             const newReminder = {
                 id: nanoid(),
                 text: text,
                 date: dateString,
+                timestamp: timestamp, // For Cloud Function queries
+                notified: false, // Track notification status
                 createdAt: new Date(),
                 isSynced: false
             };
+            
             await db.reminders.add(newReminder);
             toast.success("Reminder set!");
         } catch (error) { 
@@ -744,11 +774,8 @@ export function StateProvider({ children }) {
     const handleSaveSettings = useCallback(async ({ settings: newSettings, pin: newPin }) => {
         const latestSettings = await dbGetSettings(); // Fetch the latest settings directly from the DB
         const fullSettings = { ...latestSettings, ...newSettings };
-        console.log("Saving merged settings:", fullSettings);
         await dbSaveSettings(fullSettings);
-        console.log("Settings saved successfully.");
 
-        // Handle PIN saving separately
         if (newPin !== undefined) {
             if (newPin === null || newPin === '') {
                 // Remove PIN
@@ -870,39 +897,186 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
                 downloadFile(zipContent, `${filename}.zip`, 'application/zip');
             }
             else if (format === 'pdf') {
+                const { jsPDF } = await import('jspdf');
                 const doc = new jsPDF();
+
+                // Set up document properties
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const margin = 20;
+                const contentWidth = pageWidth - (margin * 2);
+                let yPosition = margin;
+
+                // Helper function to add text with proper line breaks
+                const addText = (text, fontSize = 12, color = [0, 0, 0], maxWidth = contentWidth) => {
+                    doc.setFontSize(fontSize);
+                    doc.setTextColor(color[0], color[1], color[2]);
+
+                    const lines = doc.splitTextToSize(text, maxWidth);
+                    const lineHeight = fontSize * 0.4; // Proper line spacing
+
+                    // Check if we need a new page
+                    const neededHeight = lines.length * lineHeight;
+                    if (yPosition + neededHeight > pageHeight - margin) {
+                        doc.addPage();
+                        yPosition = margin;
+                    }
+
+                    doc.text(lines, margin, yPosition);
+                    yPosition += neededHeight + 5; // Add some spacing after text block
+                    return yPosition;
+                };
+
+                // Helper function to add a separator line
+                const addSeparator = () => {
+                    doc.setDrawColor(200, 200, 200);
+                    doc.setLineWidth(0.5);
+                    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+                    yPosition += 10;
+                };
+
+                // Title page
+                doc.setFontSize(24);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Curiosity Journal Export', margin, yPosition);
+                yPosition += 20;
+
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Exported on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, margin, yPosition);
+                yPosition += 10;
+
+                doc.text(`Total Entries: ${dataToExport.entries?.length || 0}`, margin, yPosition);
+                yPosition += 8;
+                doc.text(`Total Reminders: ${dataToExport.reminders?.length || 0}`, margin, yPosition);
+                yPosition += 8;
+                doc.text(`Total Goals: ${dataToExport.goals?.length || 0}`, margin, yPosition);
+                yPosition += 15;
+
+                // Sort entries by date
                 const sortedEntries = [...(dataToExport.entries || [])].sort((a, b) => {
                     const timeA = a.createdAt?.getTime() || 0;
                     const timeB = b.createdAt?.getTime() || 0;
                     return timeA - timeB;
                 });
-                doc.setFontSize(22);
-                doc.text('Curiosity Export', 10, 20);
-                doc.setFontSize(12);
-                doc.text(`Exported on: ${exportDate}`, 10, 30);
-                doc.text(`Total Entries: ${sortedEntries.length}`, 10, 36);
-                doc.text(`Total Reminders: ${(dataToExport.reminders || []).length}`, 10, 42);
-                doc.text(`Total Goals: ${(dataToExport.goals || []).length}`, 10, 48);
 
+                // Add each entry
                 sortedEntries.forEach((entry, index) => {
-                    if (index > 0) doc.addPage();
-                    doc.setFontSize(18);
-                    doc.text(entry.title || 'Untitled Entry', 10, 20);
-                    doc.setFontSize(10);
-                    doc.setTextColor(100);
-                    const entryDate = entry.createdAt ? new Date(entry.createdAt).toLocaleString() : 'unknown date';
-                    doc.text(`Created: ${entryDate}`, 10, 28);
-                    doc.text(`Type: ${entry.type || 'note'}`, 10, 34);
-                    if (entry.tags && entry.tags.length > 0) {
-                        doc.text(`Tags: ${entry.tags.join(', ')}`, 10, 40);
+                    // Check if we need a new page for this entry
+                    const estimatedHeight = 60; // Rough estimate for title + metadata
+                    if (yPosition + estimatedHeight > pageHeight - margin) {
+                        doc.addPage();
+                        yPosition = margin;
                     }
-                    doc.setDrawColor(200);
-                    doc.line(10, 45, 200, 45);
-                    doc.setFontSize(12);
-                    doc.setTextColor(0);
-                    const splitContent = doc.splitTextToSize(entry.content || '', 190);
-                    doc.text(splitContent, 10, 55);
+
+                    // Entry title
+                    yPosition = addText(entry.title || 'Untitled Entry', 16, [0, 0, 0]);
+
+                    // Metadata
+                    doc.setFontSize(10);
+                    doc.setTextColor(100, 100, 100);
+
+                    const entryDate = entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() + ' ' + new Date(entry.createdAt).toLocaleTimeString() : 'Unknown date';
+                    doc.text(`Created: ${entryDate}`, margin, yPosition);
+                    yPosition += 6;
+
+                    doc.text(`Type: ${entry.type || 'note'}`, margin, yPosition);
+                    yPosition += 6;
+
+                    if (entry.tags && entry.tags.length > 0) {
+                        doc.text(`Tags: ${entry.tags.join(', ')}`, margin, yPosition);
+                        yPosition += 6;
+                    }
+
+                    if (entry.updatedAt && entry.updatedAt !== entry.createdAt) {
+                        const updateDate = new Date(entry.updatedAt).toLocaleDateString();
+                        doc.text(`Last updated: ${updateDate}`, margin, yPosition);
+                        yPosition += 8;
+                    } else {
+                        yPosition += 2;
+                    }
+
+                    // Separator
+                    addSeparator();
+
+                    // Content
+                    if (entry.content) {
+                        // Process markdown-like content for better PDF formatting
+                        let content = entry.content;
+
+                        // Handle basic markdown formatting (remove markdown syntax for PDF)
+                        content = content.replace(/\*\*(.*?)\*\*/g, '$1'); // Remove bold
+                        content = content.replace(/\*(.*?)\*/g, '$1'); // Remove italic
+                        content = content.replace(/`(.*?)`/g, '$1'); // Remove inline code
+                        content = content.replace(/^\s*[-*+]\s+/gm, '• '); // Convert list items
+                        content = content.replace(/^\s*\d+\.\s+/gm, '• '); // Convert numbered lists
+                        content = content.replace(/^#+\s+/gm, ''); // Remove headers
+                        content = content.replace(/^\s*=+\s*$/gm, ''); // Remove separators
+                        content = content.replace(/^\s*-+\s*$/gm, ''); // Remove separators
+
+                        yPosition = addText(content, 11, [0, 0, 0]);
+                    }
+
+                    // Add space between entries
+                    yPosition += 15;
+
+                    // Add page break between entries if there's not enough space for the next entry
+                    if (index < sortedEntries.length - 1 && yPosition > pageHeight - 80) {
+                        doc.addPage();
+                        yPosition = margin;
+                    }
                 });
+
+                // Add summary page if there are reminders or goals
+                if ((dataToExport.reminders && dataToExport.reminders.length > 0) ||
+                    (dataToExport.goals && dataToExport.goals.length > 0)) {
+
+                    doc.addPage();
+                    yPosition = margin;
+
+                    doc.setFontSize(18);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text('Additional Data', margin, yPosition);
+                    yPosition += 15;
+
+                    // Reminders
+                    if (dataToExport.reminders && dataToExport.reminders.length > 0) {
+                        doc.setFontSize(14);
+                        doc.text('Reminders:', margin, yPosition);
+                        yPosition += 10;
+
+                        doc.setFontSize(10);
+                        doc.setTextColor(100, 100, 100);
+
+                        dataToExport.reminders.forEach(reminder => {
+                            const reminderText = `${new Date(reminder.date).toLocaleDateString()}: ${reminder.title}`;
+                            yPosition = addText(reminderText, 10, [100, 100, 100], contentWidth - 20);
+                        });
+
+                        yPosition += 10;
+                    }
+
+                    // Goals
+                    if (dataToExport.goals && dataToExport.goals.length > 0) {
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 0, 0);
+                        doc.text('Goals:', margin, yPosition);
+                        yPosition += 10;
+
+                        doc.setFontSize(10);
+                        doc.setTextColor(100, 100, 100);
+
+                        dataToExport.goals.forEach(goal => {
+                            const goalText = `${goal.title} (${goal.status})`;
+                            yPosition = addText(goalText, 10, [100, 100, 100], contentWidth - 20);
+
+                            if (goal.description) {
+                                yPosition = addText(goal.description, 9, [120, 120, 120], contentWidth - 30);
+                            }
+                        });
+                    }
+                }
+
                 doc.save(`${filename}.pdf`);
             }
         } catch (error) {
@@ -956,79 +1130,65 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
         }
     }, [installPromptEvent, toast]);
 
-    const getSubscriptionsCollection = useCallback((uid) => collection(firestoreDb, `artifacts/${appId}/users/${uid}/subscriptions`), []);
-
-    const saveTokenToFirestore = useCallback(async (token) => {
-        if (!userId || !firestoreDb || !token) { console.error("Cannot save token, invalid inputs"); return; }
-        try {
-            const subscriptionsRef = getSubscriptionsCollection(userId);
-            const q = query(subscriptionsRef, where("fcmToken", "==", token));
-            const querySnapshot = await getDocs(q);
-            if (querySnapshot.empty) {
-                await addDoc(subscriptionsRef, { fcmToken: token, createdAt: serverTimestamp() });
-                console.log("FCM token saved to Firestore.");
-            }
-        } catch (error) { 
-            console.error("Error saving FCM token to Firestore:", error); 
-            toast.error("Could not save notification token.");
-        }
-    }, [userId, getSubscriptionsCollection, toast]);
-
     const handleRequestNotificationPermission = useCallback(async () => {
-         if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-            toast.error('Push notifications are not supported by this browser.');
+         if (!('Notification' in window)) {
+            toast.error('Notifications are not supported by this browser.');
             return null;
         }
-         if (!messaging) { console.error("Firebase app not initialized."); return null; }
+        
         try {
             const permission = await Notification.requestPermission();
+            console.log('Notification permission:', permission);
+            
             if (permission === 'granted') {
-                const fcmToken = await getToken(messaging, { vapidKey: VAPID_PUBLIC_KEY });
-                if (fcmToken) {
-                    await saveTokenToFirestore(fcmToken);
-                    toast.success("Notifications enabled!");
-                }
+                toast.success("Notifications enabled! You'll receive reminders when the app is open.");
             } else {
-                 toast.error('Notification permission was denied.');
+                toast.error('Notification permission was denied.');
             }
             return permission;
         } catch (error) {
-             console.error('Error getting FCM token:', error);
-             toast.error('Error enabling notifications.');
+            console.error('Error requesting notification permission:', error);
+            toast.error('Error enabling notifications.');
             return Notification?.permission || 'default';
         }
-    }, [messaging, VAPID_PUBLIC_KEY, saveTokenToFirestore, toast]);
-
-    const handleDisableNotifications = useCallback(async () => {
-         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
-         if (!userId || !firestoreDb) return Notification?.permission || 'default';
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
-            let unsubscribed = true;
-            if (subscription) {
-                unsubscribed = await subscription.unsubscribe();
-            }
-            if (unsubscribed) {
-                const subscriptionsRef = getSubscriptionsCollection(userId);
-                const q = query(subscriptionsRef);
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    const batch = writeBatch(firestoreDb);
-                    querySnapshot.forEach(doc => batch.delete(doc.ref));
-                    await batch.commit();
+    }, [toast]);
+    
+    useEffect(() => {
+        if (!remindersData || Notification.permission !== 'granted') return;
+        
+        const checkReminders = async () => {
+            const now = new Date();
+            
+            for (const reminder of remindersData) {
+                if (reminder.notified || !reminder.date) continue;
+                
+                const reminderDate = new Date(reminder.date);
+                if (reminderDate <= now) {
+                    // Show browser notification
+                    new Notification('Curiosity Reminder', {
+                        body: reminder.text || 'You have a reminder!',
+                        icon: '/icons/icon-192x192.png',
+                        badge: '/icons/icon-96x96.png',
+                        tag: `reminder-${reminder.id}`
+                    });
+                    
+                    try {
+                        await db.reminders.update(reminder.id, { notified: true, isSynced: false, updatedAt: new Date() });
+                    } catch (error) {
+                        console.error('Error updating reminder:', error);
+                    }
                 }
-                 toast.success("Notifications disabled.");
-                 return 'default';
-            } else {
-                 toast.error("Could not disable notifications.");
             }
-        } catch (error) {
-             console.error("Error disabling notifications:", error);
-             toast.error("Error disabling notifications.");
-        }
-         return Notification?.permission || 'default';
-    }, [userId, getSubscriptionsCollection, toast]);
+        };
+        
+        // Check immediately
+        checkReminders();
+        
+        // Then check every minute
+        const interval = setInterval(checkReminders, 60000);
+        
+        return () => clearInterval(interval);
+    }, [remindersData]);
 
     const value = {
         // THEME
@@ -1053,8 +1213,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
         showOnboarding, isAppFocusMode, setAppFocusMode, showUnsavedModal, pendingView, handleToggleSidebar,
         handleFilterYearChange, handleClearFilters, handleModalCancel, handleViewChange, handleCloseEditor,
         handleEditorSaveComplete, handleModalSave, handleModalDiscard,
-        // FEATURE
-        installPromptEvent, isAppInstalled, handleInstallApp, handleRequestNotificationPermission, handleDisableNotifications,
+        installPromptEvent, isAppInstalled, handleInstallApp, handleRequestNotificationPermission,
         toast
     };
 

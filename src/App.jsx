@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppState } from './contexts/StateProvider';
@@ -19,6 +18,8 @@ import Logo from './components/Logo';
 import UnsavedChangesModal from './components/UnsavedChangesModal';
 import OnboardingModal from './components/OnboardingModal';
 import InitialSetupModal from './components/InitialSetupModal';
+import InteractiveTutorial from './components/InteractiveTutorial';
+import { db } from './db.js';
 
 const viewVariants = {
     initial: { opacity: 0, x: 10 },
@@ -38,7 +39,7 @@ const MobileHeader = ({ currentView, onMenuClick }) => {
     }
 
     return (
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between md:hidden flex-shrink-0 bg-white dark:bg-slate-900 z-10">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center md:hidden flex-shrink-0 bg-white dark:bg-slate-900 z-10 fixed top-0 left-0 right-0">
             <button
                 onClick={onMenuClick}
                 className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -47,12 +48,9 @@ const MobileHeader = ({ currentView, onMenuClick }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
             </button>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 flex-1 justify-center mr-10">
                 <Logo className="w-7 h-7" animate={false} />
                 <span style={{ fontFamily: 'var(--font-logo)' }} className="text-lg text-slate-900 dark:text-white italic">Curiosity</span>
-            </div>
-            <div className="text-xs text-slate-500 dark:text-gray-400">
-                {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </div>
         </div>
     );
@@ -68,6 +66,13 @@ export default function App() {
     } = useAppState();
 
     const [minSplashTimeElapsed, setMinSplashTimeElapsed] = useState(false);
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -76,6 +81,22 @@ export default function App() {
         
         return () => clearTimeout(timer);
     }, []);
+
+    // Check if user should see tutorial (first time after setup)
+    const [showTutorial, setShowTutorial] = useState(() => {
+        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+        return !hasSeenTutorial && localSettings?.hasCompletedSetup;
+    });
+
+    const handleTutorialComplete = () => {
+        setShowTutorial(false);
+        localStorage.setItem('hasSeenTutorial', 'true');
+    };
+
+    const handleTutorialSkip = () => {
+        setShowTutorial(false);
+        localStorage.setItem('hasSeenTutorial', 'true');
+    };
 
     if (checkingPin || !localSettings || !minSplashTimeElapsed) {
         return <SplashScreen />;
@@ -96,6 +117,16 @@ export default function App() {
 
     if (showOnboarding) {
         return <OnboardingModal onComplete={handleOnboardingComplete} />;
+    }
+    
+    if (showTutorial) {
+        return <InteractiveTutorial
+            onComplete={handleTutorialComplete}
+            onSkip={handleTutorialSkip}
+            db={db}
+            userId={userId}
+            toast={toast}
+        />;
     }
     
     let effectiveView = currentView;
@@ -256,7 +287,7 @@ export default function App() {
                 <main 
                     className={`flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out ${effectiveView === 'settings' || effectiveView === 'editor' ? 'flex flex-col' : ''} ${effectiveView === 'dashboard' ? 'pt-0 md:pt-0' : effectiveView !== 'editor' && effectiveView !== 'settings' ? 'pt-12 md:pt-0' : ''} md:ml-0`}
                     style={{
-                        paddingLeft: window.innerWidth >= 768 ? (isAppFocusMode ? '0' : (isSidebarExpanded ? '256px' : '64px')) : '0'
+                        paddingLeft: windowWidth >= 768 ? (isAppFocusMode ? '0' : (isSidebarExpanded ? '256px' : '64px')) : '0'
                     }}
                 >
                     <AnimatePresence mode="wait">

@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { hash, compare } from 'bcrypt-ts';
 import CryptoJS from 'crypto-js';
+import { getPerformance, trace } from 'firebase/performance';
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -80,4 +81,51 @@ export function decryptData(ciphertext, key) {
         console.error("Decryption failed:", error);
         return null;
     }
+}
+
+// Performance Monitoring Utilities
+let perf = null;
+
+export function initPerformanceMonitoring() {
+    if (typeof window !== 'undefined') {
+        try {
+            perf = getPerformance();
+        } catch (error) {
+            console.warn('Performance monitoring not available:', error);
+        }
+    }
+}
+
+export function startTrace(name) {
+    if (perf && typeof window !== 'undefined') {
+        try {
+            return trace(perf, name);
+        } catch (error) {
+            console.warn('Failed to start performance trace:', error);
+        }
+    }
+    return null;
+}
+
+export function stopTrace(trace) {
+    if (trace) {
+        try {
+            trace.stop();
+        } catch (error) {
+            console.warn('Failed to stop performance trace:', error);
+        }
+    }
+}
+
+// Performance wrapper for async functions
+export function withPerformanceTrace(name, fn) {
+    return async (...args) => {
+        const trace = startTrace(name);
+        try {
+            const result = await fn(...args);
+            return result;
+        } finally {
+            stopTrace(trace);
+        }
+    };
 }

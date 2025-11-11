@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Calendar, List, Tag, SlidersHorizontal, BookOpen, CheckSquare, Brain, Trash2 } from 'lucide-react';
+import { Plus, Search, X, Calendar, List, Tag, SlidersHorizontal, BookOpen, CheckSquare, Brain, Trash2, Filter, Clock, ChevronDown } from 'lucide-react';
 import { useAppState } from '../contexts/StateProvider';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ENTRY_TYPES, getEntryType } from '../constants';
 
 const MONTHS = [

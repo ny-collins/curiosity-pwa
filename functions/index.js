@@ -7,12 +7,28 @@ const {
   verifyAuthenticationResponse,
 } = require("@simplewebauthn/server");
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 admin.initializeApp();
 const db = admin.firestore();
 
-const rpID = functions.config().webauthn.relying_party_id || "localhost";
-const expectedOrigin = functions.config().webauthn.expected_origin || `http://${rpID}:5173`;
+// Environment-aware configuration for WebAuthn
+// Supports both local development and production
+const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+const isLocalDev = !process.env.WEBAUTHN_RELYING_PARTY_ID; // No env var = local dev
+
+const rpID = isEmulator || isLocalDev
+  ? "localhost" 
+  : (process.env.WEBAUTHN_RELYING_PARTY_ID || "curiosity-pwa.web.app");
+
+const expectedOrigin = isEmulator || isLocalDev
+  ? "http://localhost:5173"
+  : (process.env.WEBAUTHN_EXPECTED_ORIGIN || "https://curiosity-pwa.web.app");
+
 const rpName = "Curiosity PWA";
+
+console.log(`WebAuthn Configuration: rpID=${rpID}, expectedOrigin=${expectedOrigin}, isEmulator=${isEmulator}, isLocalDev=${isLocalDev}`);
 
 const getCredentialsCollection = (userId) => {
   return db.collection("users").doc(userId).collection("webauthn_credentials");
@@ -47,10 +63,13 @@ exports.generateRegistrationOptions = functions.https.onCall(
       }));
 
       try {
+        // Convert userID string to Uint8Array as required by SimpleWebAuthn v10+
+        const userIDBuffer = new TextEncoder().encode(uid);
+        
         const options = await generateRegistrationOptions({
           rpName,
           rpID,
-          userID: uid,
+          userID: userIDBuffer,
           userName: username,
           attestationType: "none",
           excludeCredentials: existingAuthenticators.map((auth) => ({
@@ -259,84 +278,6 @@ exports.verifyAuthentication = functions.https.onCall(
       }
     },
 );
-
-exports.sendReminderNotifications = functions.pubsub
-    .schedule("every 5 minutes")
-    .timeZone("UTC")
-    .onRun(async (context) => {
-      console.log("Checking for due reminders...");
-
-      const now = Date.now();
-      const fiveMinutesFromNow = now + 5 * 60 * 1000;
-
-      try {
-        // Query all users with FCM tokens
-        const usersSnapshot = await db.collection("users").get();
-
-        for (const userDoc of usersSnapshot.docs) {
-          const userId = userDoc.id;
-          const userData = userDoc.data();
-          const fcmToken = userData.fcmToken;
-
-          if (!fcmToken) {
-            console.log(`User ${userId} has no FCM token, skipping`);
-            continue;
-          }
-
-          // Query reminders for this user that are due in the next 5 minutes
-          const remindersRef = db.collection(`artifacts/curiosity-pwa/users/${userId}/reminders`);
-          const dueRemindersSnapshot = await remindersRef
-              .where("timestamp", ">=", now)
-              .where("timestamp", "<=", fiveMinutesFromNow)
-              .where("notified", "==", false)
-              .get();
-
-          if (dueRemindersSnapshot.empty) {
-            console.log(`No due reminders for user ${userId}`);
-            continue;
-          }
-
-          // Send notifications for each due reminder
-          for (const reminderDoc of dueRemindersSnapshot.docs) {
-            const reminder = reminderDoc.data();
-
-            const message = {
-              notification: {
-                title: "Curiosity Reminder",
-                body: reminder.text || "You have a reminder",
-              },
-              data: {
-                reminderId: reminderDoc.id,
-                tag: `reminder-${reminderDoc.id}`,
-              },
-              token: fcmToken,
-            };
-
-            try {
-              await admin.messaging().send(message);
-              console.log(`Notification sent for reminder ${reminderDoc.id} to user ${userId}`);
-
-              // Mark as notified
-              await reminderDoc.ref.update({notified: true});
-            } catch (error) {
-              console.error(`Failed to send notification for reminder ${reminderDoc.id}:`, error);
-              // If token is invalid, remove it
-              if (error.code === "messaging/invalid-registration-token" ||
-                  error.code === "messaging/registration-token-not-registered") {
-                console.log(`Removing invalid FCM token for user ${userId}`);
-                await userDoc.ref.update({fcmToken: admin.firestore.FieldValue.delete()});
-              }
-            }
-          }
-        }
-
-        console.log("Reminder check completed");
-        return null;
-      } catch (error) {
-        console.error("Error checking reminders:", error);
-        return null;
-      }
-    });
 
 exports.deleteAllUserData = functions.https.onCall(async (data, context) => {
   if (!context.auth) {

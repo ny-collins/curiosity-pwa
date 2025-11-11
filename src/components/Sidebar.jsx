@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Book, Calendar, Target, Shield, Bell, Settings, Lock, LogOut, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useAppState } from '../contexts/StateProvider';
@@ -95,6 +95,14 @@ export default function Sidebar() {
         reminders
     } = useAppState();
 
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const username = localSettings?.username || 'User';
     const profilePicUrl = localSettings?.profilePicUrl || '';
     
@@ -107,14 +115,13 @@ export default function Sidebar() {
             animate={{ 
                 x: 0, 
                 opacity: 1,
-                width: 256
+                width: windowWidth >= 768 ? (isSidebarExpanded ? 256 : 64) : 256
             }}
             transition={{ duration: 0.3, type: 'spring', stiffness: 300, damping: 30 }}
-            className="flex flex-col h-full shadow-2xl relative md:w-auto"
+            className="flex flex-col h-full shadow-2xl relative"
             style={{
                 backgroundColor: 'var(--color-bg-content)',
-                borderRight: '1px solid var(--color-border)',
-                width: window.innerWidth >= 768 ? (isSidebarExpanded ? 256 : 64) : 256
+                borderRight: '1px solid var(--color-border)'
             }}
         >
             {/* App Branding */}
@@ -241,7 +248,7 @@ export default function Sidebar() {
                 {/* User Profile Card - Single access point for Settings */}
                 <motion.div 
                     onClick={() => handleViewChange('settings')}
-                    className={`flex items-center ${isSidebarExpanded ? 'space-x-3' : 'justify-center'} p-3 rounded-xl cursor-pointer transition-all duration-200 group relative overflow-hidden`}
+                    className={`flex items-center ${isSidebarExpanded ? 'space-x-3 px-3 py-3' : 'justify-center p-2'} rounded-xl cursor-pointer transition-all duration-200 group relative overflow-hidden`}
                     style={{ 
                         backgroundColor: currentView === 'settings' ? 'var(--color-primary-light)' : 'var(--color-bg-secondary)',
                         border: currentView === 'settings' ? '1px solid var(--color-primary-hex)' : '1px solid transparent'
@@ -261,7 +268,7 @@ export default function Sidebar() {
                     <ThemedAvatar 
                         profilePicUrl={profilePicUrl || currentUser?.photoURL}
                         username={username}
-                        className="w-10 h-10 ring-2 ring-white/20 relative z-10"
+                        className={`${isSidebarExpanded ? 'w-10 h-10' : 'w-6 h-6'} ring-2 ring-white/20 relative z-10`}
                     />
                     {isSidebarExpanded && (
                         <>

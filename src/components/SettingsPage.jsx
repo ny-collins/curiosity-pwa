@@ -68,39 +68,60 @@ function SettingsPage() {
                 <div className="w-8"></div>
             </div>
 
-            {/* Mobile Tab Navigation */}
-            <div className="md:hidden border-b flex-shrink-0 overflow-x-auto"
-                 style={{
-                     borderBottomColor: 'var(--color-border)',
-                     backgroundColor: 'var(--color-bg-content)'
-                 }}>
-                <div className="flex min-w-max">
-                    {settingsTabs.map(tab => (
-                        <MobileSettingsTabButton
-                            key={tab.id}
-                            icon={tab.icon}
-                            label={tab.name}
-                            isActive={activeTab === tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                        />
-                    ))}
-                </div>
-            </div>
-
             <div className="flex-1 flex overflow-hidden">
-                {/* Mobile Content Area */}
-                <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar p-4 bg-slate-50 dark:bg-slate-800">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            initial={{ opacity: 0, x: 10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            transition={{ duration: 0.15 }}
+                {/* Mobile Content Area - Redesigned for better mobile UX */}
+                <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {/* Profile Section */}
+                        <MobileSettingsSection
+                            title="Profile"
+                            icon={UserCircle}
+                            isActive={activeTab === 'profile'}
+                            onClick={() => setActiveTab('profile')}
                         >
-                            {renderActiveTab()}
-                        </motion.div>
-                    </AnimatePresence>
+                            <SettingsProfile />
+                        </MobileSettingsSection>
+
+                        {/* Appearance Section */}
+                        <MobileSettingsSection
+                            title="Appearance"
+                            icon={Palette}
+                            isActive={activeTab === 'appearance'}
+                            onClick={() => setActiveTab('appearance')}
+                        >
+                            <SettingsAppearance />
+                        </MobileSettingsSection>
+
+                        {/* Security Section */}
+                        <MobileSettingsSection
+                            title="Security"
+                            icon={Lock}
+                            isActive={activeTab === 'security'}
+                            onClick={() => setActiveTab('security')}
+                        >
+                            <SettingsSecurity />
+                        </MobileSettingsSection>
+
+                        {/* Application Section */}
+                        <MobileSettingsSection
+                            title="Application"
+                            icon={SlidersHorizontal}
+                            isActive={activeTab === 'application'}
+                            onClick={() => setActiveTab('application')}
+                        >
+                            <SettingsApplication />
+                        </MobileSettingsSection>
+
+                        {/* Data Section */}
+                        <MobileSettingsSection
+                            title="Data"
+                            icon={Database}
+                            isActive={activeTab === 'data'}
+                            onClick={() => setActiveTab('data')}
+                        >
+                            <SettingsData />
+                        </MobileSettingsSection>
+                    </div>
                 </div>
 
                 {/* Desktop Layout */}
@@ -559,7 +580,7 @@ const SettingsSecurity = () => {
 
 const SettingsApplication = () => {
     const { 
-        handleRequestNotificationPermission, handleDisableNotifications,
+        handleRequestNotificationPermission,
         handleInstallApp, installPromptEvent, isAppInstalled
     } = useAppState();
     const [notificationStatus, setNotificationStatus] = useState('default');
@@ -571,20 +592,18 @@ const SettingsApplication = () => {
     }, []);
     
     const handleNotificationClick = async () => {
-        let newStatus = null;
-        if (notificationStatus === 'granted') {
-            try { newStatus = await handleDisableNotifications(); } 
-            catch (err) { console.error("Error disabling notifications:", err); }
-        } else if (notificationStatus === 'default' || notificationStatus === 'prompt') {
-            try { newStatus = await handleRequestNotificationPermission(); } 
+        if (notificationStatus === 'default' || notificationStatus === 'prompt') {
+            try { 
+                const newStatus = await handleRequestNotificationPermission();
+                if (newStatus) setNotificationStatus(newStatus);
+            } 
             catch (err) { console.error("Error requesting notification permission:", err); }
         }
-        if (newStatus) setNotificationStatus(newStatus);
     };
     
     let notificationButton;
     if (notificationStatus === 'granted') {
-        notificationButton = ( <button onClick={handleNotificationClick} className={`text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white focus:ring-red-500`} title="Click to disable notifications"> <BellRing size={14}/> <span>Disable</span> </button> );
+        notificationButton = ( <button disabled className={`text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-green-600 text-white cursor-default`}> <BellRing size={14}/> <span>Enabled</span> </button> );
     } else if (notificationStatus === 'denied') {
          notificationButton = ( <button disabled className={`text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-red-700 text-gray-300 cursor-not-allowed`}> <BellRing size={14}/> <span>Blocked</span> </button> );
     } else { 
@@ -630,13 +649,11 @@ const SettingsData = () => {
     const handleConfirmDelete = async () => {
         setIsDeleting(true);
         setShowDeleteModal(false);
-        console.log("Deleting all user data...");
         
         let localDataCleared = false;
         let cloudDataCleared = false;
         
         try {
-            console.log("Clearing local IndexedDB data...");
             try {
                 await db.entries.clear();
                 await db.reminders.clear();
@@ -647,16 +664,13 @@ const SettingsData = () => {
                 const { PIN_STORAGE_KEY, WEBAUTHN_CREDENTIAL_ID_KEY } = await import('../constants');
                 localStorage.removeItem(PIN_STORAGE_KEY);
                 localStorage.removeItem(WEBAUTHN_CREDENTIAL_ID_KEY);
-                console.log("PIN and security credentials cleared");
                 
                 localDataCleared = true;
-                console.log("Local data cleared successfully");
             } catch (localError) {
                 console.error("Error clearing local data:", localError);
                 throw new Error("Failed to clear local data");
             }
             if (userId && firestoreDb) {
-                console.log("Attempting to delete cloud data for user:", userId);
                 
                 try {
                     const collectionsToDelete = ['entries', 'reminders', 'goals', 'tasks', 'vaultItems'];
@@ -752,6 +766,67 @@ const SettingsData = () => {
                 />
             )}
         </>
+    );
+};
+
+const MobileSettingsSection = ({ title, icon, isActive, onClick, children }) => {
+    const Icon = icon;
+
+    return (
+        <div className="bg-white dark:bg-slate-900">
+            <button
+                onClick={onClick}
+                className={`w-full flex items-center justify-between p-4 border-b transition-colors ${
+                    isActive
+                        ? 'bg-primary/5 border-primary/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                }`}
+                style={{
+                    borderBottomColor: isActive ? 'var(--color-primary-hex)' : ''
+                }}
+            >
+                <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${isActive ? 'bg-primary/10' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                        <Icon
+                            size={20}
+                            style={{ color: isActive ? 'var(--color-primary-hex)' : 'var(--color-text-muted)' }}
+                        />
+                    </div>
+                    <h3 className="text-lg font-semibold" style={{
+                        fontFamily: 'var(--font-serif)',
+                        color: isActive ? 'var(--color-primary-hex)' : 'var(--color-text-primary)'
+                    }}>
+                        {title}
+                    </h3>
+                </div>
+                <motion.div
+                    animate={{ rotate: isActive ? 90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <ArrowLeft
+                        size={20}
+                        className="rotate-180"
+                        style={{ color: isActive ? 'var(--color-primary-hex)' : 'var(--color-text-muted)' }}
+                    />
+                </motion.div>
+            </button>
+
+            <AnimatePresence>
+                {isActive && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                    >
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
+                            {children}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 

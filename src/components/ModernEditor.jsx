@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Save, ArrowLeft, Maximize, Minimize, Eye, EyeOff, Type, Calendar as CalendarIcon,
     Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code,
-    Link as LinkIcon, Image as ImageIcon, Check, Loader, AlertCircle, Sparkles
+    Link as LinkIcon, Image as ImageIcon, Check, Loader, AlertCircle, Sparkles, X, HelpCircle
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAppState } from '../contexts/StateProvider';
@@ -144,6 +144,11 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
     const [showPreview, setShowPreview] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [wordCount, setWordCount] = useState(0);
+    const [readingTime, setReadingTime] = useState(0);
+    const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+    const [saveError, setSaveError] = useState(null);
     
     // Formatting state tracking
     const [activeFormats, setActiveFormats] = useState({
@@ -187,9 +192,10 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
         }
     }, [entry?.id, isCreating, newEntryType]);
 
-    // Update editor HTML when content changes
+    // Update editor HTML when content changes (only for initial load)
     useEffect(() => {
-        if (editorRef.current && editorRef.current.innerHTML !== htmlContent) {
+        if (editorRef.current && htmlContent && !editorRef.current.innerHTML.trim()) {
+            // Only set HTML content if editor is empty (initial load)
             editorRef.current.innerHTML = htmlContent;
         }
     }, [htmlContent]);
@@ -203,7 +209,7 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
             
             saveTimeoutRef.current = setTimeout(() => {
                 handleSave();
-            }, 5000); // Auto-save after 5 seconds of inactivity (increased from 2)
+            }, 8000); // Auto-save after 8 seconds of inactivity (increased from 2 to reduce flickering)
         }
 
         return () => {
@@ -259,17 +265,21 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
     // Handlers
     const handleContentChange = () => {
         if (!editorRef.current) return;
-        
+
         const html = editorRef.current.innerHTML;
-        setHtmlContent(html);
+        // Don't update htmlContent state during typing to avoid cursor jumping
+        // Only update markdown content for saving
         const markdown = htmlToMarkdown(html);
         setContent(markdown);
         setIsEditorDirty(true);
         updateFormatStates();
-        // Don't show unsaved status - only show "saved" after successful save
-    };
-    
-    // Track cursor/selection changes to update format states
+
+        // Calculate word count and reading time
+        const text = markdown.replace(/[#*`~\[\]()]/g, '').trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        setWordCount(words);
+        setReadingTime(Math.ceil(words / 200)); // Average reading speed
+    };    // Track cursor/selection changes to update format states
     const handleSelectionChange = useCallback(() => {
         updateFormatStates();
     }, [updateFormatStates]);
@@ -350,7 +360,16 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
             }, 2000);
         } catch (error) {
             console.error('Save error:', error);
-            setSaveStatus('idle');
+            setSaveStatus('error');
+            setSaveError(error.message || 'Failed to save entry. Please try again.');
+            
+            // Reset error status after 5 seconds
+            setTimeout(() => {
+                if (saveStatus === 'error') {
+                    setSaveStatus('idle');
+                    setSaveError(null);
+                }
+            }, 5000);
         }
     }, [title, content, tags, entryType, isCreating, entry, isEditorDirty]);
 
@@ -459,6 +478,7 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
     const handleImageUpload = async (file) => {
         if (!file) return;
         
+        setIsUploadingImage(true);
         try {
             const storage = getStorage();
             const storageRef = ref(storage, `images/${userId}_${Date.now()}_${file.name}`);
@@ -485,6 +505,10 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
             handleContentChange();
         } catch (error) {
             console.error('Image upload error:', error);
+            // Show user-friendly error message
+            alert(`Failed to upload image: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsUploadingImage(false);
         }
     };
 
@@ -493,11 +517,21 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // ESC to exit focus mode
-            if (e.key === 'Escape' && isFocusMode) {
-                setIsFocusMode(false);
-                setAppFocusMode(false);
+            // ESC to exit focus mode or close help
+            if (e.key === 'Escape') {
+                if (showKeyboardHelp) {
+                    setShowKeyboardHelp(false);
+                } else if (isFocusMode) {
+                    setIsFocusMode(false);
+                    setAppFocusMode(false);
+                }
                 e.preventDefault();
+            }
+            
+            // Cmd/Ctrl + / - Toggle keyboard shortcuts help
+            if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+                e.preventDefault();
+                setShowKeyboardHelp(!showKeyboardHelp);
             }
             
             // Cmd/Ctrl + S to save
@@ -518,10 +552,22 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                 applyFormat('italic');
             }
             
-            // Cmd/Ctrl + U for underline
-            if ((e.metaKey || e.ctrlKey) && e.key === 'u') {
+            // Cmd/Ctrl + Z - Undo
+            if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
                 e.preventDefault();
-                applyFormat('underline');
+                document.execCommand('undo');
+            }
+
+            // Cmd/Ctrl + Shift + Z - Redo
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'Z') {
+                e.preventDefault();
+                document.execCommand('redo');
+            }
+
+            // Cmd/Ctrl + Y - Redo (alternative)
+            if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+                e.preventDefault();
+                document.execCommand('redo');
             }
         };
 
@@ -564,6 +610,28 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                 >
                     <Check size={14} />
                     <span>Saved</span>
+                </motion.div>
+            )}
+            {saveStatus === 'error' && saveError && (
+                <motion.div
+                    key="error"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="flex items-center space-x-2"
+                >
+                    <div className="flex items-center space-x-2 text-sm text-red-600 dark:text-red-400">
+                        <AlertCircle size={14} />
+                        <span className="max-w-xs truncate">{saveError}</span>
+                    </div>
+                    <motion.button
+                        onClick={() => handleSave(false)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors"
+                    >
+                        Retry
+                    </motion.button>
                 </motion.div>
             )}
         </AnimatePresence>
@@ -619,6 +687,11 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                             <span className="hidden sm:inline text-xs text-slate-500 dark:text-slate-400 truncate">
                                 {entry ? `Updated ${format(entry.updatedAt, 'MMM d, h:mm a')}` : 'New Entry'}
                             </span>
+                            {wordCount > 0 && (
+                                <span className="hidden md:inline text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                                    {wordCount} words • {readingTime} min read
+                                </span>
+                            )}
                         </div>
                         <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                             <div className="hidden sm:flex items-center space-x-2">
@@ -639,6 +712,11 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                                 label="Save Now (⌘S)"
                                 onClick={() => handleSave(false)}
                                 isActive={saveStatus === 'saved' && !isEditorDirty}
+                            />
+                            <ToolbarButton
+                                icon={HelpCircle}
+                                label="Keyboard Shortcuts (⌘/)"
+                                onClick={() => setShowKeyboardHelp(true)}
                             />
                             {entry && !isCreating && (
                                 <motion.button
@@ -706,36 +784,57 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                             <TagsInput tags={tags} setTags={handleTagsChange} />
                         </div>
 
-                        {/* Toolbar */}
-                        <div className="flex items-center space-x-0.5 sm:space-x-1 mt-4 flex-wrap gap-1 sm:gap-2">
-                            <ToolbarButton icon={Bold} label="Bold (Cmd+B)" onClick={() => applyFormat('bold')} isActive={activeFormats.bold} />
-                            <ToolbarButton icon={Italic} label="Italic (Cmd+I)" onClick={() => applyFormat('italic')} isActive={activeFormats.italic} />
-                            <ToolbarButton icon={UnderlineIcon} label="Underline (Cmd+U)" onClick={() => applyFormat('underline')} isActive={activeFormats.underline} />
-                            <div className="hidden sm:block w-px h-6 bg-slate-300 dark:bg-slate-600" />
-                            <ToolbarButton icon={Heading1} label="Heading 1" onClick={() => insertHeading(1)} isActive={activeFormats.h1} />
-                            <ToolbarButton icon={Heading2} label="Heading 2" onClick={() => insertHeading(2)} isActive={activeFormats.h2} />
-                            <ToolbarButton icon={Heading3} label="Heading 3" onClick={() => insertHeading(3)} isActive={activeFormats.h3} />
-                            <div className="hidden sm:block w-px h-6 bg-slate-300 dark:bg-slate-600" />
-                            <ToolbarButton icon={List} label="Bullet List" onClick={() => insertList(false)} />
-                            <ToolbarButton icon={ListOrdered} label="Numbered List" onClick={() => insertList(true)} />
-                            <div className="hidden md:block"><ToolbarButton icon={Quote} label="Quote" onClick={() => insertBlockquote()} /></div>
-                            <div className="hidden md:block"><ToolbarButton icon={Code} label="Code" onClick={() => insertCode()} /></div>
-                            <div className="hidden sm:block w-px h-6 bg-slate-300 dark:bg-slate-600" />
-                            <ToolbarButton icon={LinkIcon} label="Link" onClick={insertLink} />
-                            <ToolbarButton 
-                                icon={ImageIcon} 
-                                label="Image" 
-                                onClick={() => {
-                                    const input = document.createElement('input');
-                                    input.type = 'file';
-                                    input.accept = 'image/*';
-                                    input.onchange = (e) => {
-                                        const file = e.target.files[0];
-                                        if (file) handleImageUpload(file);
-                                    };
-                                    input.click();
-                                }} 
-                            />
+                        {/* Toolbar - Mobile Optimized */}
+                        <div className="flex items-center space-x-1 mt-4 flex-wrap gap-1">
+                            {/* Primary formatting - Always visible */}
+                            <div className="flex items-center space-x-1">
+                                <ToolbarButton icon={Bold} label="Bold (Cmd+B)" onClick={() => applyFormat('bold')} isActive={activeFormats.bold} />
+                                <ToolbarButton icon={Italic} label="Italic (Cmd+I)" onClick={() => applyFormat('italic')} isActive={activeFormats.italic} />
+                                <ToolbarButton icon={UnderlineIcon} label="Underline (Cmd+U)" onClick={() => applyFormat('underline')} isActive={activeFormats.underline} />
+                            </div>
+                            
+                            {/* Headings - Collapsed on mobile */}
+                            <div className="hidden xs:flex items-center space-x-1">
+                                <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
+                                <ToolbarButton icon={Heading1} label="Heading 1" onClick={() => insertHeading(1)} isActive={activeFormats.h1} />
+                                <ToolbarButton icon={Heading2} label="Heading 2" onClick={() => insertHeading(2)} isActive={activeFormats.h2} />
+                                <ToolbarButton icon={Heading3} label="Heading 3" onClick={() => insertHeading(3)} isActive={activeFormats.h3} />
+                            </div>
+                            
+                            {/* Lists - Always visible */}
+                            <div className="flex items-center space-x-1">
+                                <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 hidden xs:block" />
+                                <ToolbarButton icon={List} label="Bullet List" onClick={() => insertList(false)} />
+                                <ToolbarButton icon={ListOrdered} label="Numbered List" onClick={() => insertList(true)} />
+                            </div>
+                            
+                            {/* Advanced formatting - Hidden on very small screens */}
+                            <div className="hidden sm:flex items-center space-x-1">
+                                <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
+                                <ToolbarButton icon={Quote} label="Quote" onClick={() => insertBlockquote()} />
+                                <ToolbarButton icon={Code} label="Code" onClick={() => insertCode()} />
+                            </div>
+                            
+                            {/* Media tools - Always visible */}
+                            <div className="flex items-center space-x-1">
+                                <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 hidden sm:block" />
+                                <ToolbarButton icon={LinkIcon} label="Link" onClick={insertLink} />
+                                <ToolbarButton 
+                                    icon={isUploadingImage ? Loader : ImageIcon} 
+                                    label="Image" 
+                                    onClick={() => {
+                                        const input = document.createElement('input');
+                                        input.type = 'file';
+                                        input.accept = 'image/*';
+                                        input.onchange = (e) => {
+                                            const file = e.target.files[0];
+                                            if (file) handleImageUpload(file);
+                                        };
+                                        input.click();
+                                    }}
+                                    isActive={isUploadingImage}
+                                />
+                            </div>
                         </div>
                     </motion.div>
                     )}
@@ -757,7 +856,7 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
             {/* Editor Content */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Rich Text Editor */}
-                <div className={`${showPreview ? 'w-1/2' : 'w-full'} overflow-y-auto custom-scrollbar`}>
+                <div className={`${showPreview ? 'flex-1 md:w-1/2' : 'w-full'} overflow-y-auto custom-scrollbar`}>
                     <div
                         ref={editorRef}
                         contentEditable
@@ -776,13 +875,19 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                     />
                 </div>
 
-                {/* Preview */}
+                {/* Preview - Mobile optimized */}
                 {showPreview && (
-                    <div className="w-1/2 border-l overflow-y-auto custom-scrollbar p-4 sm:p-6 md:p-8 lg:p-12" style={{ borderColor: 'var(--color-border)' }}>
+                    <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="w-full md:w-1/2 border-t md:border-t-0 md:border-l overflow-y-auto custom-scrollbar p-4 sm:p-6 md:p-8 lg:p-12" 
+                        style={{ borderColor: 'var(--color-border)' }}
+                    >
                         <div className="prose dark:prose-invert max-w-none">
                             <ReactMarkdown>{content || '*Preview will appear here...*'}</ReactMarkdown>
                         </div>
-                    </div>
+                    </motion.div>
                 )}
             </div>
 
@@ -857,6 +962,140 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                                 >
                                     Save
                                 </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Keyboard Shortcuts Help Overlay - Hidden on mobile */}
+            <AnimatePresence>
+                {showKeyboardHelp && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-[60] p-4 hidden md:flex"
+                        onClick={() => setShowKeyboardHelp(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-3xl w-full shadow-2xl max-h-[85vh] overflow-y-auto"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                                    Keyboard Shortcuts
+                                </h3>
+                                <button
+                                    onClick={() => setShowKeyboardHelp(false)}
+                                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="space-y-6">
+                                    <div>
+                                        <h4 className="font-semibold mb-4 text-lg text-slate-800 dark:text-slate-200">Formatting</h4>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Bold</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+B</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Italic</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+I</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Underline</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+U</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Heading 1-3</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+1-3</kbd>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="font-semibold mb-4 text-lg text-slate-800 dark:text-slate-200">Lists & Media</h4>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Bullet List</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+L</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Link</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+K</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Code Block</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+C</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Quote</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+Q</kbd>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <h4 className="font-semibold mb-4 text-lg text-slate-800 dark:text-slate-200">Actions</h4>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Save</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+S</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Undo</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Z</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Redo</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+Z</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Focus Mode</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">F11</kbd>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="font-semibold mb-4 text-lg text-slate-800 dark:text-slate-200">Navigation</h4>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Back to Dashboard</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Esc</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Show Shortcuts</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+/</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Preview Mode</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+P</kbd>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                                        💡 <strong>Pro tip:</strong> Use <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono">Tab</kbd> to navigate between formatting buttons
+                                    </p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                        Press <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono">Esc</kbd> or click outside to close
+                                    </p>
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

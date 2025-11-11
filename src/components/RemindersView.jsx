@@ -112,29 +112,49 @@ export default function RemindersView() {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-6">
                 <NotificationPrompt />
                 
-                <form onSubmit={handleSubmit} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 space-y-3">
-                    <input
-                        type="text"
-                        value={newReminderText}
-                        onChange={(e) => setNewReminderText(e.target.value)}
-                        placeholder="What do you want to be reminded of?"
-                        className="form-input w-full bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-md shadow-sm"
-                    />
-                    <div className="flex space-x-2">
-                        <DatePicker
-                            selected={newReminderDate}
-                            onChange={(date) => setNewReminderDate(date)}
-                            showTimeSelect
-                            dateFormat="MMM d, yyyy h:mm aa"
+                <form onSubmit={handleSubmit} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Reminder Text
+                        </label>
+                        <input
+                            type="text"
+                            value={newReminderText}
+                            onChange={(e) => setNewReminderText(e.target.value)}
+                            placeholder="What do you want to be reminded of?"
                             className="form-input w-full bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-md shadow-sm"
                         />
-                        <button
-                            type="submit"
-                            className="p-2 px-4 text-white rounded-md focus:outline-none focus:ring-2"
-                            style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
-                        >
-                            <Plus size={20} />
-                        </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Date & Time
+                            </label>
+                            <DatePicker
+                                selected={newReminderDate}
+                                onChange={(date) => setNewReminderDate(date)}
+                                showTimeSelect
+                                dateFormat="MMM d, yyyy h:mm aa"
+                                className="form-input w-full bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-md shadow-sm"
+                                placeholderText="Select date and time"
+                            />
+                        </div>
+                        
+                        <div className="flex items-end">
+                            <button
+                                type="submit"
+                                disabled={!newReminderText.trim()}
+                                className="w-full sm:w-auto px-6 py-3 text-white rounded-md focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                style={{ 
+                                    backgroundColor: newReminderText.trim() ? 'var(--color-primary-hex)' : '#cbd5e1',
+                                    '--tw-ring-color': 'var(--color-primary-hex)'
+                                }}
+                            >
+                                <Plus size={20} className="inline mr-2" />
+                                Add Reminder
+                            </button>
+                        </div>
                     </div>
                 </form>
 
