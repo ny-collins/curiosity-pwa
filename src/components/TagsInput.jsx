@@ -6,12 +6,17 @@ function TagsInput({ tags, onChange }) {
     const handleKeyDown = (event) => {
         if (event.key === 'Enter' || event.key === ',') {
             event.preventDefault();
-            const newTag = inputValue.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+            const newTag = inputValue.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
             
             if (newTag && !tags.includes(newTag)) {
                 onChange([...tags, newTag]);
             }
             setInputValue('');
+        } else if (event.key === 'Backspace' && inputValue === '' && tags.length > 0) {
+            // Remove last tag when backspace is pressed on empty input
+            const newTags = [...tags];
+            newTags.pop();
+            onChange(newTags);
         }
     };
 
@@ -22,7 +27,7 @@ function TagsInput({ tags, onChange }) {
     const handlePaste = (event) => {
         event.preventDefault();
         const pasteData = event.clipboardData.getData('text');
-        const pastedTags = pasteData.split(/[\s,]+/).map(tag => tag.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''));
+        const pastedTags = pasteData.split(/[\s,]+/).map(tag => tag.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-'));
         const validNewTags = pastedTags.filter(tag => tag && !tags.includes(tag));
         
         if (validNewTags.length > 0) {
@@ -35,7 +40,12 @@ function TagsInput({ tags, onChange }) {
             {tags.map(tag => (
                 <span key={tag} className="react-tagsinput-tag">
                     {tag}
-                    <a className="react-tagsinput-remove" onClick={() => handleRemoveTag(tag)} />
+                    <button
+                        type="button"
+                        className="react-tagsinput-remove"
+                        onClick={() => handleRemoveTag(tag)}
+                        aria-label={`Remove ${tag} tag`}
+                    />
                 </span>
             ))}
             <input

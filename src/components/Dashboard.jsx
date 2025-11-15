@@ -112,7 +112,8 @@ export default function Dashboard() {
         handleSelectEntry,
         handleCreateEntry,
         handleViewChange,
-        handleToggleSidebar
+        handleToggleSidebar,
+        handleDeleteEntry
     } = useAppState();
 
     const {
@@ -321,7 +322,8 @@ export default function Dashboard() {
                                     >
                                         <DashboardEntryItem 
                                             entry={entry}
-                                            onSelect={handleSelectEntry} 
+                                            onSelect={handleSelectEntry}
+                                            onDelete={handleDeleteEntry}
                                         />
                                     </motion.div>
                                 ))}
@@ -419,16 +421,21 @@ export default function Dashboard() {
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ delay: 0.9 }}
                         >
-                            <div className="flex items-center space-x-2 mb-4">
-                                <motion.div
-                                    animate={{ rotate: [0, 10, -10, 0] }}
-                                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                                >
-                                    <Gift className="w-5 h-5 md:w-6 md:h-6 text-pink-600 dark:text-pink-400" />
-                                </motion.div>
-                                <h2 className="text-lg md:text-xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
-                                    On This Day
-                                </h2>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center space-x-2">
+                                    <motion.div
+                                        animate={{ rotate: [0, 10, -10, 0] }}
+                                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                                    >
+                                        <Gift className="w-5 h-5 md:w-6 md:h-6 text-pink-600 dark:text-pink-400" />
+                                    </motion.div>
+                                    <h2 className="text-lg md:text-xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
+                                        On This Day
+                                    </h2>
+                                </div>
+                                <div className="text-sm text-slate-600 dark:text-gray-400 font-medium">
+                                    {format(new Date(), "MMM d")}
+                                </div>
                             </div>
                             <div className="space-y-3">
                                 {onThisDayEntries.slice(0, 2).map((entry, index) => (
@@ -446,7 +453,8 @@ export default function Dashboard() {
                                             </div>
                                             <DashboardEntryItem 
                                                 entry={entry}
-                                                onSelect={handleSelectEntry} 
+                                                onSelect={handleSelectEntry}
+                                                onDelete={handleDeleteEntry}
                                             />
                                         </div>
                                     </motion.div>

@@ -122,7 +122,8 @@ export default function RemindersView() {
                             value={newReminderText}
                             onChange={(e) => setNewReminderText(e.target.value)}
                             placeholder="What do you want to be reminded of?"
-                            className="form-input w-full bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-md shadow-sm"
+                            className="themed-input w-full rounded-md shadow-sm"
+                            style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
                         />
                     </div>
                     
@@ -136,7 +137,8 @@ export default function RemindersView() {
                                 onChange={(date) => setNewReminderDate(date)}
                                 showTimeSelect
                                 dateFormat="MMM d, yyyy h:mm aa"
-                                className="form-input w-full bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-md shadow-sm"
+                                className="themed-input w-full rounded-md shadow-sm"
+                                style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
                                 placeholderText="Select date and time"
                             />
                         </div>

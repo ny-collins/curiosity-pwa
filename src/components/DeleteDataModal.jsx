@@ -49,7 +49,8 @@ export default function DeleteDataModal({ onClose, onConfirmDelete }) {
                         type="text"
                         value={confirmText}
                         onChange={(e) => setConfirmText(e.target.value)}
-                        className="form-input w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md border-slate-300 dark:border-slate-600"
+                        className="themed-input w-full rounded-md"
+                        style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
                         placeholder="DELETE"
                     />
                 </div>

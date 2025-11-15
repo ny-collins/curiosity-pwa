@@ -300,11 +300,11 @@ const SettingsProfile = () => {
             <SettingsSection title="Profile">
                 <div>
                     <label htmlFor="username" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Username</label>
-                    <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value)} className="form-input w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md border-slate-300 dark:border-slate-600" placeholder="Your Name" />
+                    <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value)} className="themed-input w-full rounded-md" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }} placeholder="Your Name" />
                 </div>
                 <div>
                     <label htmlFor="profilePicUrl" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Profile Picture URL</label>
-                    <input type="text" id="profilePicUrl" value={profilePicUrl} onChange={(e) => setProfilePicUrl(e.target.value)} className="form-input w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md border-slate-300 dark:border-slate-600" placeholder="https://your-image-url.com/pic.png" />
+                    <input type="text" id="profilePicUrl" value={profilePicUrl} onChange={(e) => setProfilePicUrl(e.target.value)} className="themed-input w-full rounded-md" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }} placeholder="https://your-image-url.com/pic.png" />
                 </div>
                  <div>
                       <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Upload Picture</label>
@@ -523,7 +523,8 @@ const SettingsSecurity = () => {
                         <input type="password" id="pin" value={pin} 
                             onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= LIMITS.PIN_LENGTH) setPin(val); }} 
                             maxLength={LIMITS.PIN_LENGTH}
-                            className="form-input w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md border-slate-300 dark:border-slate-600 tracking-widest"
+                            className="themed-input w-full rounded-md tracking-widest"
+                            style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
                             placeholder={appPin ? 'Enter new PIN' : '••••'} />
                     </div>
                 )}

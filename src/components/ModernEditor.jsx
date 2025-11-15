@@ -749,10 +749,10 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                                     value={title}
                                     onChange={handleTitleChange}
                                     placeholder="Entry title..."
-                                    className="w-full px-4 py-3 text-xl font-semibold rounded-lg border-2 transition-all focus:outline-none focus:ring-2"
+                                    className="themed-input w-full px-4 py-3 text-xl font-semibold rounded-lg border-2 transition-all focus:outline-none focus:ring-2"
                                     style={{
                                         backgroundColor: 'var(--color-bg-secondary)',
-                                        borderColor: 'var(--color-border)',
+                                        borderColor: 'var(--color-primary-hex)',
                                         color: 'var(--color-text-primary)',
                                         '--tw-ring-color': 'var(--color-primary-hex)'
                                     }}
@@ -763,10 +763,9 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                             <select
                                 value={entryType}
                                 onChange={handleTypeChange}
-                                className="px-4 py-3 rounded-lg border-2 transition-all focus:outline-none focus:ring-2 font-medium"
+                                className="themed-input px-4 py-3 rounded-lg transition-all focus:outline-none focus:ring-2 font-medium"
                                 style={{
                                     backgroundColor: 'var(--color-bg-secondary)',
-                                    borderColor: 'var(--color-border)',
                                     color: 'var(--color-text-primary)',
                                     '--tw-ring-color': 'var(--color-primary-hex)'
                                 }}
@@ -781,7 +780,7 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
 
                         {/* Tags */}
                         <div className="mt-4">
-                            <TagsInput tags={tags} setTags={handleTagsChange} />
+                            <TagsInput tags={tags} onChange={handleTagsChange} />
                         </div>
 
                         {/* Toolbar - Mobile Optimized */}

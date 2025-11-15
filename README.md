@@ -6,6 +6,8 @@ A modern, secure, and beautiful Progressive Web App for journaling, note-taking,
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue) ![PWA](https://img.shields.io/badge/PWA-Ready-green) ![React](https://img.shields.io/badge/React-19.1.1-61dafb) ![Firebase](https://img.shields.io/badge/Firebase-12.4.0-orange) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
+<p align="left"> <img src="https://komarev.com/ghpvc/?username=ny-collins&label=Profile%20views&color=0e75b6&style=flat" alt="mark61-done" /> </p>
+
 ## 🌐 Live Preview
 
 Try Curiosity PWA live: **[https://curiosity-pwa.web.app](https://curiosity-pwa.web.app)**

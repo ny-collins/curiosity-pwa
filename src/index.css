@@ -397,6 +397,35 @@
   }
 }
 
+/* --- Themed Input Borders --- */
+/* Ensure themed borders work correctly with @tailwindcss/forms plugin */
+.themed-input {
+  /* Ensure themed borders take precedence over @tailwindcss/forms defaults */
+  border-color: var(--color-primary-hex) !important;
+  border-width: 2px !important;
+}
+
+.themed-input:focus {
+  /* Ensure focus states work with themed borders */
+  border-color: var(--color-primary-hex) !important;
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1) !important;
+}
+
+/* Override @tailwindcss/forms for all inputs when they have themed styling */
+input[style*="--color-primary-hex"],
+textarea[style*="--color-primary-hex"],
+select[style*="--color-primary-hex"] {
+  border-color: var(--color-primary-hex) !important;
+  border-width: 2px !important;
+}
+
+input[style*="--color-primary-hex"]:focus,
+textarea[style*="--color-primary-hex"]:focus,
+select[style*="--color-primary-hex"]:focus {
+  border-color: var(--color-primary-hex) !important;
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1) !important;
+}
+
 /* --- TagsInput Component --- */
 .react-tagsinput {
   border: 2px solid;

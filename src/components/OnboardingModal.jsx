@@ -110,14 +110,16 @@ export default function OnboardingModal({ onComplete }) {
                             id="username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="form-input w-full bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl border-2 border-slate-300 dark:border-slate-600 focus:border-primary focus:ring-primary px-4 py-3 text-lg transition-all duration-200"
+                            className="themed-input w-full rounded-xl px-4 py-3 text-lg transition-all duration-200 focus:ring-2"
                             placeholder="Enter your name"
                             required
                             autoFocus
                             whileFocus={{ scale: 1.02 }}
                             style={{
+                                backgroundColor: 'var(--color-bg-secondary)',
+                                color: 'var(--color-text-primary)',
                                 '--tw-ring-color': 'var(--color-primary-hex)',
-                                '--tw-border-color': isValid ? 'var(--color-primary-hex)' : undefined
+                                borderColor: isValid ? 'var(--color-primary-hex)' : undefined
                             }}
                         />
                         {username && (
