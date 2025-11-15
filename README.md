@@ -4,7 +4,7 @@
 
 A modern, secure, and beautiful Progressive Web App for journaling, note-taking, and personal knowledge management. Built with React 19, Firebase, and WebAuthn biometric authentication.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue) ![PWA](https://img.shields.io/badge/PWA-Ready-green) ![React](https://img.shields.io/badge/React-19.1.1-61dafb) ![Firebase](https://img.shields.io/badge/Firebase-12.4.0-orange) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![Version](https://img.shields.io/badge/version-1.0.1-blue) ![PWA](https://img.shields.io/badge/PWA-Ready-green) ![React](https://img.shields.io/badge/React-19.1.1-61dafb) ![Firebase](https://img.shields.io/badge/Firebase-12.4.0-orange) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## 🌐 Live Preview
 
@@ -18,7 +18,7 @@ Try Curiosity PWA live: **[https://curiosity-pwa.web.app](https://curiosity-pwa.
 - **🎯 Goals & Tasks** - Track personal goals and daily tasks with progress indicators
 - **🔒 Secure Vault** - Store sensitive information with PIN and biometric protection
 - **🔔 Smart Reminders** - Get notified for important dates (requires app to be open)
-- **� Data Export** - Export your data to PDF, CSV, JSON, or Excel
+- **📊 Data Export** - Export your data to PDF, JSON, or Markdown
 - **🎁 On This Day** - Revisit memories from past years
 - **🔍 Search & Filter** - Quickly find entries with powerful search
 
@@ -211,4 +211,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ by Collins** • [Version 1.0.0](./docs/CHANGELOG.md) • November 2025
+**Made with ❤️ by Collins** • [Version 1.0.1](./docs/CHANGELOG.md) • November 2025

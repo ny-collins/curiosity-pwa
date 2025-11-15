@@ -171,9 +171,8 @@ npm run dev
 
 **Test: Data Management**
 - [ ] Test export to PDF
-- [ ] Test export to CSV
 - [ ] Test export to JSON
-- [ ] Test export to Excel
+- [ ] Test export to Markdown
 - [ ] Verify file downloads correctly
 
 **Test: Delete All Data**
@@ -384,7 +383,7 @@ localStorage.setItem('debug', 'true');
 - Browser: [Chrome 120, Firefox 121, etc.]
 - Device: [Desktop, iPhone 14, Samsung Galaxy S23, etc.]
 - OS: [Windows 11, macOS 14, Android 13, iOS 17]
-- App Version: 1.0.0
+- App Version: 1.0.1
 
 **Steps to Reproduce**:
 1. Step 1

@@ -72,4 +72,34 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React and core libraries
+          'react-vendor': ['react', 'react-dom'],
+          
+          // UI libraries
+          'ui-vendor': ['framer-motion', 'lucide-react', '@headlessui/react'],
+          
+          // Firebase
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/analytics', 'firebase/performance', 'firebase/functions'],
+          
+          // Data processing
+          'data-vendor': ['dexie', 'dexie-react-hooks', 'date-fns', 'nanoid'],
+          
+          // PDF and export libraries (loaded on demand)
+          'pdf-vendor': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          
+          // Utility libraries
+          'utils-vendor': ['clsx', 'tailwind-merge', 'crypto-js', 'bcrypt-ts', 'file-saver', 'jszip', 'react-markdown', 'react-simplemde-editor'],
+          
+          // PWA and service worker
+          'pwa-vendor': ['workbox-window'],
+        }
+      }
+    },
+    // Increase chunk size warning limit since we're optimizing
+    chunkSizeWarningLimit: 1000,
+  },
 })

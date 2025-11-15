@@ -662,7 +662,6 @@ const SettingsData = () => {
                 await db.tasks.clear();
                 await db.vaultItems.clear();
                 await db.settings.clear();
-                const { PIN_STORAGE_KEY, WEBAUTHN_CREDENTIAL_ID_KEY } = await import('../constants');
                 localStorage.removeItem(PIN_STORAGE_KEY);
                 localStorage.removeItem(WEBAUTHN_CREDENTIAL_ID_KEY);
                 

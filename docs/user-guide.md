@@ -325,7 +325,7 @@ The dashboard provides an overview of your activity:
 - **v2.0.1**: UI/UX improvements - enhanced mobile layouts, improved Settings page desktop layout, optimized logo animations
 - **v2.0.0**: Biometric authentication, offline support
 - **v1.5.0**: Goals and tasks, calendar view
-- **v1.0.0**: Initial release with core journaling
+- **v1.0.1**: Security and performance improvements
 
 ---
 

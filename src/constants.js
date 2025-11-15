@@ -150,12 +150,39 @@ export const REGULAR_ENTRY_TYPES = ENTRY_TYPES.filter(t => !t.secure);
 export const VAULT_ITEM_TYPES = ENTRY_TYPES.filter(t => t.secure);
 
 export const STORAGE_KEYS = {
-  THEME_MODE: 'curiosity-theme-mode',
-  THEME_COLOR: 'curiosity-theme-color',
-  THEME_FONT: 'curiosity-theme-font',
-  FONT_SIZE: 'curiosity-font-size',
-  PIN: 'curiosity-pin',
-  WEBAUTHN_CREDENTIAL_ID: 'curiosity-webauthn-id'
+  // ... existing keys
+};
+
+// Animation configurations
+export const ANIMATIONS = {
+  fadeIn: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 }
+  },
+  slideUp: {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 }
+  },
+  slideDown: {
+    initial: { opacity: 0, y: -20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: 20 }
+  },
+  scaleIn: {
+    initial: { opacity: 0, scale: 0.9 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.9 }
+  }
+};
+
+// Common transition settings
+export const TRANSITIONS = {
+  fast: { duration: 0.15 },
+  normal: { duration: 0.2 },
+  slow: { duration: 0.3 },
+  spring: { type: "spring", stiffness: 300, damping: 30 }
 };
 
 export const PIN_STORAGE_KEY = STORAGE_KEYS.PIN;

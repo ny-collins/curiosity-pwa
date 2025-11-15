@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Save, ArrowLeft, Maximize, Minimize, Eye, EyeOff, Type, Calendar as CalendarIcon,
     Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code,
-    Link as LinkIcon, Image as ImageIcon, Check, Loader, AlertCircle, Sparkles, X, HelpCircle
+    Link as LinkIcon, Image as ImageIcon, Check, Loader, AlertCircle, Sparkles, X, HelpCircle,
+    Strikethrough, Highlighter, Superscript, Subscript, Table, Search, Replace, Download
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAppState } from '../contexts/StateProvider';
@@ -15,92 +16,275 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 // Helper to convert markdown to HTML for display
 const markdownToHtml = (markdown) => {
     if (!markdown) return '';
-    
+
     let html = markdown
         // Headers
         .replace(/^### (.*$)/gm, '<h3>$1</h3>')
         .replace(/^## (.*$)/gm, '<h2>$1</h2>')
         .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-        // Bold
+        // Bold and Italic (process bold first to avoid conflicts)
+        .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        // Italic
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // Strikethrough
+        .replace(/~~(.+?)~~/g, '<del>$1</del>')
         // Underline (HTML tags preserved)
         .replace(/<u>(.+?)<\/u>/g, '<u>$1</u>')
+        // Highlight
+        .replace(/==(.*?)==/g, '<mark>$1</mark>')
+        // Superscript and Subscript
+        .replace(/\^(.+?)\^/g, '<sup>$1</sup>')
+        .replace(/~(.+?)~/g, '<sub>$1</sub>')
         // Inline code
         .replace(/`(.+?)`/g, '<code>$1</code>')
         // Links
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-        // Images
-        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
-        // Blockquotes
-        .replace(/^&gt; (.*$)/gm, '<blockquote>$1</blockquote>')
-        .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        // Images with optional alt text and title
+        .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, '<img src="$2" alt="$1" title="$3" />')
+        // Blockquotes (handle nested quotes)
+        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+        // Task lists (checkboxes)
+        .replace(/^\s*-\s*\[x\]\s+(.+)$/gm, '<li class="task-item task-completed"><input type="checkbox" checked disabled><span>$1</span></li>')
+        .replace(/^\s*-\s*\[\s\]\s+(.+)$/gm, '<li class="task-item task-pending"><input type="checkbox" disabled><span>$1</span></li>')
         // Unordered lists
-        .replace(/^\* (.*$)/gm, '<li>$1</li>')
-        .replace(/^- (.*$)/gm, '<li>$1</li>')
+        .replace(/^\s*-\s+(.+)$/gm, '<li>$1</li>')
+        .replace(/^\s*\*\s+(.+)$/gm, '<li>$1</li>')
         // Ordered lists
-        .replace(/^\d+\. (.*$)/gm, '<li>$1</li>')
-        // Line breaks
-        .replace(/\n/g, '<br />');
-    
-    // Wrap consecutive <li> in <ul> or <ol>
-    html = html.replace(/(<li>.*?<\/li>(\s*<br \/>)*)+/g, (match) => {
-        return '<ul>' + match.replace(/<br \/>/g, '') + '</ul>';
-    });
-    
-    return html;
-};
+        .replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>')
+        // Code blocks with language support
+        .replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+            const language = lang ? ` class="language-${lang}"` : '';
+            return `<pre><code${language}>${code.trim()}</code></pre>`;
+        })
+        // Horizontal rules
+        .replace(/^---+$/gm, '<hr>')
+        .replace(/^\*\*\*+$/gm, '<hr>');
 
-// Helper to convert HTML back to markdown for storage
+    // Handle tables separately (more complex parsing needed)
+    html = html.replace(/(\|.*\|\n?)+/g, (tableBlock) => {
+        const lines = tableBlock.trim().split('\n').filter(line => line.trim());
+        if (lines.length < 2) return tableBlock; // Need at least header and separator
+
+        const headerLine = lines[0];
+        const separatorLine = lines[1];
+
+        // Check if it's a valid table (has | separators and --- in second line)
+        if (!headerLine.includes('|') || !separatorLine.includes('---')) {
+            return tableBlock;
+        }
+
+        const headers = headerLine.split('|').map(cell => cell.trim()).filter(cell => cell);
+        const alignments = separatorLine.split('|').map(cell => {
+            const trimmed = cell.trim();
+            if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+            if (trimmed.endsWith(':')) return 'right';
+            return 'left';
+        }).filter((_, i) => i > 0 && i < headers.length + 1); // Skip first empty cell
+
+        let tableHtml = '<table class="border-collapse border border-slate-300 dark:border-slate-600" style="width: 100%;">';
+
+        // Header row
+        tableHtml += '<thead><tr>';
+        headers.forEach((header, i) => {
+            const alignClass = alignments[i] === 'center' ? 'text-center' :
+                              alignments[i] === 'right' ? 'text-right' : 'text-left';
+            tableHtml += `<th class="border border-slate-300 dark:border-slate-600 p-2 bg-slate-100 dark:bg-slate-700 ${alignClass}">${header}</th>`;
+        });
+        tableHtml += '</tr></thead>';
+
+        // Data rows
+        tableHtml += '<tbody>';
+        for (let i = 2; i < lines.length; i++) {
+            const cells = lines[i].split('|').map(cell => cell.trim()).filter((cell, idx) => idx > 0 && idx <= headers.length);
+            if (cells.length > 0) {
+                tableHtml += '<tr>';
+                cells.forEach((cell, j) => {
+                    const alignClass = alignments[j] === 'center' ? 'text-center' :
+                                      alignments[j] === 'right' ? 'text-right' : 'text-left';
+                    tableHtml += `<td class="border border-slate-300 dark:border-slate-600 p-2 ${alignClass}">${cell}</td>`;
+                });
+                tableHtml += '</tr>';
+            }
+        }
+        tableHtml += '</tbody></table>';
+
+        return tableHtml;
+    });
+
+    // Wrap consecutive <li> in <ul> or <ol>
+    html = html.replace(/(<li( class="[^"]*")?>(?:.*?)<\/li>\s*)+/g, (match) => {
+        // Check if it's a task list
+        if (match.includes('task-item')) {
+            return '<ul class="task-list">' + match.replace(/<\/li>\s*<li/g, '</li><li') + '</ul>';
+        }
+        // Check if it starts with numbers (ordered list)
+        const firstItem = match.match(/<li[^>]*>(.*?)<\/li>/)?.[1] || '';
+        if (/^\d+\./.test(firstItem)) {
+            return '<ol>' + match.replace(/<\/li>\s*<li/g, '</li><li') + '</ol>';
+        }
+        return '<ul>' + match.replace(/<\/li>\s*<li/g, '</li><li') + '</ul>';
+    });
+
+    // Wrap content in paragraphs
+    if (!html.includes('<p>') && html.trim()) {
+        html = '<p>' + html + '</p>';
+    }
+
+    // Line breaks (but not in code blocks or headers)
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+
+    return html;
+};// Helper to convert HTML back to markdown for storage
 const htmlToMarkdown = (html) => {
     if (!html) return '';
-    
+
     const temp = document.createElement('div');
     temp.innerHTML = html;
-    
+
     let markdown = '';
     const traverse = (node) => {
         if (node.nodeType === Node.TEXT_NODE) {
             markdown += node.textContent;
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const tag = node.tagName.toLowerCase();
-            
+
             switch (tag) {
                 case 'h1':
-                    markdown += '# ' + node.textContent + '\n';
+                    markdown += '# ' + node.textContent + '\n\n';
                     break;
                 case 'h2':
-                    markdown += '## ' + node.textContent + '\n';
+                    markdown += '## ' + node.textContent + '\n\n';
                     break;
                 case 'h3':
-                    markdown += '### ' + node.textContent + '\n';
+                    markdown += '### ' + node.textContent + '\n\n';
                     break;
                 case 'strong':
                 case 'b':
-                    markdown += '**' + node.textContent + '**';
+                    if (node.querySelector('em, i')) {
+                        // Handle bold italic
+                        markdown += '***' + node.textContent + '***';
+                    } else {
+                        markdown += '**' + node.textContent + '**';
+                    }
                     break;
                 case 'em':
                 case 'i':
-                    markdown += '*' + node.textContent + '*';
+                    if (node.parentElement && ['strong', 'b'].includes(node.parentElement.tagName.toLowerCase())) {
+                        // Already handled by parent strong element
+                        Array.from(node.childNodes).forEach(traverse);
+                    } else {
+                        markdown += '*' + node.textContent + '*';
+                    }
+                    break;
+                case 'del':
+                    markdown += '~~' + node.textContent + '~~';
                     break;
                 case 'u':
                     markdown += '<u>' + node.textContent + '</u>';
                     break;
+                case 'mark':
+                    markdown += '==' + node.textContent + '==';
+                    break;
+                case 'sup':
+                    markdown += '^' + node.textContent + '^';
+                    break;
+                case 'sub':
+                    markdown += '~' + node.textContent + '~';
+                    break;
                 case 'code':
-                    markdown += '`' + node.textContent + '`';
+                    if (node.closest('pre')) {
+                        // Code block, handled by pre element
+                        markdown += node.textContent;
+                    } else {
+                        // Inline code
+                        markdown += '`' + node.textContent + '`';
+                    }
+                    break;
+                case 'pre':
+                    const codeElement = node.querySelector('code');
+                    if (codeElement) {
+                        const language = codeElement.className.match(/language-(\w+)/)?.[1] || '';
+                        markdown += '```' + language + '\n' + codeElement.textContent + '\n```\n\n';
+                    } else {
+                        markdown += '```\n' + node.textContent + '\n```\n\n';
+                    }
                     break;
                 case 'a':
                     markdown += '[' + node.textContent + '](' + node.href + ')';
                     break;
                 case 'img':
-                    markdown += '![' + (node.alt || '') + '](' + node.src + ')';
+                    const alt = node.alt || '';
+                    const src = node.src;
+                    const title = node.title ? ' "' + node.title + '"' : '';
+                    markdown += '![' + alt + '](' + src + title + ')';
                     break;
                 case 'blockquote':
-                    markdown += '> ' + node.textContent + '\n';
+                    const quoteLines = node.textContent.trim().split('\n');
+                    markdown += quoteLines.map(line => '> ' + line).join('\n') + '\n\n';
                     break;
                 case 'li':
-                    markdown += '- ' + node.textContent + '\n';
+                    const isTaskItem = node.classList.contains('task-item');
+                    if (isTaskItem) {
+                        const checkbox = node.querySelector('input[type="checkbox"]');
+                        const isCompleted = checkbox && checkbox.checked;
+                        const taskText = node.querySelector('span')?.textContent || node.textContent.replace(/^\s*\[x?\]\s*/, '');
+                        markdown += '- ' + (isCompleted ? '[x]' : '[ ]') + ' ' + taskText + '\n';
+                    } else {
+                        // Regular list item
+                        const listText = node.textContent;
+                        markdown += '- ' + listText + '\n';
+                    }
+                    break;
+                case 'ul':
+                    if (node.classList.contains('task-list')) {
+                        // Task list, items already handled
+                        Array.from(node.childNodes).forEach(traverse);
+                    } else {
+                        // Regular unordered list
+                        Array.from(node.childNodes).forEach(traverse);
+                    }
+                    markdown += '\n';
+                    break;
+                case 'ol':
+                    // Convert to ordered list in markdown
+                    let counter = 1;
+                    Array.from(node.children).forEach((li, index) => {
+                        markdown += (index + 1) + '. ' + li.textContent + '\n';
+                    });
+                    markdown += '\n';
+                    break;
+                case 'table':
+                    const rows = Array.from(node.querySelectorAll('tr'));
+                    let tableMarkdown = '';
+                    rows.forEach((row, rowIndex) => {
+                        const cells = Array.from(row.querySelectorAll('th, td'));
+                        const cellTexts = cells.map(cell => cell.textContent.trim());
+                        tableMarkdown += '| ' + cellTexts.join(' | ') + ' |\n';
+
+                        // Add separator after header row
+                        if (rowIndex === 0 && node.querySelector('thead')) {
+                            tableMarkdown += '| ' + cellTexts.map(() => '---').join(' | ') + ' |\n';
+                        }
+                    });
+                    markdown += tableMarkdown + '\n';
+                    break;
+                case 'figure':
+                    const imgElement = node.querySelector('img');
+                    const figcaptionElement = node.querySelector('figcaption');
+                    if (imgElement) {
+                        const alt = imgElement.alt || '';
+                        const src = imgElement.src;
+                        const title = imgElement.title ? ` "${imgElement.title}"` : '';
+                        let imageMarkdown = `![${alt}](${src}${title})`;
+
+                        // Add caption if present
+                        if (figcaptionElement && figcaptionElement.textContent.trim()) {
+                            imageMarkdown += `\n*${figcaptionElement.textContent.trim()}*`;
+                        }
+
+                        markdown += imageMarkdown + '\n\n';
+                    }
                     break;
                 case 'br':
                     markdown += '\n';
@@ -108,14 +292,18 @@ const htmlToMarkdown = (html) => {
                 case 'p':
                 case 'div':
                     Array.from(node.childNodes).forEach(traverse);
-                    markdown += '\n';
+                    if (tag === 'p' && node.nextSibling) {
+                        markdown += '\n\n';
+                    } else if (tag === 'div') {
+                        markdown += '\n';
+                    }
                     break;
                 default:
                     Array.from(node.childNodes).forEach(traverse);
             }
         }
     };
-    
+
     Array.from(temp.childNodes).forEach(traverse);
     return markdown.trim();
 };
@@ -148,6 +336,11 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
     const [wordCount, setWordCount] = useState(0);
     const [readingTime, setReadingTime] = useState(0);
     const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+    const [showSearchReplace, setShowSearchReplace] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [replaceText, setReplaceText] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
     const [saveError, setSaveError] = useState(null);
     
     // Formatting state tracking
@@ -155,6 +348,10 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
         bold: false,
         italic: false,
         underline: false,
+        strikethrough: false,
+        highlight: false,
+        superscript: false,
+        subscript: false,
         h1: false,
         h2: false,
         h3: false
@@ -242,6 +439,10 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
             bold: false,
             italic: false,
             underline: false,
+            strikethrough: false,
+            highlight: false,
+            superscript: false,
+            subscript: false,
             h1: false,
             h2: false,
             h3: false
@@ -253,6 +454,10 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
             if (tagName === 'strong' || tagName === 'b') formats.bold = true;
             if (tagName === 'em' || tagName === 'i') formats.italic = true;
             if (tagName === 'u') formats.underline = true;
+            if (tagName === 'del' || tagName === 'strike') formats.strikethrough = true;
+            if (tagName === 'mark') formats.highlight = true;
+            if (tagName === 'sup') formats.superscript = true;
+            if (tagName === 'sub') formats.subscript = true;
             if (tagName === 'h1') formats.h1 = true;
             if (tagName === 'h2') formats.h2 = true;
             if (tagName === 'h3') formats.h3 = true;
@@ -390,9 +595,46 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
 
     // Rich text formatting functions
     const applyFormat = useCallback((command, value = null) => {
-        document.execCommand(command, false, value);
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
         editorRef.current?.focus();
+
+        switch (command) {
+            case 'strikethrough':
+                document.execCommand('strikeThrough', false, null);
+                break;
+            case 'highlight':
+                // Use CSS class for highlight since execCommand doesn't support it
+                const range = selection.getRangeAt(0);
+                const span = document.createElement('mark');
+                if (selection.toString()) {
+                    span.textContent = selection.toString();
+                    range.deleteContents();
+                    range.insertNode(span);
+                } else {
+                    span.textContent = 'highlighted text';
+                    range.insertNode(span);
+                }
+                // Move cursor after the span
+                const newRange = document.createRange();
+                newRange.setStartAfter(span);
+                newRange.setEndAfter(span);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                break;
+            case 'superscript':
+                document.execCommand('superscript', false, null);
+                break;
+            case 'subscript':
+                document.execCommand('subscript', false, null);
+                break;
+            default:
+                document.execCommand(command, false, value);
+        }
+
         handleContentChange();
+        updateFormatStates();
     }, []);
 
     const insertHeading = useCallback((level) => {
@@ -465,8 +707,98 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
     }, []);
 
     const insertCode = useCallback(() => {
-        applyFormat('formatBlock', '<pre>');
-    }, [applyFormat]);
+        const language = prompt('Enter programming language (optional):', '');
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+
+        if (language) {
+            code.className = `language-${language}`;
+        }
+
+        if (selection.toString()) {
+            code.textContent = selection.toString();
+        } else {
+            code.textContent = 'code block';
+        }
+
+        pre.appendChild(code);
+        range.deleteContents();
+        range.insertNode(pre);
+
+        // Move cursor to end of code block
+        const newRange = document.createRange();
+        newRange.selectNodeContents(code);
+        newRange.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
+        editorRef.current?.focus();
+        handleContentChange();
+    }, []);
+
+    const insertTable = useCallback(() => {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+
+        // Create a simple 2x2 table
+        const table = document.createElement('table');
+        table.className = 'border-collapse border border-slate-300 dark:border-slate-600';
+        table.style.width = '100%';
+
+        // Create table header row
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        const th1 = document.createElement('th');
+        th1.className = 'border border-slate-300 dark:border-slate-600 p-2 bg-slate-100 dark:bg-slate-700 text-left';
+        th1.textContent = 'Header 1';
+
+        const th2 = document.createElement('th');
+        th2.className = 'border border-slate-300 dark:border-slate-600 p-2 bg-slate-100 dark:bg-slate-700 text-left';
+        th2.textContent = 'Header 2';
+
+        headerRow.appendChild(th1);
+        headerRow.appendChild(th2);
+        thead.appendChild(headerRow);
+
+        // Create table body with one data row
+        const tbody = document.createElement('tbody');
+        const dataRow = document.createElement('tr');
+
+        const td1 = document.createElement('td');
+        td1.className = 'border border-slate-300 dark:border-slate-600 p-2';
+        td1.textContent = 'Cell 1';
+
+        const td2 = document.createElement('td');
+        td2.className = 'border border-slate-300 dark:border-slate-600 p-2';
+        td2.textContent = 'Cell 2';
+
+        dataRow.appendChild(td1);
+        dataRow.appendChild(td2);
+        tbody.appendChild(dataRow);
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        range.deleteContents();
+        range.insertNode(table);
+
+        // Move cursor to first cell
+        const newRange = document.createRange();
+        newRange.selectNodeContents(td1);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
+        editorRef.current?.focus();
+        handleContentChange();
+    }, []);
 
     const insertLink = useCallback(() => {
         const url = prompt('Enter URL:');
@@ -475,32 +807,262 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
         }
     }, [applyFormat]);
 
+    const openSearchReplace = useCallback(() => {
+        setShowSearchReplace(true);
+        setSearchText('');
+        setReplaceText('');
+        setSearchResults([]);
+        setCurrentSearchIndex(-1);
+    }, []);
+
+    const performSearch = useCallback(() => {
+        if (!searchText || !editorRef.current) return;
+
+        const content = editorRef.current.innerHTML;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        const results = [];
+        let index = textContent.indexOf(searchText);
+
+        while (index !== -1) {
+            results.push(index);
+            index = textContent.indexOf(searchText, index + 1);
+        }
+
+        setSearchResults(results);
+        setCurrentSearchIndex(results.length > 0 ? 0 : -1);
+
+        // Highlight first result
+        if (results.length > 0) {
+            highlightSearchResult(0);
+        }
+    }, [searchText]);
+
+    const highlightSearchResult = useCallback((index) => {
+        if (!editorRef.current || index < 0 || index >= searchResults.length) return;
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+
+        // Find the text node containing the search result
+        const walker = document.createTreeWalker(
+            editorRef.current,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+
+        let currentPos = 0;
+        let foundNode = null;
+        let foundOffset = 0;
+
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            const nodeLength = node.textContent.length;
+
+            if (currentPos + nodeLength > searchResults[index]) {
+                foundNode = node;
+                foundOffset = searchResults[index] - currentPos;
+                break;
+            }
+
+            currentPos += nodeLength;
+        }
+
+        if (foundNode) {
+            range.setStart(foundNode, foundOffset);
+            range.setEnd(foundNode, foundOffset + searchText.length);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }, [searchResults, searchText]);
+
+    const performReplace = useCallback(() => {
+        if (!editorRef.current || currentSearchIndex < 0) return;
+
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(document.createTextNode(replaceText));
+
+            // Update search results after replacement
+            const newContent = editorRef.current.innerHTML;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newContent;
+            const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+            const results = [];
+            let index = textContent.indexOf(searchText);
+
+            while (index !== -1) {
+                results.push(index);
+                index = textContent.indexOf(searchText, index + 1);
+            }
+
+            setSearchResults(results);
+
+            if (results.length > 0) {
+                const newIndex = Math.min(currentSearchIndex, results.length - 1);
+                setCurrentSearchIndex(newIndex);
+                highlightSearchResult(newIndex);
+            } else {
+                setCurrentSearchIndex(-1);
+            }
+        }
+
+        handleContentChange();
+    }, [currentSearchIndex, replaceText, searchText, highlightSearchResult]);
+
+    const replaceAll = useCallback(() => {
+        if (!editorRef.current || !searchText) return;
+
+        let content = editorRef.current.innerHTML;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+        // Replace all occurrences in text content
+        const newTextContent = textContent.replaceAll(searchText, replaceText);
+
+        // Convert back to HTML structure (simplified approach)
+        const newContent = content.replace(new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replaceText);
+
+        editorRef.current.innerHTML = newContent;
+        setSearchResults([]);
+        setCurrentSearchIndex(-1);
+
+        handleContentChange();
+    }, [searchText, replaceText]);
+
+    const exportContent = useCallback(() => {
+        const format = prompt('Export format (markdown/html):', 'markdown');
+        if (!format || !['markdown', 'html'].includes(format.toLowerCase())) return;
+
+        const title = title || 'Untitled Entry';
+        let content = '';
+        let filename = '';
+        let mimeType = '';
+
+        if (format.toLowerCase() === 'markdown') {
+            content = htmlToMarkdown(editorRef.current?.innerHTML || '');
+            filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+            mimeType = 'text/markdown';
+        } else {
+            content = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3 { color: #1f2937; margin-top: 2em; margin-bottom: 0.5em; }
+        p { margin-bottom: 1em; }
+        code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-family: 'Monaco', 'Menlo', monospace; }
+        pre { background: #f3f4f6; padding: 1em; border-radius: 8px; overflow-x: auto; }
+        blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 1em 0; color: #6b7280; }
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; }
+        th { background: #f9fafb; font-weight: 600; }
+        img { max-width: 100%; height: auto; border-radius: 8px; }
+        .image-container { text-align: center; margin: 2em 0; }
+        figcaption { font-size: 0.875em; color: #6b7280; font-style: italic; margin-top: 0.5em; }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>
+    ${editorRef.current?.innerHTML || ''}
+</body>
+</html>`;
+            filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
+            mimeType = 'text/html';
+        }
+
+        // Create and download the file
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, [title, htmlToMarkdown]);
+
     const handleImageUpload = async (file) => {
         if (!file) return;
-        
+
         setIsUploadingImage(true);
         try {
             const storage = getStorage();
             const storageRef = ref(storage, `images/${userId}_${Date.now()}_${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
-            
-            // Insert image into editor
+
+            // Create figure element for better image handling
+            const figure = document.createElement('figure');
+            figure.className = 'image-container my-4';
+            figure.style.textAlign = 'center'; // Default center alignment
+
             const img = document.createElement('img');
             img.src = downloadURL;
-            img.alt = file.name;
+            img.alt = file.name.replace(/\.[^/.]+$/, ''); // Remove extension for alt text
             img.style.maxWidth = '100%';
             img.style.height = 'auto';
             img.style.borderRadius = '8px';
-            img.style.margin = '16px 0';
-            
+            img.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+            img.className = 'cursor-pointer hover:opacity-90 transition-opacity';
+
+            // Add click handler for alignment options
+            img.onclick = () => {
+                const alignments = ['left', 'center', 'right'];
+                const currentAlign = figure.style.textAlign || 'center';
+                const currentIndex = alignments.indexOf(currentAlign);
+                const nextAlign = alignments[(currentIndex + 1) % alignments.length];
+                figure.style.textAlign = nextAlign;
+
+                // Update image width based on alignment
+                if (nextAlign === 'left' || nextAlign === 'right') {
+                    img.style.maxWidth = '50%';
+                    img.style.float = nextAlign;
+                    img.style.margin = nextAlign === 'left' ? '0 16px 16px 0' : '0 0 16px 16px';
+                } else {
+                    img.style.maxWidth = '100%';
+                    img.style.float = 'none';
+                    img.style.margin = '16px 0';
+                }
+
+                handleContentChange();
+            };
+
+            figure.appendChild(img);
+
+            // Optional caption
+            const caption = prompt('Add a caption (optional):');
+            if (caption && caption.trim()) {
+                const figcaption = document.createElement('figcaption');
+                figcaption.textContent = caption.trim();
+                figcaption.className = 'text-sm text-slate-600 dark:text-slate-400 mt-2 italic text-center';
+                figure.appendChild(figcaption);
+            }
+
             const selection = window.getSelection();
             if (selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
-                range.insertNode(img);
-                range.collapse(false);
+                range.insertNode(figure);
+
+                // Move cursor after the figure
+                const newRange = document.createRange();
+                newRange.setStartAfter(figure);
+                newRange.setEndAfter(figure);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
             }
-            
+
             editorRef.current?.focus();
             handleContentChange();
         } catch (error) {
@@ -551,7 +1113,43 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                 e.preventDefault();
                 applyFormat('italic');
             }
-            
+
+            // Cmd/Ctrl + U for underline
+            if ((e.metaKey || e.ctrlKey) && e.key === 'u') {
+                e.preventDefault();
+                applyFormat('underline');
+            }
+
+            // Cmd/Ctrl + Shift + X for strikethrough
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'X') {
+                e.preventDefault();
+                applyFormat('strikethrough');
+            }
+
+            // Cmd/Ctrl + Shift + H for highlight
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'H') {
+                e.preventDefault();
+                applyFormat('highlight');
+            }
+
+            // Cmd/Ctrl + Shift + = for superscript
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === '=') {
+                e.preventDefault();
+                applyFormat('superscript');
+            }
+
+            // Cmd/Ctrl + Shift + - for subscript
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === '-') {
+                e.preventDefault();
+                applyFormat('subscript');
+            }
+
+            // Cmd/Ctrl + F for find/replace
+            if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+                e.preventDefault();
+                openSearchReplace();
+            }
+
             // Cmd/Ctrl + Z - Undo
             if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
                 e.preventDefault();
@@ -810,6 +1408,13 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                             {/* Advanced formatting - Hidden on very small screens */}
                             <div className="hidden sm:flex items-center space-x-1">
                                 <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
+                                <ToolbarButton icon={Strikethrough} label="Strikethrough" onClick={() => applyFormat('strikethrough')} isActive={activeFormats.strikethrough} />
+                                <ToolbarButton icon={Highlighter} label="Highlight" onClick={() => applyFormat('highlight')} isActive={activeFormats.highlight} />
+                                <ToolbarButton icon={Superscript} label="Superscript" onClick={() => applyFormat('superscript')} isActive={activeFormats.superscript} />
+                                <ToolbarButton icon={Subscript} label="Subscript" onClick={() => applyFormat('subscript')} isActive={activeFormats.subscript} />
+                                <ToolbarButton icon={Table} label="Insert Table" onClick={() => insertTable()} />
+                                <ToolbarButton icon={Search} label="Find & Replace" onClick={() => openSearchReplace()} />
+                                <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
                                 <ToolbarButton icon={Quote} label="Quote" onClick={() => insertBlockquote()} />
                                 <ToolbarButton icon={Code} label="Code" onClick={() => insertCode()} />
                             </div>
@@ -833,6 +1438,7 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                                     }}
                                     isActive={isUploadingImage}
                                 />
+                                <ToolbarButton icon={Download} label="Export" onClick={exportContent} />
                             </div>
                         </div>
                     </motion.div>
@@ -1014,6 +1620,22 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                                                 <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+U</kbd>
                                             </div>
                                             <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Strikethrough</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+X</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Highlight</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+H</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Superscript</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+=</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Subscript</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+-</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
                                                 <span className="text-slate-700 dark:text-slate-300">Heading 1-3</span>
                                                 <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+1-3</kbd>
                                             </div>
@@ -1060,6 +1682,10 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                                                 <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+Shift+Z</kbd>
                                             </div>
                                             <div className="flex justify-between items-center py-1">
+                                                <span className="text-slate-700 dark:text-slate-300">Find & Replace</span>
+                                                <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">Ctrl+F</kbd>
+                                            </div>
+                                            <div className="flex justify-between items-center py-1">
                                                 <span className="text-slate-700 dark:text-slate-300">Focus Mode</span>
                                                 <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-md text-sm font-mono shadow-sm">F11</kbd>
                                             </div>
@@ -1094,6 +1720,117 @@ const ModernEditor = ({ entry, isCreating, newEntryType, handleEditorSaveComplet
                                     <p className="text-sm text-slate-500 dark:text-slate-400">
                                         Press <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono">Esc</kbd> or click outside to close
                                     </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Search & Replace Modal */}
+            <AnimatePresence>
+                {showSearchReplace && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-[60] p-4 flex"
+                        onClick={() => setShowSearchReplace(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                                    Find & Replace
+                                </h3>
+                                <button
+                                    onClick={() => setShowSearchReplace(false)}
+                                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                                        Find
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={searchText}
+                                        onChange={(e) => setSearchText(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') performSearch();
+                                        }}
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        placeholder="Enter text to find..."
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                                        Replace with
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={replaceText}
+                                        onChange={(e) => setReplaceText(e.target.value)}
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        placeholder="Enter replacement text..."
+                                    />
+                                </div>
+
+                                {searchResults.length > 0 && (
+                                    <div className="text-sm text-slate-600 dark:text-slate-400">
+                                        Found {searchResults.length} occurrence{searchResults.length !== 1 ? 's' : ''}
+                                        {currentSearchIndex >= 0 && ` (${currentSearchIndex + 1} of ${searchResults.length})`}
+                                    </div>
+                                )}
+
+                                <div className="flex space-x-2 pt-2">
+                                    <button
+                                        onClick={performSearch}
+                                        disabled={!searchText}
+                                        className="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Find
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (currentSearchIndex < searchResults.length - 1) {
+                                                const newIndex = currentSearchIndex + 1;
+                                                setCurrentSearchIndex(newIndex);
+                                                highlightSearchResult(newIndex);
+                                            }
+                                        }}
+                                        disabled={searchResults.length === 0 || currentSearchIndex >= searchResults.length - 1}
+                                        className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={performReplace}
+                                        disabled={currentSearchIndex < 0}
+                                        className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Replace
+                                    </button>
+                                    <button
+                                        onClick={replaceAll}
+                                        disabled={!searchText}
+                                        className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Replace All
+                                    </button>
                                 </div>
                             </div>
                         </motion.div>

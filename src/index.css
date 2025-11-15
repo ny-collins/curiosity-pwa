@@ -461,3 +461,25 @@ select[style*="--color-primary-hex"]:focus {
   @apply hover:text-slate-700 dark:hover:text-slate-300;
   @apply before:content-['×'] before:text-lg before:leading-none;
 }
+
+/* Task list styles */
+.task-list {
+  @apply list-none space-y-1;
+}
+
+.task-item {
+  @apply flex items-center space-x-2;
+}
+
+.task-item input[type="checkbox"] {
+  @apply w-4 h-4 rounded border-slate-300 dark:border-slate-600;
+  accent-color: var(--color-primary-hex);
+}
+
+.task-item.task-completed span {
+  @apply line-through text-slate-500 dark:text-slate-400;
+}
+
+.task-item.task-pending span {
+  @apply text-current;
+}

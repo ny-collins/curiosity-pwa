@@ -1,7 +1,7 @@
 {
   "name": "curiosity-pwa-vite",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,8 +23,8 @@
     "firebase": "^12.4.0",
     "firebase-storage": "^1.1.4",
     "framer-motion": "^12.23.24",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "jszip": "^3.10.1",
     "lucide-react": "^0.546.0",
     "nanoid": "^5.0.7",
@@ -35,8 +35,7 @@
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
     "react-simplemde-editor": "^5.2.0",
-    "tailwind-merge": "^2.4.0",
-    "xlsx": "^0.18.5"
+    "tailwind-merge": "^2.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

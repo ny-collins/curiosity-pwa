@@ -1,5 +1,6 @@
 import React from 'react';
-import { X, FileText, Archive, FileJson } from 'lucide-react';
+import { FileText, Archive, FileJson } from 'lucide-react';
+import { Modal, ModalHeader, ModalBody } from './Modal';
 
 const ExportOption = ({ icon: Icon, title, description, onClick }) => (
     <button
@@ -28,25 +29,19 @@ export default function ExportModal({ show, onClose, onExport }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-lg w-full">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Export Your Data</h2>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-full text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-                
+        <Modal isOpen={show} onClose={onClose} className="max-w-lg">
+            <ModalHeader>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Export Your Data</h2>
+            </ModalHeader>
+
+            <ModalBody>
                 <p className="text-sm text-slate-600 dark:text-gray-300 mb-6">
                     Choose a format to download all your entries, reminders, and settings.
                 </p>
 
                 <div className="space-y-4">
                     <ExportOption
-                        icon={Archive} 
+                        icon={Archive}
                         title="Markdown (.zip)"
                         description="A zip file containing all entries as individual .md files. Best for portability."
                         onClick={() => handleExport('markdown')}
@@ -64,7 +59,7 @@ export default function ExportModal({ show, onClose, onExport }) {
                         onClick={() => handleExport('json')}
                     />
                 </div>
-            </div>
-        </div>
+            </ModalBody>
+        </Modal>
     );
 }

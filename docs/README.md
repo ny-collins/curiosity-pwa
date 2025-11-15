@@ -1,7 +1,7 @@
 # Curiosity PWA Documentation
 
-**Version**: 1.0.0  
-**Last Updated**: November 9, 2025
+**Version**: 1.0.1  
+**Last Updated**: November 15, 2025
 
 Welcome to the comprehensive documentation for Curiosity PWA - your personal journaling and productivity companion.
 
@@ -50,7 +50,7 @@ Welcome to the comprehensive documentation for Curiosity PWA - your personal jou
 
 ## 📊 Project Status
 
-**Current Version**: 1.0.0  
+**Current Version**: 1.0.1  
 **Status**: ✅ Production Ready  
 **Deployment**: https://curiosity-pwa.web.app
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
+import { Button } from './Button';
 
 export default function DeleteDataModal({ onClose, onConfirmDelete }) {
     const [isLoading, setIsLoading] = useState(false);
@@ -16,16 +18,8 @@ export default function DeleteDataModal({ onClose, onConfirmDelete }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 relative animate-slide-in-up">
-                
-                <button 
-                    onClick={onClose} 
-                    className="absolute top-3 right-3 p-1 rounded-full text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                >
-                    <X size={20} />
-                </button>
-
+        <Modal isOpen={true} onClose={onClose} className="max-w-md">
+            <ModalHeader>
                 <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                         <AlertTriangle size={24} className="text-red-600" />
@@ -35,17 +29,19 @@ export default function DeleteDataModal({ onClose, onConfirmDelete }) {
                         <p className="text-sm text-slate-600 dark:text-gray-400">This action is irreversible.</p>
                     </div>
                 </div>
+            </ModalHeader>
 
-                <div className="mt-4 space-y-3">
+            <ModalBody>
+                <div className="space-y-3">
                     <p className="text-sm text-slate-700 dark:text-gray-300">
                         You are about to permanently delete all your entries, reminders, and settings from the cloud. This cannot be undone.
                     </p>
-                    
+
                     <p className="text-sm text-slate-700 dark:text-gray-300">
                         To confirm, please type <strong>DELETE</strong> in the box below.
                     </p>
 
-                    <input 
+                    <input
                         type="text"
                         value={confirmText}
                         onChange={(e) => setConfirmText(e.target.value)}
@@ -54,24 +50,20 @@ export default function DeleteDataModal({ onClose, onConfirmDelete }) {
                         placeholder="DELETE"
                     />
                 </div>
+            </ModalBody>
 
-                <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                        onClick={onClose}
-                        className="py-2 px-4 rounded-md text-sm font-medium bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-gray-200 hover:bg-slate-300 dark:hover:bg-slate-600 focus:outline-none focus:ring-2"
-                        style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleConfirm}
-                        disabled={!canDelete || isLoading}
-                        className="py-2 px-4 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-red-400 dark:disabled:bg-red-800 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? <LoadingSpinner size={20} /> : "Delete Everything"}
-                    </button>
-                </div>
-            </div>
-        </div>
+            <ModalFooter>
+                <Button variant="secondary" onClick={onClose}>
+                    Cancel
+                </Button>
+                <Button
+                    variant="danger"
+                    onClick={handleConfirm}
+                    disabled={!canDelete || isLoading}
+                >
+                    {isLoading ? <LoadingSpinner size={20} /> : "Delete Everything"}
+                </Button>
+            </ModalFooter>
+        </Modal>
     );
 }
