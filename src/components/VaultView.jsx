@@ -635,7 +635,8 @@ export default function VaultView() {
          );
     }
 
-    if (!unlockedKey) {
+    // Only show PIN screen if user has set up a PIN
+    if (!unlockedKey && appPin) {
         return <VaultPinScreen onUnlock={() => setUnlockedKey(true)} />;
     }
 

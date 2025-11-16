@@ -440,4 +440,190 @@ const config = {
 export default config[process.env.NODE_ENV || 'development'];
 ```
 
-This setup guide should get you up and running with Curiosity PWA development. Happy coding! 🚀
+---
+
+## Testing
+
+### Manual Testing Checklist
+
+Once your development environment is set up, test the following:
+
+#### Core Features
+```bash
+# Start development server
+npm run dev
+
+# Access at http://localhost:5173
+```
+
+**Essential Tests:**
+1. **Onboarding** - Open in incognito, complete setup, verify theme preview works
+2. **Authentication** - Test PIN lock/unlock, biometric auth (HTTPS required), Google sign-in
+3. **Entries** - Create, edit, delete, search entries with different types
+4. **Calendar** - Navigate months, click dates, verify entries display
+5. **Goals & Tasks** - Create, complete, delete goals and tasks
+6. **Vault** - Add secure items, test encryption, verify PIN access
+7. **Reminders** - Create reminders, verify they save to IndexedDB
+8. **Data Export** - Export to PDF, JSON, Markdown formats
+9. **Offline Mode** - Disable network, verify app works, test sync on reconnect
+10. **PWA** - Test install prompt, service worker registration, updates
+
+#### Responsive Design
+- **Mobile** (375px): Test hamburger menu, sidebar overlay, touch interactions
+- **Tablet** (768px): Verify layout adjustments
+- **Desktop** (1024px+): Test sidebar expand/collapse, avatar display
+
+#### Cross-Browser Testing
+- Chrome/Edge (Chromium)
+- Firefox
+- Safari (macOS/iOS)
+
+### Automated Testing (Future)
+
+```bash
+# Run tests (when implemented)
+npm test
+
+# Run linting
+npm run lint
+
+# Type checking (if using TypeScript)
+npm run type-check
+```
+
+---
+
+## Deployment
+
+### Pre-Deployment Checklist
+
+Before deploying to production, ensure:
+
+- [ ] All tests pass
+- [ ] No console errors in production build
+- [ ] Environment variables configured
+- [ ] Firebase project set up
+- [ ] Security rules deployed
+- [ ] Service worker tested
+
+### Firebase Deployment
+
+#### First-Time Setup
+
+1. **Create Firebase Project**
+   ```bash
+   # Go to https://console.firebase.google.com
+   # Create a new project
+   ```
+
+2. **Configure Firebase Services**
+   - Enable Authentication (Google provider)
+   - Create Firestore database
+   - Enable Cloud Functions
+   - Enable Hosting
+
+3. **Deploy Firestore Rules**
+   ```bash
+   firebase deploy --only firestore:rules
+   firebase deploy --only firestore:indexes
+   ```
+
+4. **Configure Functions**
+   ```bash
+   # Set WebAuthn configuration
+   firebase functions:config:set webauthn.relying_party_id="your-domain.com"
+   firebase functions:config:set webauthn.expected_origin="https://your-domain.com"
+   
+   # Deploy functions
+   cd functions
+   npm install
+   cd ..
+   firebase deploy --only functions
+   ```
+
+#### Deploy to Production
+
+```bash
+# Build production bundle
+npm run build
+
+# Preview build locally (optional)
+npm run preview
+
+# Deploy everything
+firebase deploy
+
+# Or deploy specific services
+firebase deploy --only hosting
+firebase deploy --only functions
+firebase deploy --only firestore
+```
+
+#### Custom Domain (Optional)
+
+```bash
+# Add custom domain in Firebase Console
+# Then update Firebase configuration
+firebase hosting:channel:deploy production --expires 30d
+
+# Verify domain and update DNS records as instructed
+```
+
+### Post-Deployment
+
+1. **Test Production Build**
+   - Visit your deployed URL
+   - Test all core features
+   - Verify PWA install works
+   - Check service worker registration
+   - Test on multiple devices
+
+2. **Monitor**
+   - Check Firebase Console for errors
+   - Monitor Cloud Functions logs
+   - Review Authentication activity
+   - Check Firestore usage
+
+3. **Update Version**
+   ```bash
+   # Update package.json version
+   npm version patch  # or minor, major
+   
+   # Update CHANGELOG.md
+   # Commit and push changes
+   ```
+
+### Deployment Troubleshooting
+
+**Build fails:**
+```bash
+# Clear cache and rebuild
+rm -rf node_modules/.vite dist
+npm run build
+```
+
+**Functions deployment fails:**
+```bash
+# Check function syntax
+cd functions && node -c index.js && cd ..
+
+# Verify Node.js version (18+)
+node --version
+```
+
+**Service worker not updating:**
+```bash
+# Clear browser cache
+# Force refresh (Ctrl+Shift+R or Cmd+Shift+R)
+# Check Application > Service Workers in DevTools
+```
+
+---
+
+This guide covers the complete development workflow from setup to deployment. For more details, see:
+- [User Guide](user-guide.md) - End-user features
+- [Architecture](architecture.md) - System design
+- [API Reference](api.md) - Detailed API documentation
+- [Contributing](contributing.md) - Contribution guidelines
+
+Happy coding! 🚀

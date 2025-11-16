@@ -172,7 +172,7 @@ export default function OnboardingModal({ onComplete }) {
                             ))}
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
-                            This color will be used throughout your journal
+                            This color will be used throughout your jotter
                         </p>
                     </div>
 
@@ -202,7 +202,7 @@ export default function OnboardingModal({ onComplete }) {
                                     >
                                         <Sparkles size={20} />
                                     </motion.div>
-                                    <span>Setting up your journal...</span>
+                                    <span>Setting up your jotter...</span>
                                 </motion.div>
                             ) : (
                                 <motion.div
@@ -212,7 +212,7 @@ export default function OnboardingModal({ onComplete }) {
                                     exit={{ opacity: 0 }}
                                     className="flex items-center space-x-2"
                                 >
-                                    <span>Continue to Your Journal</span>
+                                    <span>Continue to Your Jotter</span>
                                     <motion.div
                                         animate={{ x: [0, 4, 0] }}
                                         transition={{ duration: 1.5, repeat: Infinity }}

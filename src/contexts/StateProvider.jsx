@@ -24,11 +24,15 @@ import {
   startAuthentication,
 } from '@simplewebauthn/browser';
 import { PIN_STORAGE_KEY, WEBAUTHN_CREDENTIAL_ID_KEY } from '../constants';
+import logger from '../logger.js';
+import { useLoading } from '../components/LoadingProvider.jsx';
+import { useDebounce } from '../hooks/useDebounce.js';
 
 const StateContext = createContext();
 
 export function StateProvider({ children }) {
     const toast = useToaster();
+    const { startLoading, stopLoading } = useLoading();
 
     // DATA QUERIES - Filter out deleted items
     const allEntries = useLiveQuery(() => 
@@ -82,6 +86,7 @@ export function StateProvider({ children }) {
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
     const [currentView, setCurrentView] = useState('dashboard');
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300); // Debounce search for better performance
     const [filterYear, setFilterYear] = useState('All');
     const [filterMonth, setFilterMonth] = useState('All');
     const [filterTag, setFilterTag] = useState('All');
@@ -98,15 +103,16 @@ export function StateProvider({ children }) {
         try {
             const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
             const storedCredentialId = localStorage.getItem(WEBAUTHN_CREDENTIAL_ID_KEY);
+
+            // Load stored PIN data
             if (storedPin) {
                 setAppPin(storedPin);
-                setIsLocked(true);
-            } else {
-                setIsLocked(false);
             }
             if (storedCredentialId) {
                 setBiometricCredentialId(storedCredentialId);
             }
+
+            // Don't set lock state here - wait for settings to load
             setCheckingPin(false);
 
             const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -119,7 +125,7 @@ export function StateProvider({ children }) {
                     setIsAnonymous(true);
                     setCurrentUser(null);
                     // Data clearing will be handled in DataContext
-                    signInAnonymously(auth).catch((error) => { console.error("Auth error:", error); });
+                    signInAnonymously(auth).catch((error) => { logger.error("Auth error:", error); });
                 }
             });
 
@@ -127,10 +133,26 @@ export function StateProvider({ children }) {
                 unsubscribeAuth();
             };
         } catch (error) {
-            console.error("Initial setup error:", error);
+            logger.error("Initial setup error:", error);
             setCheckingPin(false);
         }
     }, []);
+
+    // Effect to check PIN locking after both PIN data and settings are available
+    useEffect(() => {
+        if (checkingPin) return; // Still loading initial data
+        if (localSettings === null) return; // Still loading settings
+
+        const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
+
+        // CRITICAL: Never lock users who haven't completed setup
+        // Only lock if settings exist AND user has completed setup AND has a PIN
+        if (localSettings && localSettings.hasCompletedSetup === true && storedPin) {
+            setIsLocked(true);
+        } else {
+            setIsLocked(false);
+        }
+    }, [checkingPin, localSettings]);
 
     // Cleanup orphaned deleted entries on mount
     useEffect(() => {
@@ -146,7 +168,7 @@ export function StateProvider({ children }) {
                     await Promise.all(deletedEntries.map(entry => db.entries.delete(entry.id)));
                 }
             } catch (error) {
-                console.error("Error cleaning up deleted entries:", error);
+                logger.error("Error cleaning up deleted entries:", error);
             }
         };
         
@@ -155,26 +177,35 @@ export function StateProvider({ children }) {
 
 
 
+    // Initialize settings only if they don't exist
+    // This runs once and checks if settings need initialization
     useEffect(() => {
         const initializeSettings = async () => {
-            const existingSettings = await dbGetSettings();
-            if (!existingSettings) {
-                const defaultSettings = {
-                    id: 1,
-                    username: 'Curious User',
-                    profilePicUrl: '',
-                    themeColor: '#14b8a6',
-                    fontFamily: 'var(--font-sans)',
-                    themeMode: 'system',
-                    fontSize: '16px',
-                    updatedAt: new Date()
-                };
-                await dbSaveSettings(defaultSettings);
+            try {
+                const existingSettings = await dbGetSettings();
+                if (!existingSettings) {
+                    const defaultSettings = {
+                        id: 1,
+                        username: 'Curious User',
+                        profilePicUrl: '',
+                        themeColor: '#14b8a6',
+                        fontFamily: 'var(--font-sans)',
+                        themeMode: 'system',
+                        fontSize: '16px',
+                        updatedAt: new Date()
+                    };
+                    await dbSaveSettings(defaultSettings);
+                }
+            } catch (error) {
+                logger.error('Error initializing settings:', error);
             }
         };
 
-        initializeSettings();
-    }, []);
+        // Only initialize if localSettings hasn't loaded yet or is undefined
+        if (localSettings === null || localSettings === undefined) {
+            initializeSettings();
+        }
+    }, []); // Run only once on mount
 
     const availableYears = useMemo(() => {
         if (!allEntries) return [];
@@ -193,7 +224,7 @@ export function StateProvider({ children }) {
 
     const filteredEntries = useMemo(() => {
         if (!allEntries) return [];
-        const lowerSearchTerm = searchTerm.toLowerCase();
+        const lowerSearchTerm = debouncedSearchTerm.toLowerCase(); // Use debounced value
         return allEntries
             .filter(entry => {
                 const typeMatch = filterType === 'All' || (entry.type || 'note') === filterType;
@@ -220,7 +251,7 @@ export function StateProvider({ children }) {
                 let timeB = b.updatedAt?.getTime() || 0;
                 return timeB - timeA;
             });
-    }, [allEntries, searchTerm, filterYear, filterMonth, filterTag, filterType]);
+    }, [allEntries, debouncedSearchTerm, filterYear, filterMonth, filterTag, filterType]);
 
     const onThisDayEntries = useMemo(() => {
         if (!allEntries) return [];
@@ -277,7 +308,7 @@ export function StateProvider({ children }) {
                 }
             }
         } catch (error) {
-            console.error("Error linking account:", error);
+            logger.error("Error linking account:", error);
             if (error.code === 'auth/credential-already-in-use') {
                  toast.error("This Google account is already in use.");
             } else { toast.error("Error linking account."); }
@@ -299,7 +330,7 @@ export function StateProvider({ children }) {
                  toast.error("Please link your account in Settings first.");
             }
          } catch (error) {
-              console.error("Error during PIN reset sign-in:", error);
+              logger.error("Error during PIN reset sign-in:", error);
               toast.error("Could not verify your identity.");
          }
     }, [toast, setIsLocked]);
@@ -335,7 +366,7 @@ export function StateProvider({ children }) {
             try {
                 attestation = await startRegistration(options);
             } catch (error) {
-                console.error("WebAuthn registration failed:", error);
+                logger.error("WebAuthn registration failed:", error);
                 if (error.name === 'NotAllowedError') {
                     toast.error("Biometric registration was cancelled.");
                 } else if (error.name === 'NotSupportedError') {
@@ -364,7 +395,7 @@ export function StateProvider({ children }) {
             toast.success("Biometrics enabled!");
 
         } catch (error) {
-            console.error("Error during biometric registration:", error);
+            logger.error("Error during biometric registration:", error);
             
             // Provide more specific error messages
             let errorMessage = "Failed to register biometric.";
@@ -379,7 +410,7 @@ export function StateProvider({ children }) {
             }
             
             toast.error(errorMessage);
-            console.error("Detailed error:", JSON.stringify(error, null, 2));
+            logger.error("Detailed error:", JSON.stringify(error, null, 2));
         }
     }, [appPin, unlockedKey, localSettings, userId, toast, functions]);
 
@@ -390,7 +421,7 @@ export function StateProvider({ children }) {
             setBiometricCredentialId(null);
             toast.success("Biometrics disabled.");
         } catch (error) {
-            console.error("Error disabling biometric:", error);
+            logger.error("Error disabling biometric:", error);
             toast.error("Failed to disable biometrics.");
         }
     }, [localSettings, toast]);
@@ -409,7 +440,7 @@ export function StateProvider({ children }) {
             } catch (error) {
                 // Handle case where credential doesn't exist on server anymore
                 if (error.code === 'failed-precondition' && error.message.includes('No registered credentials')) {
-                    console.warn('Biometric credential not found on server, clearing local data');
+                    logger.warn('Biometric credential not found on server, clearing local data');
                     await handleDisableBiometric();
                     return false;
                 }
@@ -421,10 +452,10 @@ export function StateProvider({ children }) {
             try {
                 assertion = await startAuthentication(options);
             } catch (error) {
-                console.error("WebAuthn authentication failed:", error);
+                logger.error("WebAuthn authentication failed:", error);
                 // Don't show error for user cancellation - just fall back to PIN
                 if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
-                    console.warn("Biometric authentication failed with error:", error.name);
+                    logger.warn("Biometric authentication failed with error:", error.name);
                 }
                 return false;
             }
@@ -434,7 +465,7 @@ export function StateProvider({ children }) {
             const { data: verification } = await verifyAuth(assertion);
 
             if (!verification.verified) {
-                console.error("Server verification failed for biometric login");
+                logger.error("Server verification failed for biometric login");
                 return false;
             }
 
@@ -446,11 +477,11 @@ export function StateProvider({ children }) {
                     return true;
                 }
             } catch (error) {
-                console.error("Failed to decrypt PIN with biometric credential:", error);
+                logger.error("Failed to decrypt PIN with biometric credential:", error);
                 return false;
             }
         } catch (error) {
-            console.error("Error during biometric authentication:", error);
+            logger.error("Error during biometric authentication:", error);
             return false;
         }
         return false;
@@ -536,6 +567,9 @@ export function StateProvider({ children }) {
             toast.error("You must be logged in to save.");
             return null;
         }
+        
+        startLoading('saveEntry', 'Saving entry...');
+        
         try {
             const newEntry = {
                 id: nanoid(),
@@ -551,13 +585,16 @@ export function StateProvider({ children }) {
                 setActiveEntryId(newEntry.id);
                 setIsCreating(false);
             }
+            toast.success("Entry saved successfully!");
             return newEntry.id;
         } catch (error) {
-            console.error("Error saving new entry locally:", error);
-            toast.error("Failed to save entry.");
+            logger.error("Error saving new entry locally:", error);
+            toast.error("Failed to save entry. Please try again.");
             return null;
+        } finally {
+            stopLoading('saveEntry');
         }
-    }, [userId, isCreating, toast]);
+    }, [userId, isCreating, toast, startLoading, stopLoading]);
 
     const handleUpdateEntry = useCallback(async (id, updates) => {
         if (!userId) {
@@ -575,7 +612,7 @@ export function StateProvider({ children }) {
             setIsEditorDirty(false);
         }
         catch (error) {
-            console.error("Local update error:", error);
+            logger.error("Local update error:", error);
             toast.error("Failed to update entry.");
         }
     }, [userId, toast]);
@@ -585,6 +622,9 @@ export function StateProvider({ children }) {
             toast.error("You must be logged in to delete.");
             return;
         }
+        
+        startLoading('deleteEntry', 'Deleting entry...');
+        
         try {
             // Clear active entry if it's the one being deleted
             if (activeEntryId === id) { 
@@ -605,10 +645,12 @@ export function StateProvider({ children }) {
                 updatedAt: new Date() 
             });
             
-            toast.success("Entry deleted.");
+            toast.success("Entry deleted successfully!");
         } catch (error) {
-            console.error("Local delete error:", error);
-            toast.error("Failed to delete entry.");
+            logger.error("Local delete error:", error);
+            toast.error("Failed to delete entry. Please try again.");
+        } finally {
+            stopLoading('deleteEntry');
         }
     }, [userId, activeEntryId, toast]);
 
@@ -630,7 +672,7 @@ export function StateProvider({ children }) {
             await db.reminders.add(newReminder);
             toast.success("Reminder set!");
         } catch (error) { 
-            console.error("Error adding reminder locally:", error); 
+            logger.error("Error adding reminder locally:", error); 
             toast.error("Failed to set reminder.");
         }
     }, [userId, toast]);
@@ -643,7 +685,7 @@ export function StateProvider({ children }) {
             toast.success("Reminder deleted.");
         }
         catch (error) { 
-            console.error("Error deleting reminder locally:", error); 
+            logger.error("Error deleting reminder locally:", error); 
             toast.error("Failed to delete reminder.");
         }
     }, [userId, toast]);
@@ -663,7 +705,7 @@ export function StateProvider({ children }) {
             await db.goals.add(newGoal);
             toast.success("Goal added!");
         } catch (error) {
-            console.error("Error adding goal:", error);
+            logger.error("Error adding goal:", error);
             toast.error("Failed to add goal.");
         }
     }, [userId, toast]);
@@ -676,7 +718,7 @@ export function StateProvider({ children }) {
             await db.goals.put({ id: goalId, isDeleted: true, isSynced: false, updatedAt: new Date() });
             toast.success("Goal deleted.");
         } catch (error) {
-            console.error("Error deleting goal:", error);
+            logger.error("Error deleting goal:", error);
             toast.error("Failed to delete goal.");
         }
     }, [userId, toast]);
@@ -687,7 +729,7 @@ export function StateProvider({ children }) {
             await db.goals.update(goalId, { status, updatedAt: new Date(), isSynced: false });
             toast.success("Goal status updated.");
         } catch (error) {
-            console.error("Error updating goal status:", error);
+            logger.error("Error updating goal status:", error);
             toast.error("Failed to update status.");
         }
     }, [userId, toast]);
@@ -706,7 +748,7 @@ export function StateProvider({ children }) {
             await db.tasks.add(newTask);
             await db.goals.update(goalId, { updatedAt: new Date(), isSynced: false });
         } catch (error) {
-            console.error("Error adding task:", error);
+            logger.error("Error adding task:", error);
             toast.error("Failed to add task.");
         }
     }, [userId, toast]);
@@ -718,7 +760,7 @@ export function StateProvider({ children }) {
             await db.tasks.put({ id: taskId, isDeleted: true, isSynced: false, updatedAt: new Date() });
         }
         catch (error) { 
-            console.error("Error deleting task:", error); 
+            logger.error("Error deleting task:", error); 
             toast.error("Failed to delete task.");
         }
     }, [userId, toast]);
@@ -729,7 +771,7 @@ export function StateProvider({ children }) {
             await db.tasks.update(taskId, { completed, isSynced: false }); 
         }
         catch (error) { 
-            console.error("Error toggling task:", error); 
+            logger.error("Error toggling task:", error); 
             toast.error("Failed to update task.");
         }
     }, [userId, toast]);
@@ -754,7 +796,7 @@ export function StateProvider({ children }) {
             await db.vaultItems.add(newItem);
             toast.success("Vault item saved!");
         } catch (error) {
-            console.error("Error saving vault item:", error);
+            logger.error("Error saving vault item:", error);
             toast.error("Failed to save item.");
         }
     }, [userId, unlockedKey, toast]);
@@ -766,7 +808,7 @@ export function StateProvider({ children }) {
             await db.vaultItems.put({ id: id, isDeleted: true, isSynced: false, updatedAt: new Date() });
             toast.success("Vault item deleted.");
         } catch (error) {
-            console.error("Error deleting vault item:", error);
+            logger.error("Error deleting vault item:", error);
             toast.error("Failed to delete item.");
         }
     }, [userId, toast]);
@@ -793,7 +835,9 @@ export function StateProvider({ children }) {
     }, [toast]);
 
     const handleOnboardingComplete = useCallback(async (username, themeColor) => {
+        const existingSettings = localSettings || {};
         const newSettings = {
+            ...existingSettings,
             username: username,
             themeColor: themeColor,
             fontFamily: "var(--font-sans)",
@@ -806,7 +850,7 @@ export function StateProvider({ children }) {
             await dbSaveSettings(newSettings);
             toast.success(`Welcome, ${username}!`);
         } catch (error) {
-            console.error("Error saving onboarding settings:", error);
+            logger.error("Error saving onboarding settings:", error);
             toast.error("Could not save settings.");
         }
     }, [toast]);
@@ -831,7 +875,7 @@ export function StateProvider({ children }) {
             setThemeFont(setupData.themeFont);
             toast.success(`Welcome, ${setupData.username}! 🎉`);
         } catch (error) {
-            console.error("Error saving initial setup:", error);
+            logger.error("Error saving initial setup:", error);
             toast.error("Could not save settings.");
         }
     }, [toast, setThemeMode, setThemeColor, setThemeFont]);
@@ -938,7 +982,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
                 // Title page
                 doc.setFontSize(24);
                 doc.setTextColor(0, 0, 0);
-                doc.text('Curiosity Journal Export', margin, yPosition);
+                doc.text('Curiosity Export', margin, yPosition);
                 yPosition += 20;
 
                 doc.setFontSize(12);
@@ -1080,7 +1124,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
                 doc.save(`${filename}.pdf`);
             }
         } catch (error) {
-            console.error(`Error exporting data as ${format}:`, error);
+            logger.error(`Error exporting data as ${format}:`, error);
             toast.error(`Failed to export as ${format.toUpperCase()}.`);
         }
     }, [localSettings, allEntries, remindersData, goals, tasks, downloadFile, toast]);
@@ -1125,7 +1169,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
                 setIsAppInstalled(true);
             }
         } catch (error) { 
-            console.error("Error showing install prompt:", error); 
+            logger.error("Error showing install prompt:", error); 
             toast.error("App installation failed.");
         }
     }, [installPromptEvent, toast]);
@@ -1147,7 +1191,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
             }
             return permission;
         } catch (error) {
-            console.error('Error requesting notification permission:', error);
+            logger.error('Error requesting notification permission:', error);
             toast.error('Error enabling notifications.');
             return Notification?.permission || 'default';
         }
@@ -1175,7 +1219,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
                     try {
                         await db.reminders.update(reminder.id, { notified: true, isSynced: false, updatedAt: new Date() });
                     } catch (error) {
-                        console.error('Error updating reminder:', error);
+                        logger.error('Error updating reminder:', error);
                     }
                 }
             }
@@ -1233,7 +1277,7 @@ function useDataSync(userId, toast) {
                 await db.open();
                 localItems = await localStore.toCollection().filter(item => item.isSynced === false).toArray();
             } catch (e) {
-                console.error(`Dexie query failed for ${collectionRefName}:`, e);
+                logger.error(`Dexie query failed for ${collectionRefName}:`, e);
                 return;
             }
 
@@ -1261,7 +1305,7 @@ function useDataSync(userId, toast) {
                         await setDoc(docRef, fsData, { merge: true });
                         await localStore.update(item.id, { isSynced: true });
                     }
-                } catch (e) { console.error(`Error syncing item ${item.id} to ${collectionRefName}:`, e); }
+                } catch (e) { logger.error(`Error syncing item ${item.id} to ${collectionRefName}:`, e); }
             }
         };
 
@@ -1278,7 +1322,7 @@ function useDataSync(userId, toast) {
                         updatedAt: serverTimestamp()
                     }, { merge: true });
                 }
-            } catch (e) { console.error("Error syncing settings:", e); }
+            } catch (e) { logger.error("Error syncing settings:", e); }
 
             try {
                 await Promise.all([
@@ -1289,7 +1333,7 @@ function useDataSync(userId, toast) {
                     syncCollection(db.vaultItems, 'vaultItems')
                 ]);
             } catch (err) {
-                 console.error("Error during sync collections:", err);
+                 logger.error("Error during sync collections:", err);
             }
 
             isSyncing = false;
@@ -1326,10 +1370,10 @@ function useDataSync(userId, toast) {
                         }
                     });
                 } catch (error) {
-                    console.error(`Error syncing ${collectionRefName} to local:`, error);
+                    logger.error(`Error syncing ${collectionRefName} to local:`, error);
                 }
             }, (error) => {
-                console.error(`Error on snapshot for ${collectionRefName}:`, error);
+                logger.error(`Error on snapshot for ${collectionRefName}:`, error);
                 toast.error("Error syncing data from cloud.");
             });
             return unsubscribe;
@@ -1351,11 +1395,11 @@ function useDataSync(userId, toast) {
                              await db.settings.put(localData);
                          }
                     } catch (error) {
-                        console.error("Error syncing settings to local:", error);
+                        logger.error("Error syncing settings to local:", error);
                     }
                 }
              }, (error) => {
-                console.error("Error on settings snapshot:", error);
+                logger.error("Error on settings snapshot:", error);
                 toast.error("Error syncing settings from cloud.");
             });
             return unsubscribe;

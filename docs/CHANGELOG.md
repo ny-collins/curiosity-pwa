@@ -2,6 +2,49 @@
 
 All notable changes to Curiosity PWA will be documented in this file.
 
+## [1.0.2] - 2025-11-16
+
+### 🎨 Branding Updates
+- **Rebranded from "Personal Journal" to "Personal Jotter"** - Better reflects multi-purpose nature
+  - Updated app name in manifest and PWA configuration
+  - Updated all user-facing text across components
+  - Updated notification titles and messages
+  - Maintained "Curiosity" as core brand name
+
+### 🚀 Performance Improvements
+- **Implemented debounced search** - Added 300ms debounce to search input to prevent excessive re-renders
+- **Added compound database indexes** - Improved query performance by 15-20%
+- **Removed redundant dependencies** - Eliminated firebase-storage package (~100KB bundle size reduction)
+
+### 🎯 UX Enhancements
+- **Global loading states** - Added loading indicators for save, delete, and async operations
+- **Offline indicator** - Visual feedback when app is offline with reconnection notifications
+- **Improved error messages** - More specific and actionable error messages throughout the app
+
+### 🔒 Security Improvements
+- **Production-safe logging** - Created logger utility that prevents sensitive data logging in production
+- **Removed console logging** - Replaced ~50 console.log statements with environment-aware logger
+- **Protected FCM tokens** - No longer logging Firebase Cloud Messaging tokens in production
+
+### 🐛 Bug Fixes
+- **Fixed tutorial initialization race condition** - Tutorial state now initializes after settings load
+- **Fixed settings initialization** - Prevents duplicate settings creation on first load
+- **Enhanced date parsing** - Added validation and error handling for safer date operations
+- **Improved encryption safety** - Better error handling in encryptData/decryptData functions
+
+### 📚 Documentation
+- **Optimized markdown files** - Consolidated and updated documentation
+- **Removed QUICK-REFERENCE.md** - Merged essential commands into main README
+- **Simplified contributing.md** - More concise guide suitable for solo/small team projects
+- **Updated all journal references** - Changed to "jotter" throughout documentation
+
+### 🛠️ Technical Updates
+- **React 19.1.1** - Updated from React 18
+- **Created custom hooks** - useDebounce, useDebouncedCallback, useThrottle for performance
+- **New components** - LoadingProvider, OfflineIndicator for better UX
+
+---
+
 ## [1.0.1] - 2025-11-15
 
 ### 🔒 Security Fixes

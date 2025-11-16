@@ -11,7 +11,7 @@ Curiosity PWA follows a modern, scalable architecture designed for performance, 
 │   Frontend      │    │   Firebase      │    │   Cloud         │
 │   (React PWA)   │◄──►│   Functions     │◄──►│   Functions     │
 │                 │    │                 │    │                 │
-│ • React 18      │    │ • WebAuthn Auth  │    │ • Data Processing│
+│ • React 19      │    │ • WebAuthn Auth  │    │ • Data Processing│
 │ • Vite          │    │ • Business Logic │    │ • Scheduled Jobs │
 │ • TailwindCSS   │    │ • API Endpoints  │    │                 │
 │ • Service Worker│    │                 │    └─────────────────┘

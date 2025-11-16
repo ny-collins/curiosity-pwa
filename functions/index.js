@@ -313,3 +313,179 @@ exports.deleteAllUserData = functions.https.onCall(async (data, context) => {
     );
   }
 });
+
+// Push Notification Functions
+exports.sendPushNotification = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "You must be logged in to send notifications."
+      );
+    }
+
+    const { title, body, icon, badge, tag, url, userId } = data;
+
+    if (!title || !body) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Title and body are required."
+      );
+    }
+
+    try {
+      // Get user's FCM token from Firestore
+      const userDoc = await db.collection("users").doc(userId || context.auth.uid).get();
+      const userData = userDoc.data();
+
+      if (!userData || !userData.fcmToken) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "User has not enabled push notifications."
+        );
+      }
+
+      const message = {
+        token: userData.fcmToken,
+        notification: {
+          title: title,
+          body: body,
+        },
+        webpush: {
+          fcmOptions: {
+            link: url || "https://curiosity-pwa.web.app"
+          },
+          notification: {
+            icon: icon || "/icons/icon-192x192.png",
+            badge: badge || "/icons/icon-72x72.png",
+            tag: tag || "curiosity-notification",
+            requireInteraction: true,
+            actions: [
+              {
+                action: "view",
+                title: "View"
+              },
+              {
+                action: "dismiss",
+                title: "Dismiss"
+              }
+            ]
+          }
+        },
+        data: {
+          url: url || "https://curiosity-pwa.web.app",
+          tag: tag || "curiosity-notification"
+        }
+      };
+
+      const response = await admin.messaging().send(message);
+      console.log("Notification sent successfully:", response);
+
+      return { success: true, messageId: response };
+    } catch (error) {
+      console.error("Error sending push notification:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        "Failed to send push notification."
+      );
+    }
+  }
+);
+
+// Update user's FCM token
+exports.updateFCMToken = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "You must be logged in to update FCM token."
+      );
+    }
+
+    const { fcmToken } = data;
+
+    if (!fcmToken) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "FCM token is required."
+      );
+    }
+
+    try {
+      await db.collection("users").doc(context.auth.uid).update({
+        fcmToken: fcmToken,
+        notificationsEnabled: true,
+        fcmTokenUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      console.log(`FCM token updated for user ${context.auth.uid}`);
+      return { success: true };
+    } catch (error) {
+      console.error("Error updating FCM token:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        "Failed to update FCM token."
+      );
+    }
+  }
+);
+
+// Scheduled function to send reminder notifications (runs daily)
+exports.sendDailyReminders = functions.pubsub
+  .schedule("0 9 * * *") // 9 AM daily
+  .timeZone("America/New_York")
+  .onRun(async (context) => {
+    try {
+      // Get all users who have enabled notifications
+      const usersSnapshot = await db.collection("users")
+        .where("notificationsEnabled", "==", true)
+        .get();
+
+      const notifications = [];
+
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+
+        if (userData.fcmToken) {
+          // Check if user has any pending goals or reminders
+          const goalsSnapshot = await db.collection("users")
+            .doc(userDoc.id)
+            .collection("goals")
+            .where("completed", "==", false)
+            .limit(1)
+            .get();
+
+          if (!goalsSnapshot.empty) {
+            notifications.push({
+              token: userData.fcmToken,
+              notification: {
+                title: "Curiosity",
+                body: "Don't forget to work on your goals today! 💪"
+              },
+              webpush: {
+                notification: {
+                  icon: "/icons/icon-192x192.png",
+                  badge: "/icons/icon-72x72.png",
+                  tag: "daily-reminder",
+                  requireInteraction: false
+                }
+              }
+            });
+          }
+        }
+      }
+
+      if (notifications.length > 0) {
+        const responses = await Promise.allSettled(
+          notifications.map(notification => admin.messaging().send(notification))
+        );
+
+        console.log(`Sent ${responses.filter(r => r.status === 'fulfilled').length} daily reminder notifications`);
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error sending daily reminders:", error);
+      return null;
+    }
+  });

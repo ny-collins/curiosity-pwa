@@ -4,6 +4,7 @@ import { Plus, Search, X, Calendar, List, Tag, SlidersHorizontal, BookOpen, Chec
 import { useAppState } from '../contexts/StateProvider';
 import { format, formatDistanceToNow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ENTRY_TYPES, getEntryType } from '../constants';
+import logger from '../logger';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June', 
@@ -23,7 +24,7 @@ const EntryCard = ({ entry, onSelect, onDelete }) => {
             const dateObj = typeof date === 'string' ? parseISO(date) : date;
             formattedDate = formatDistanceToNow(dateObj, { addSuffix: true });
         } catch (error) {
-            console.warn("Could not parse date:", date, error);
+            logger.warn("Could not parse date:", date, error);
         }
     }
     
@@ -112,7 +113,7 @@ const EntryListItem = ({ entry, onSelect, onDelete }) => {
             const dateObj = typeof date === 'string' ? parseISO(date) : date;
             formattedDate = format(dateObj, 'MMM d, yyyy');
         } catch (error) {
-            console.warn("Could not parse date:", date, error);
+            logger.warn("Could not parse date:", date, error);
         }
     }
 
@@ -549,7 +550,7 @@ export default function EntryList() {
                                 </h3>
                                 <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
                                     {filteredEntries && filteredEntries.length === 0
-                                        ? 'Your journal is empty or no entries match your filters.'
+                                        ? 'Your jotter is empty or no entries match your filters.'
                                         : 'Start writing to see your entries here!'
                                     }
                                 </p>

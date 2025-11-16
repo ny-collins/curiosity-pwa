@@ -1,131 +1,259 @@
-# Contributing Guide
+# Contributing Guide# Contributing Guide
 
-Thank you for your interest in contributing to Curiosity PWA! This guide will help you get started with development, understand our processes, and make meaningful contributions to the project.
 
-## Code of Conduct
 
-### Our Standards
-We are committed to providing a welcoming and inclusive environment for all contributors. Please:
+Thank you for your interest in contributing to Curiosity PWA! This guide will help you get started.Thank you for your interest in contributing to Curiosity PWA! This guide will help you get started with development, understand our processes, and make meaningful contributions to the project.
 
-- **Be Respectful**: Treat all contributors with respect and kindness
-- **Be Inclusive**: Welcome contributors from all backgrounds and skill levels
-- **Be Collaborative**: Work together to solve problems and improve the codebase
-- **Be Patient**: Understand that not everyone has the same context or experience
 
-### Unacceptable Behavior
-- Harassment, discrimination, or offensive comments
-- Personal attacks or trolling
-- Spam or off-topic content
-- Sharing private information without consent
 
-## Getting Started
+## Quick Start## Code of Conduct
 
-### Prerequisites
-- Node.js 18+ and npm
+
+
+### Prerequisites### Our Standards
+
+- Node.js 18+We are committed to providing a welcoming and inclusive environment for all contributors. Please:
+
 - Git
+
+- Firebase CLI- **Be Respectful**: Treat all contributors with respect and kindness
+
+- Basic knowledge of React and Firebase- **Be Inclusive**: Welcome contributors from all backgrounds and skill levels
+
+- **Be Collaborative**: Work together to solve problems and improve the codebase
+
+### Development Setup- **Be Patient**: Understand that not everyone has the same context or experience
+
+```bash
+
+# Fork and clone the repository### Unacceptable Behavior
+
+git clone https://github.com/your-username/curiosity-pwa.git- Harassment, discrimination, or offensive comments
+
+cd curiosity-pwa- Personal attacks or trolling
+
+- Spam or off-topic content
+
+# Install dependencies- Sharing private information without consent
+
+npm install
+
+cd functions && npm install && cd ..## Getting Started
+
+
+
+# Start development server### Prerequisites
+
+npm run dev- Node.js 18+ and npm
+
+```- Git
+
 - Firebase CLI
-- A code editor (VS Code recommended)
+
+## Development Workflow- A code editor (VS Code recommended)
+
 - Basic knowledge of React, Firebase, and modern web development
 
-### Development Setup
-1. **Fork the repository** on GitHub
-2. **Clone your fork** locally
+### 1. Create a Branch
+
+```bash### Development Setup
+
+# For new features1. **Fork the repository** on GitHub
+
+git checkout -b feature/your-feature-name2. **Clone your fork** locally
+
 3. **Set up the development environment** (see [Setup Guide](./setup.md))
-4. **Create a feature branch** for your changes
 
-```bash
+# For bug fixes4. **Create a feature branch** for your changes
+
+git checkout -b fix/issue-description
+
+``````bash
+
 git clone https://github.com/your-username/curiosity-pwa.git
-cd curiosity-pwa
-npm install
-cd functions && npm install && cd ..
-npm run dev
-```
 
-## Development Workflow
+### 2. Make Changescd curiosity-pwa
 
-### 1. Choose an Issue
-- Check [GitHub Issues](https://github.com/ny-collins/curiosity-pwa/issues) for open tasks
+- Write clear, concise commit messagesnpm install
+
+- Follow the existing code style (React 19, Tailwind CSS)cd functions && npm install && cd ..
+
+- Test your changes thoroughlynpm run dev
+
+- Update documentation as needed```
+
+
+
+### 3. Test Your Changes## Development Workflow
+
+```bash
+
+# Run linting### 1. Choose an Issue
+
+npm run lint- Check [GitHub Issues](https://github.com/ny-collins/curiosity-pwa/issues) for open tasks
+
 - Look for issues labeled `good first issue` or `help wanted`
-- Comment on the issue to indicate you're working on it
 
-### 2. Create a Branch
-```bash
-# Create and switch to a feature branch
-git checkout -b feature/your-feature-name
+# Build the project- Comment on the issue to indicate you're working on it
 
-# Or for bug fixes
-git checkout -b fix/issue-number-description
-```
-
-### 3. Make Changes
-- Write clear, concise commit messages
-- Follow the existing code style and patterns
-- Add tests for new functionality
-- Update documentation as needed
-
-### 4. Test Your Changes
-```bash
-# Run the test suite
-npm test
-
-# Run linting
-npm run lint
-
-# Build the project
 npm run build
 
-# Test with Firebase emulator
-firebase emulators:start
-```
+### 2. Create a Branch
 
-### 5. Submit a Pull Request
-- Push your branch to your fork
-- Create a Pull Request with a clear description
+# Test manually```bash
+
+npm run dev# Create and switch to a feature branch
+
+```git checkout -b feature/your-feature-name
+
+
+
+### 4. Submit a Pull Request# Or for bug fixes
+
+- Push your branch to your forkgit checkout -b fix/issue-number-description
+
+- Create a Pull Request with a clear description```
+
 - Reference any related issues
+
+- Wait for review### 3. Make Changes
+
+- Write clear, concise commit messages
+
+## Code Style- Follow the existing code style and patterns
+
+- Add tests for new functionality
+
+### JavaScript/React- Update documentation as needed
+
+- Use modern ES6+ syntax
+
+- Functional components with hooks### 4. Test Your Changes
+
+- Follow React 19 best practices```bash
+
+# Run the test suite
+
+### CSS/Tailwindnpm test
+
+- Use Tailwind utility classes
+
+- Maintain responsive design# Run linting
+
+- Follow dark mode compatibilitynpm run lint
+
+
+
+### File Structure# Build the project
+
+```npm run build
+
+src/
+
+├── components/       # React components# Test with Firebase emulator
+
+├── contexts/         # Context providersfirebase emulators:start
+
+├── hooks/            # Custom hooks```
+
+├── utils/            # Utility functions
+
+└── constants.js      # App constants### 5. Submit a Pull Request
+
+```- Push your branch to your fork
+
+- Create a Pull Request with a clear description
+
+## Commit Message Format- Reference any related issues
+
 - Wait for review and address feedback
 
-## Code Style & Standards
+```
 
-### JavaScript/React
-- Use modern ES6+ syntax
-- Follow [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript)
-- Use functional components and hooks
-- Prefer TypeScript for new components (optional but encouraged)
+type(scope): brief description## Code Style & Standards
 
-### CSS/Tailwind
+
+
+Examples:### JavaScript/React
+
+feat(editor): add markdown preview- Use modern ES6+ syntax
+
+fix(auth): resolve PIN lock issue- Follow [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript)
+
+docs(readme): update installation steps- Use functional components and hooks
+
+style(ui): improve button spacing- Prefer TypeScript for new components (optional but encouraged)
+
+refactor(db): optimize query performance
+
+```### CSS/Tailwind
+
 - Use Tailwind utility classes
-- Follow component-based CSS architecture
+
+## Areas for Contribution- Follow component-based CSS architecture
+
 - Use CSS custom properties for theming
-- Maintain responsive design principles
 
-### Git Commit Messages
-Follow conventional commit format:
+### High Priority- Maintain responsive design principles
+
+- Bug fixes and performance improvements
+
+- Accessibility enhancements### Git Commit Messages
+
+- Mobile optimizationFollow conventional commit format:
+
+- Test coverage
 
 ```
-type(scope): description
 
-[optional body]
+### Medium Prioritytype(scope): description
 
-[optional footer]
+- New features (discuss first in Issues)
+
+- Documentation improvements[optional body]
+
+- Code refactoring
+
+- UI/UX enhancements[optional footer]
+
 ```
 
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
+### Low Priority
+
+- Code comments and cleanup**Types:**
+
+- Minor styling tweaks- `feat`: New feature
+
+- Additional themes- `fix`: Bug fix
+
 - `docs`: Documentation changes
-- `style`: Code style changes
+
+## Getting Help- `style`: Code style changes
+
 - `refactor`: Code refactoring
-- `test`: Adding tests
-- `chore`: Maintenance tasks
+
+- **Documentation**: Check the [docs](./README.md) first- `test`: Adding tests
+
+- **GitHub Issues**: For bugs and feature requests- `chore`: Maintenance tasks
+
+- **Pull Requests**: For code contributions
 
 **Examples:**
-```
-feat(auth): add biometric authentication support
-fix(editor): resolve cursor jumping issue
-docs(readme): update installation instructions
-```
 
-### Branch Naming
+## License```
+
+feat(auth): add biometric authentication support
+
+By contributing, you agree that your contributions will be licensed under the MIT License.fix(editor): resolve cursor jumping issue
+
+docs(readme): update installation instructions
+
+---```
+
+
+
+Thank you for making Curiosity better! 🎉### Branch Naming
+
 ```
 feature/feature-name
 fix/issue-number-description

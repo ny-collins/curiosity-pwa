@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react'; // Added useEffect
 // This virtual import is provided by vite-plugin-pwa
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import logger from '../logger';
 // Icons are no longer needed as the prompt is not rendered
 // import { X, RefreshCw } from 'lucide-react';
 
@@ -11,7 +12,7 @@ function ReloadPrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisterError(error) {
-      console.error('PWA Service Worker registration error:', error);
+      logger.error('PWA Service Worker registration error:', error);
     },
   });
 

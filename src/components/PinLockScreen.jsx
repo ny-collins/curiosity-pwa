@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Fingerprint, Delete } from 'lucide-react';
 import { LIMITS } from '../constants.js';
 import { useAppState } from '../contexts/StateProvider';
+import logger from '../logger';
 
 const PinDigit = ({ hasValue }) => {
     return (
@@ -50,7 +51,7 @@ export default function PinLockScreen({ onUnlock, onForgotPin, checkPin }) {
 
     const handleSubmit = useCallback(async () => {
         if (!checkPin) {
-            console.error("checkPin function not provided to PinLockScreen");
+            logger.error("checkPin function not provided to PinLockScreen");
             setError(true);
             setTimeout(() => setPin(''), 500);
             return;

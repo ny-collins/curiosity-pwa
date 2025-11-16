@@ -3,12 +3,12 @@ import Dexie from 'dexie';
 export const db = new Dexie('CuriosityDB_v5');
 
 db.version(1).stores({
-  entries: 'id, title, content, type, createdAt, updatedAt, *tags, isSynced',
-  reminders: 'id, text, date, createdAt, isSynced',
+  entries: 'id, title, content, type, createdAt, updatedAt, *tags, isSynced, [type+createdAt], [isSynced+updatedAt]',
+  reminders: 'id, text, date, createdAt, isSynced, [isSynced+date]',
   settings: 'id, username, profilePicUrl, themeColor, fontFamily, themeMode, fontSize, updatedAt',
-  goals: 'id, title, description, status, createdAt, updatedAt, isSynced',
-  tasks: 'id, goalId, text, completed, createdAt, isSynced',
-  vaultItems: 'id, title, type, encryptedData, createdAt, updatedAt, isSynced'
+  goals: 'id, title, description, status, createdAt, updatedAt, isSynced, [status+updatedAt]',
+  tasks: 'id, goalId, text, completed, createdAt, isSynced, [goalId+completed]',
+  vaultItems: 'id, title, type, encryptedData, createdAt, updatedAt, isSynced, [type+createdAt]'
 });
 
 db.open().catch(err => {

@@ -1,7 +1,7 @@
 {
-  "name": "Curiosity - Your Personal Journal",
+  "name": "Curiosity - Your Personal Jotter",
   "short_name": "Curiosity",
-  "description": "A personal journal to document questions, discoveries, and goals with rich text editing and secure storage.",
+  "description": "A personal jotter to document questions, discoveries, goals, and ideas with rich text editing and secure storage.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a", 

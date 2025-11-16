@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, 
     LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper, 
-    Loader2, UserCircle, Palette, Lock, SlidersHorizontal, Database, Fingerprint
+    Loader2, UserCircle, Palette, Lock, SlidersHorizontal, Database, Fingerprint,
+    Bell
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { functions, storage, appId, firestoreDb } from '../firebaseConfig';
@@ -19,6 +20,7 @@ import { THEME_COLORS, FONT_CATEGORIES, THEME_MODES, FONT_SIZES, LIMITS } from '
 const settingsTabs = [
     { id: 'profile', name: 'Profile', icon: UserCircle },
     { id: 'appearance', name: 'Appearance', icon: Palette },
+    { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Security', icon: Lock },
     { id: 'application', name: 'Application', icon: SlidersHorizontal },
     { id: 'data', name: 'Data', icon: Database },
@@ -34,6 +36,8 @@ function SettingsPage() {
                 return <SettingsProfile />;
             case 'appearance':
                 return <SettingsAppearance />;
+            case 'notifications':
+                return <SettingsNotifications />;
             case 'security':
                 return <SettingsSecurity />;
             case 'application':
@@ -90,6 +94,16 @@ function SettingsPage() {
                             onClick={() => setActiveTab('appearance')}
                         >
                             <SettingsAppearance />
+                        </MobileSettingsSection>
+
+                        {/* Notifications Section */}
+                        <MobileSettingsSection
+                            title="Notifications"
+                            icon={Bell}
+                            isActive={activeTab === 'notifications'}
+                            onClick={() => setActiveTab('notifications')}
+                        >
+                            <SettingsNotifications />
                         </MobileSettingsSection>
 
                         {/* Security Section */}
@@ -766,6 +780,110 @@ const SettingsData = () => {
                 />
             )}
         </>
+    );
+};
+
+const SettingsNotifications = () => {
+    const { useNotifications } = require('../components/PushNotificationProvider');
+    const {
+        notificationPermission,
+        notificationsEnabled,
+        isLoading,
+        toggleNotifications,
+        sendTestNotification
+    } = useNotifications();
+
+    return (
+        <div className="max-w-2xl mx-auto space-y-8">
+            <SettingsSection title="Push Notifications">
+                <div className="space-y-6">
+                    {/* Notification Status */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h4 className="font-semibold text-slate-800 dark:text-gray-200">Enable Notifications</h4>
+                            <p className="text-xs text-slate-600 dark:text-gray-400">
+                                Receive notifications even when the app is closed.
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
+                                Status: {notificationPermission === 'granted' ? '✅ Granted' :
+                                        notificationPermission === 'denied' ? '❌ Denied' : '⏳ Not requested'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => toggleNotifications(!notificationsEnabled)}
+                            disabled={isLoading}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                notificationsEnabled
+                                    ? 'bg-primary'
+                                    : 'bg-slate-200 dark:bg-slate-700'
+                            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    notificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                    </div>
+
+                    {/* Test Notification */}
+                    {notificationsEnabled && notificationPermission === 'granted' && (
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <div>
+                                <h4 className="font-semibold text-slate-800 dark:text-gray-200">Test Notification</h4>
+                                <p className="text-xs text-slate-600 dark:text-gray-400">
+                                    Send a test notification to verify everything is working.
+                                </p>
+                            </div>
+                            <button
+                                onClick={sendTestNotification}
+                                className="text-sm bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            >
+                                <BellRing size={16} className="inline mr-2" />
+                                Test
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Permission Instructions */}
+                    {notificationPermission === 'denied' && (
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <div className="flex">
+                                <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                                <div className="ml-3">
+                                    <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                        Notification Permission Denied
+                                    </h4>
+                                    <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                                        <p>To enable notifications, you need to grant permission in your browser settings.</p>
+                                        <p className="mt-1">Look for the notification icon in your browser's address bar and click "Allow".</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Info */}
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex">
+                            <BellRing className="h-5 w-5 text-blue-400" />
+                            <div className="ml-3">
+                                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                    How Push Notifications Work
+                                </h4>
+                                <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                                    <ul className="list-disc list-inside space-y-1">
+                                        <li>Notifications work even when the app is closed or not in focus</li>
+                                        <li>Requires browser permission and internet connection</li>
+                                        <li>Future updates will include reminder notifications and goal progress alerts</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </SettingsSection>
+        </div>
     );
 };
 

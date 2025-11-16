@@ -11,25 +11,36 @@ export function cn(...inputs) {
 
 export function formatTimestamp(ts, short = false) {
     if (!ts) return '';
-    const date = ts.toDate ? ts.toDate() : new Date(ts);
     
-    if (short) {
+    try {
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        
+        // Validate the date
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        
+        if (short) {
+            if (isToday(date)) {
+                return format(date, 'p');
+            }
+            if (isYesterday(date)) {
+                return 'Yesterday';
+            }
+            return format(date, 'MMM d, yyyy');
+        }
+        
         if (isToday(date)) {
-            return format(date, 'p');
+            return `Today at ${format(date, 'p')}`;
         }
         if (isYesterday(date)) {
-            return 'Yesterday';
+            return `Yesterday at ${format(date, 'p')}`;
         }
         return format(date, 'MMM d, yyyy');
+    } catch (error) {
+        console.warn('Error formatting timestamp:', error);
+        return '';
     }
-    
-    if (isToday(date)) {
-        return `Today at ${format(date, 'p')}`;
-    }
-    if (isYesterday(date)) {
-        return `Yesterday at ${format(date, 'p')}`;
-    }
-    return format(date, 'MMM d, yyyy');
 }
 
 export function dateToKey(date) {
@@ -64,6 +75,11 @@ export function stripMarkdown(markdown) {
 }
 
 export function encryptData(data, key) {
+    if (!data || !key) {
+        console.error("Encryption failed: Missing data or key");
+        return null;
+    }
+    
     try {
         return CryptoJS.AES.encrypt(JSON.stringify(data), key).toString();
     } catch (error) {
@@ -73,9 +89,20 @@ export function encryptData(data, key) {
 }
 
 export function decryptData(ciphertext, key) {
+    if (!ciphertext || !key) {
+        console.error("Decryption failed: Missing ciphertext or key");
+        return null;
+    }
+    
     try {
         const bytes = CryptoJS.AES.decrypt(ciphertext, key);
         const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+        
+        if (!decryptedData) {
+            console.error("Decryption failed: Empty result");
+            return null;
+        }
+        
         return JSON.parse(decryptedData);
     } catch (error) {
         console.error("Decryption failed:", error);

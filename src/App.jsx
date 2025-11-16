@@ -19,6 +19,7 @@ import UnsavedChangesModal from './components/UnsavedChangesModal';
 import OnboardingModal from './components/OnboardingModal';
 import InitialSetupModal from './components/InitialSetupModal';
 import InteractiveTutorial from './components/InteractiveTutorial';
+import OfflineIndicator from './components/OfflineIndicator';
 import { db } from './db.js';
 
 const viewVariants = {
@@ -83,10 +84,15 @@ export default function App() {
     }, []);
 
     // Check if user should see tutorial (first time after setup)
-    const [showTutorial, setShowTutorial] = useState(() => {
-        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-        return !hasSeenTutorial && localSettings?.hasCompletedSetup;
-    });
+    // Only initialize after localSettings is loaded to avoid race condition
+    const [showTutorial, setShowTutorial] = useState(false);
+    
+    useEffect(() => {
+        if (localSettings && localSettings.hasCompletedSetup) {
+            const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+            setShowTutorial(!hasSeenTutorial);
+        }
+    }, [localSettings]);
 
     const handleTutorialComplete = () => {
         setShowTutorial(false);
@@ -98,12 +104,12 @@ export default function App() {
         localStorage.setItem('hasSeenTutorial', 'true');
     };
 
-    if (checkingPin || !localSettings || !minSplashTimeElapsed) {
+    if (checkingPin || localSettings === null || !minSplashTimeElapsed) {
         return <SplashScreen />;
     }
 
     // Show initial setup for new users
-    if (!localSettings.hasCompletedSetup) {
+    if (!localSettings || !localSettings.hasCompletedSetup) {
         return <InitialSetupModal onComplete={handleInitialSetup} />;
     }
     
@@ -297,6 +303,7 @@ export default function App() {
             </div>
             
              <ReloadPrompt />
+             <OfflineIndicator />
              
              {showUnsavedModal && (
                 <UnsavedChangesModal

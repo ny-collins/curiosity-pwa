@@ -11,7 +11,7 @@ const TUTORIAL_STEPS = [
     {
         id: 'welcome',
         title: 'Welcome to Curiosity!',
-        description: 'Your personal journaling companion that adapts to your style.',
+        description: 'Your personal jotter that adapts to your style.',
         icon: Sparkles,
         color: '#14b8a6',
         content: {
@@ -27,7 +27,7 @@ const TUTORIAL_STEPS = [
     {
         id: 'create-entry',
         title: 'Creating Your First Entry',
-        description: 'Let\'s create your first journal entry together.',
+        description: 'Let\'s create your first entry together.',
         icon: Edit3,
         color: '#3b82f6',
         content: {

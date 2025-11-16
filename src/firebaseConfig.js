@@ -5,6 +5,7 @@ import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getPerformance } from "firebase/performance";
+import { getMessaging, onMessage, getToken } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -25,6 +26,7 @@ let storage;
 let functions;
 let analytics;
 let performance;
+let messaging;
 
 try {
   app = initializeApp(firebaseConfig);
@@ -47,6 +49,9 @@ try {
 
     // Initialize Performance Monitoring
     performance = getPerformance(app);
+
+    // Initialize Firebase Messaging
+    messaging = getMessaging(app);
   }
 
 } catch (error) {
@@ -64,8 +69,9 @@ try {
         }
       });
       performance = getPerformance(app);
+      messaging = getMessaging(app);
     }
   }
 }
 
-export { db as firestoreDb, auth, app, functions, storage, analytics, performance, GoogleAuthProvider };
+export { db as firestoreDb, auth, app, functions, storage, analytics, performance, messaging, GoogleAuthProvider };

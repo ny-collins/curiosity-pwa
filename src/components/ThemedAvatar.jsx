@@ -1,6 +1,7 @@
 // src/components/ThemedAvatar.jsx
 import React from 'react';
 import { User } from 'lucide-react';
+import logger from '../logger';
 
 function ThemedAvatar({ profilePicUrl, username, className = "w-9 h-9" }) { // Default size
   const initial = (username && username.length > 0) ? username[0].toUpperCase() : '?';
@@ -22,7 +23,7 @@ function ThemedAvatar({ profilePicUrl, username, className = "w-9 h-9" }) { // D
             e.target.onerror = null; 
             // Handle error: Maybe set a flag to render the initial component?
             // For now, let's just log it.
-            console.error("Failed to load profile pic URL:", profilePicUrl);
+            logger.error("Failed to load profile pic URL:", profilePicUrl);
         }}
       />
     );

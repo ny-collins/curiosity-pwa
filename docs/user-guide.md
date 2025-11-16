@@ -1,6 +1,6 @@
 # User Guide
 
-Welcome to Curiosity, your personal knowledge management companion! This guide will help you get started with all the features and make the most of your journaling experience.
+Welcome to Curiosity, your personal knowledge management companion! This guide will help you get started with all the features and make the most of your jotting experience.
 
 ## Getting Started
 
@@ -27,9 +27,9 @@ Welcome to Curiosity, your personal knowledge management companion! This guide w
 
 ### 📝 Creating Entries
 
-#### Journal Entries
-1. Tap the **+** button or "New Journal" on the dashboard
-2. Choose "Journal" type
+#### Entries
+1. Tap the **+** button or "New Entry" on the dashboard
+2. Choose entry type (Note/Task/Question)
 3. Write your thoughts with rich text formatting
 4. Add tags for organization
 5. Auto-save ensures your work is never lost
@@ -121,7 +121,7 @@ Welcome to Curiosity, your personal knowledge management companion! This guide w
 The dashboard provides an overview of your activity:
 
 - **Quick Add**: Fast access to create new content
-- **Recent Entries**: Your latest journal entries
+- **Recent Entries**: Your latest entries
 - **Active Goals**: Current goal progress
 - **On This Day**: Entries from the same date in previous years
 
@@ -195,11 +195,11 @@ The dashboard provides an overview of your activity:
 - **Full-text Search**: Find content across all entries
 - **Tag Filtering**: Narrow by tags
 - **Date Range**: Filter by time period
-- **Type Filtering**: Show only journals, notes, or tasks
+- **Type Filtering**: Show only notes, tasks, or questions
 
 #### Advanced Filters
 - **Multiple Tags**: Combine tag filters
-- **Content Types**: Mix journals and notes
+- **Content Types**: Mix different entry types
 - **Status Filters**: Show completed/incomplete tasks
 
 ### Keyboard Shortcuts
@@ -329,4 +329,4 @@ The dashboard provides an overview of your activity:
 
 ---
 
-Thank you for choosing Curiosity! We hope this guide helps you make the most of your personal knowledge management journey. Happy journaling! 📝✨
+Thank you for choosing Curiosity! We hope this guide helps you make the most of your personal knowledge management journey. Happy jotting! 📝✨

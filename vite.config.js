@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: 'auto', 
       manifest: {
-        name: 'Curiosity - Your Personal AI Journal',
+        name: 'Curiosity - Your Personal Jotter',
         short_name: 'Curiosity',
-        description: 'A personal journal to document questions, discoveries, and goals, enhanced with AI insights.',
+        description: 'A personal jotter to document questions, discoveries, goals, and ideas with AI insights.',
         theme_color: '#14b8a6', 
         background_color: "#0f172a", 
         display: 'standalone',
