@@ -1,6 +1,4 @@
 const functions = require("firebase-functions");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const {
   generateRegistrationOptions,
@@ -44,16 +42,16 @@ const getAuthenticator = async (userId, credentialID) => {
   return doc.data();
 };
 
-exports.generateRegistrationOptions = onCall(
-    async (request) => {
-      if (!request.auth) {
-        throw new HttpsError(
+exports.generateRegistrationOptions = functions.https.onCall(
+    async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
       }
 
-      const {uid, token} = request.auth;
+      const {uid, token} = context.auth;
       const user = await admin.auth().getUser(uid);
       const username = user.email || user.uid;
 
@@ -91,7 +89,7 @@ exports.generateRegistrationOptions = onCall(
         return options;
       } catch (e) {
         console.error("Error generating registration options:", e);
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "internal",
             "Error generating registration options.",
         );
@@ -99,21 +97,22 @@ exports.generateRegistrationOptions = onCall(
     },
 );
 
-exports.verifyRegistration = onCall(
-    async (response, context) => {
+exports.verifyRegistration = functions.https.onCall(
+    async (data, context) => {
       if (!context.auth) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
       }
       const {uid} = context.auth;
+      const response = data.response;
 
       const userDoc = await db.collection("users").doc(uid).get();
       const expectedChallenge = userDoc.data()?.webAuthnChallenge;
 
       if (!expectedChallenge) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "failed-precondition",
             "No challenge found.",
         );
@@ -154,7 +153,7 @@ exports.verifyRegistration = onCall(
         return {verified: false, error: "Verification failed."};
       } catch (e) {
         console.error("Error verifying registration:", e);
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "internal",
             "Error verifying registration.",
         );
@@ -162,10 +161,10 @@ exports.verifyRegistration = onCall(
     },
 );
 
-exports.generateAuthenticationOptions = onCall(
-    async (request) => {
+exports.generateAuthenticationOptions = functions.https.onCall(
+    async (data, context) => {
       if (!context.auth) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
@@ -175,7 +174,7 @@ exports.generateAuthenticationOptions = onCall(
       const credentialDocs = await getCredentialsCollection(uid).get();
 
       if (credentialDocs.empty) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "failed-precondition",
             "No registered credentials found.",
         );
@@ -202,7 +201,7 @@ exports.generateAuthenticationOptions = onCall(
         return options;
       } catch (e) {
         console.error("Error generating authentication options:", e);
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "internal",
             "Error generating authentication options.",
         );
@@ -210,21 +209,22 @@ exports.generateAuthenticationOptions = onCall(
     },
 );
 
-exports.verifyAuthentication = onCall(
-    async (response, context) => {
+exports.verifyAuthentication = functions.https.onCall(
+    async (data, context) => {
       if (!context.auth) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
       }
 
       const {uid} = context.auth;
+      const response = data.response;
       const userDoc = await db.collection("users").doc(uid).get();
       const expectedChallenge = userDoc.data()?.webAuthnChallenge;
 
       if (!expectedChallenge) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "failed-precondition",
             "No challenge found.",
         );
@@ -232,7 +232,7 @@ exports.verifyAuthentication = onCall(
 
       const authenticator = await getAuthenticator(uid, response.id);
       if (!authenticator) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "not-found",
             "Credential not found.",
         );
@@ -273,7 +273,7 @@ exports.verifyAuthentication = onCall(
         return {verified: false, error: "Verification failed."};
       } catch (e) {
         console.error("Error verifying authentication:", e);
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
             "internal",
             "Error verifying authentication.",
         );
@@ -281,9 +281,9 @@ exports.verifyAuthentication = onCall(
     },
 );
 
-exports.deleteAllUserData = onCall(async (request) => {
+exports.deleteAllUserData = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
-    throw new HttpsError(
+    throw new functions.https.HttpsError(
         "unauthenticated",
         "You must be logged in to delete data.",
     );
@@ -309,7 +309,7 @@ exports.deleteAllUserData = onCall(async (request) => {
     return {success: true, message: "All user data deleted successfully."};
   } catch (error) {
     console.error("Error deleting user data:", error);
-    throw new HttpsError(
+    throw new functions.https.HttpsError(
         "internal",
         "Failed to delete user data.",
     );
@@ -317,10 +317,10 @@ exports.deleteAllUserData = onCall(async (request) => {
 });
 
 // Push Notification Functions
-exports.sendPushNotification = onCall(
-  async (request) => {
+exports.sendPushNotification = functions.https.onCall(
+  async (data, context) => {
     if (!context.auth) {
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         "unauthenticated",
         "You must be logged in to send notifications."
       );
@@ -329,7 +329,7 @@ exports.sendPushNotification = onCall(
     const { title, body, icon, badge, tag, url, userId } = data;
 
     if (!title || !body) {
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         "invalid-argument",
         "Title and body are required."
       );
@@ -341,7 +341,7 @@ exports.sendPushNotification = onCall(
       const userData = userDoc.data();
 
       if (!userData || !userData.fcmToken) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
           "failed-precondition",
           "User has not enabled push notifications."
         );
@@ -386,7 +386,7 @@ exports.sendPushNotification = onCall(
       return { success: true, messageId: response };
     } catch (error) {
       console.error("Error sending push notification:", error);
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         "internal",
         "Failed to send push notification."
       );
@@ -395,10 +395,10 @@ exports.sendPushNotification = onCall(
 );
 
 // Update user's FCM token
-exports.updateFCMToken = onCall(
-  async (request) => {
+exports.updateFCMToken = functions.https.onCall(
+  async (data, context) => {
     if (!context.auth) {
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         "unauthenticated",
         "You must be logged in to update FCM token."
       );
@@ -407,7 +407,7 @@ exports.updateFCMToken = onCall(
     const { fcmToken } = data;
 
     if (!fcmToken) {
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         "invalid-argument",
         "FCM token is required."
       );
@@ -424,7 +424,7 @@ exports.updateFCMToken = onCall(
       return { success: true };
     } catch (error) {
       console.error("Error updating FCM token:", error);
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         "internal",
         "Failed to update FCM token."
       );
@@ -434,12 +434,10 @@ exports.updateFCMToken = onCall(
 
 // Background Reminder Notification Function
 // Checks all users' reminders every 5 minutes and sends push notifications
-exports.checkAndSendReminders = onSchedule(
-  {
-    schedule: "*/5 * * * *", // Every 5 minutes
-    timeZone: "UTC", // Use UTC for consistent timezone handling
-  },
-  async (event) => {
+exports.checkAndSendReminders = functions.pubsub
+  .schedule("*/5 * * * *") // Every 5 minutes
+  .timeZone("UTC") // Use UTC for consistent timezone handling
+  .onRun(async (context) => {
     try {
       console.log("Checking reminders for all users...");
       
@@ -452,6 +450,8 @@ exports.checkAndSendReminders = onSchedule(
         console.log("No users with notifications enabled");
         return null;
       }
+
+      console.log(`Found ${usersSnapshot.docs.length} users with notifications enabled`);
 
       const now = new Date();
       const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
@@ -467,11 +467,17 @@ exports.checkAndSendReminders = onSchedule(
 
         try {
           // Get user's reminders from their specific collection
-          const remindersRef = db.collection(`artifacts/${process.env.PROJECT_ID || 'curiosity-pwa'}/users/${userId}/reminders`);
+          const projectId = process.env.GCLOUD_PROJECT || process.env.PROJECT_ID || 'curiosity-pwa';
+          const remindersPath = `artifacts/${projectId}/users/${userId}/reminders`;
+          console.log(`Checking reminders for user ${userId} at path: ${remindersPath}`);
+          
+          const remindersRef = db.collection(remindersPath);
           const remindersSnapshot = await remindersRef
             .where("isDeleted", "==", false)
             .where("notified", "==", false)
             .get();
+
+          console.log(`Found ${remindersSnapshot.docs.length} reminders for user ${userId}`);
 
           for (const reminderDoc of remindersSnapshot.docs) {
             const reminder = reminderDoc.data();
@@ -479,6 +485,7 @@ exports.checkAndSendReminders = onSchedule(
             if (!reminder.date) continue;
 
             const reminderDate = reminder.date.toDate ? reminder.date.toDate() : new Date(reminder.date);
+            console.log(`Reminder ${reminderDoc.id}: ${reminder.text}, due at ${reminderDate.toISOString()}, now=${now.toISOString()}, window=${fiveMinutesFromNow.toISOString()}`);
             
             // Send notification if reminder is due within the next 5 minutes
             if (reminderDate >= now && reminderDate <= fiveMinutesFromNow) {
