@@ -84,6 +84,18 @@
       display: none !important;
     }
   }
+
+  /* Accessibility: Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {
@@ -162,9 +174,6 @@
   .react-calendar-themed .react-calendar__tile--active {
     @apply text-white font-semibold;
     background-color: var(--color-primary-hex) !important;
-  }
-  .react-calendar-themed .react-calendar__tile--active .react-calendar__tile__dots {
-    /* Hide dots on active day if needed */
   }
   .react-calendar-themed .react-calendar__tile__dots {
     @apply space-x-0.5;
