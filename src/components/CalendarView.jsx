@@ -38,7 +38,7 @@ const EntryTile = ({ entry, onSelect, index }) => {
                 className="p-2 rounded-lg flex-shrink-0 relative z-10"
                 style={{ backgroundColor: 'var(--color-primary-light)' }}
                 whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-                transition={{ duration: 0.4 }}
+                transition={{ duration: 0.4, type: "tween" }}
             >
                 <type.icon size={16} className="text-primary" style={{ color: 'var(--color-primary-hex)' }} />
             </motion.div>

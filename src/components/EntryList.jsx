@@ -67,7 +67,7 @@ const EntryCard = ({ entry, onSelect, onDelete }) => {
                         whileHover={{ 
                             scale: 1.1,
                             rotate: [0, -10, 10, -10, 0],
-                            transition: { rotate: { duration: 0.5 } }
+                            transition: { rotate: { duration: 0.5, type: "tween" } }
                         }}
                         whileTap={{ scale: 0.9 }}
                         className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white shadow-lg"
@@ -197,7 +197,7 @@ const EntryListItem = ({ entry, onSelect, onDelete }) => {
                                 whileHover={{ 
                                     scale: 1.1,
                                     rotate: [0, -10, 10, -10, 0],
-                                    transition: { rotate: { duration: 0.5 } }
+                                    transition: { rotate: { duration: 0.5, type: "tween" } }
                                 }}
                                 whileTap={{ scale: 0.9 }}
                                 className="flex-shrink-0 p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white shadow-lg"

@@ -208,7 +208,7 @@ const VaultPinScreen = ({ onUnlock }) => {
                             {val === 'del' ? (
                                 <motion.div
                                     whileHover={{ rotate: [0, -10, 10, 0] }}
-                                    transition={{ duration: 0.4 }}
+                                    transition={{ duration: 0.4, type: "tween" }}
                                 >
                                     <Trash2 size={24} className="text-slate-600 dark:text-slate-400" />
                                 </motion.div>
@@ -366,7 +366,7 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                     <div className="flex items-start space-x-3 flex-1 min-w-0">
                         <motion.div
                             whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
-                            transition={{ duration: 0.4 }}
+                            transition={{ duration: 0.4, type: "tween" }}
                             className="flex-shrink-0 p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50"
                         >
                             {getTypeIcon(item.type)}
@@ -666,7 +666,7 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
                                             whileHover={{ 
                                                 scale: 1.1, 
                                                 rotate: [0, -10, 10, -10, 0],
-                                                transition: { rotate: { duration: 0.5 } }
+                                                transition: { rotate: { duration: 0.5, type: "tween" } }
                                             }}
                                             whileTap={{ scale: 0.9 }}
                                             className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"

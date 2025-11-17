@@ -105,7 +105,7 @@ const ReminderItem = ({ reminder, onDelete }) => {
                 whileHover={{ 
                     scale: 1.1,
                     rotate: [0, -10, 10, -10, 0],
-                    transition: { rotate: { duration: 0.5 } }
+                    transition: { rotate: { duration: 0.5, type: "tween" } }
                 }}
                 whileTap={{ scale: 0.9 }}
                 className="relative z-10 p-2 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
@@ -146,7 +146,7 @@ const NotificationPrompt = () => {
                         rotate: [0, -10, 10, -10, 0],
                         scale: [1, 1.1, 1]
                     }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 1, type: "tween" }}
                 >
                     <AlertTriangle size={20} className="text-yellow-600 dark:text-yellow-400" />
                 </motion.div>
@@ -210,7 +210,7 @@ export default function RemindersView() {
                 <div className="flex items-center space-x-3">
                     <motion.div
                         whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.5, type: "tween" }}
                         className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg"
                     >
                         <Bell size={24} className="text-white" />

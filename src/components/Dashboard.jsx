@@ -311,7 +311,7 @@ export default function Dashboard() {
                                 />
                                 <motion.div
                                     whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                                    transition={{ duration: 0.5 }}
+                                    transition={{ duration: 0.5, type: "tween" }}
                                     className="relative z-10"
                                 >
                                     <PenTool size={28} className="md:mb-3 mb-2 text-purple-600 dark:text-purple-400" />
@@ -343,7 +343,7 @@ export default function Dashboard() {
                                 />
                                 <motion.div
                                     whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                                    transition={{ duration: 0.5 }}
+                                    transition={{ duration: 0.5, type: "tween" }}
                                     className="relative z-10"
                                 >
                                     <Edit3 size={28} className="md:mb-3 mb-2 text-amber-600 dark:text-amber-400" />
@@ -375,7 +375,7 @@ export default function Dashboard() {
                                 />
                                 <motion.div
                                     whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                                    transition={{ duration: 0.5 }}
+                                    transition={{ duration: 0.5, type: "tween" }}
                                     className="relative z-10"
                                 >
                                     <CheckSquare size={28} className="md:mb-3 mb-2 text-teal-600 dark:text-teal-400" />

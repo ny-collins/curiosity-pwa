@@ -1145,7 +1145,12 @@ function useDataSync(userId, toast) {
                             };
                             if (change.type === 'added' || change.type === 'modified') {
                                 const localEntry = await localStore.get(localData.id);
-                                if (!localEntry || (localEntry.updatedAt.getTime() < localData.updatedAt.getTime())) {
+                                // Only update if local doesn't exist OR cloud is newer by more than 1 second
+                                const shouldUpdate = !localEntry || 
+                                    (localEntry.updatedAt && localData.updatedAt && 
+                                     (localData.updatedAt.getTime() - localEntry.updatedAt.getTime() > 1000));
+                                
+                                if (shouldUpdate) {
                                     await localStore.put(localData);
                                 }
                             } else if (change.type === 'removed') {
@@ -1174,7 +1179,12 @@ function useDataSync(userId, toast) {
                             updatedAt: docData.updatedAt?.toDate ? docData.updatedAt.toDate() : new Date()
                         };
                         const localEntry = await db.settings.get(1);
-                         if (!localEntry || (localEntry.updatedAt.getTime() < localData.updatedAt.getTime())) {
+                        // Only update if local doesn't exist OR cloud is newer by more than 1 second
+                        const shouldUpdate = !localEntry || 
+                            (localEntry.updatedAt && localData.updatedAt && 
+                             (localData.updatedAt.getTime() - localEntry.updatedAt.getTime() > 1000));
+                        
+                        if (shouldUpdate) {
                              await db.settings.put(localData);
                          }
                     } catch (error) {

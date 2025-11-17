@@ -27,6 +27,7 @@ const TaskItem = ({ task }) => {
                 onClick={() => handleToggleTask(task.id, !task.completed)}
                 whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
                 whileTap={{ scale: 0.9 }}
+                transition={{ duration: 0.4, type: "tween" }}
                 className="relative z-10"
             >
                 {task.completed ? (

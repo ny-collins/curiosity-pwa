@@ -56,8 +56,8 @@ const NavItem = ({ icon, label, isActive, onClick, badge, isCollapsed }) => {
                 }}
                 transition={{ 
                     duration: 0.4,
-                    type: isHovered ? "spring" : "tween",
-                    stiffness: 300
+                    type: "tween",
+                    ease: "easeInOut"
                 }}
             >
                 <Icon size={20} className="flex-shrink-0" />
@@ -247,7 +247,7 @@ export default function Sidebar({ onSearchClick, onShortcutsClick }) {
                         <div className="flex items-center relative z-10">
                             <motion.div
                                 whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.15 }}
-                                transition={{ duration: 0.4 }}
+                                transition={{ duration: 0.4, type: "tween" }}
                             >
                                 <Search size={20} className="flex-shrink-0" />
                             </motion.div>
@@ -368,7 +368,7 @@ export default function Sidebar({ onSearchClick, onShortcutsClick }) {
                         <div className="flex items-center relative z-10">
                             <motion.div
                                 whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.15 }}
-                                transition={{ duration: 0.4 }}
+                                transition={{ duration: 0.4, type: "tween" }}
                             >
                                 <HelpCircle size={20} className="flex-shrink-0" />
                             </motion.div>
