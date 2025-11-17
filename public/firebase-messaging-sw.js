@@ -1,15 +1,14 @@
 // Firebase Messaging Service Worker
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+// This file handles push notifications when the app is in the background
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // Will be replaced by build process
-  authDomain: "curiosity-pwa.firebaseapp.com",
-  projectId: "curiosity-pwa",
-  storageBucket: "curiosity-pwa.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef123456"
-};
+// NOTE: This config needs to match your Firebase project
+// Copy these values from your .env file (without the VITE_ prefix)
+// Or better yet, update with your actual Firebase config values
+const firebaseConfig = __FIREBASE_CONFIG__;
+
+console.log('Firebase Messaging Service Worker initialized');
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);

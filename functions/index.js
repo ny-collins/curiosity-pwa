@@ -1,4 +1,6 @@
 const functions = require("firebase-functions");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const {
   generateRegistrationOptions,
@@ -42,16 +44,16 @@ const getAuthenticator = async (userId, credentialID) => {
   return doc.data();
 };
 
-exports.generateRegistrationOptions = functions.https.onCall(
-    async (data, context) => {
-      if (!context.auth) {
-        throw new functions.https.HttpsError(
+exports.generateRegistrationOptions = onCall(
+    async (request) => {
+      if (!request.auth) {
+        throw new HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
       }
 
-      const {uid, token} = context.auth;
+      const {uid, token} = request.auth;
       const user = await admin.auth().getUser(uid);
       const username = user.email || user.uid;
 
@@ -89,7 +91,7 @@ exports.generateRegistrationOptions = functions.https.onCall(
         return options;
       } catch (e) {
         console.error("Error generating registration options:", e);
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "internal",
             "Error generating registration options.",
         );
@@ -97,10 +99,10 @@ exports.generateRegistrationOptions = functions.https.onCall(
     },
 );
 
-exports.verifyRegistration = functions.https.onCall(
+exports.verifyRegistration = onCall(
     async (response, context) => {
       if (!context.auth) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
@@ -111,7 +113,7 @@ exports.verifyRegistration = functions.https.onCall(
       const expectedChallenge = userDoc.data()?.webAuthnChallenge;
 
       if (!expectedChallenge) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "failed-precondition",
             "No challenge found.",
         );
@@ -152,7 +154,7 @@ exports.verifyRegistration = functions.https.onCall(
         return {verified: false, error: "Verification failed."};
       } catch (e) {
         console.error("Error verifying registration:", e);
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "internal",
             "Error verifying registration.",
         );
@@ -160,10 +162,10 @@ exports.verifyRegistration = functions.https.onCall(
     },
 );
 
-exports.generateAuthenticationOptions = functions.https.onCall(
-    async (data, context) => {
+exports.generateAuthenticationOptions = onCall(
+    async (request) => {
       if (!context.auth) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
@@ -173,7 +175,7 @@ exports.generateAuthenticationOptions = functions.https.onCall(
       const credentialDocs = await getCredentialsCollection(uid).get();
 
       if (credentialDocs.empty) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "failed-precondition",
             "No registered credentials found.",
         );
@@ -200,7 +202,7 @@ exports.generateAuthenticationOptions = functions.https.onCall(
         return options;
       } catch (e) {
         console.error("Error generating authentication options:", e);
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "internal",
             "Error generating authentication options.",
         );
@@ -208,10 +210,10 @@ exports.generateAuthenticationOptions = functions.https.onCall(
     },
 );
 
-exports.verifyAuthentication = functions.https.onCall(
+exports.verifyAuthentication = onCall(
     async (response, context) => {
       if (!context.auth) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "unauthenticated",
             "You must be logged in.",
         );
@@ -222,7 +224,7 @@ exports.verifyAuthentication = functions.https.onCall(
       const expectedChallenge = userDoc.data()?.webAuthnChallenge;
 
       if (!expectedChallenge) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "failed-precondition",
             "No challenge found.",
         );
@@ -230,7 +232,7 @@ exports.verifyAuthentication = functions.https.onCall(
 
       const authenticator = await getAuthenticator(uid, response.id);
       if (!authenticator) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "not-found",
             "Credential not found.",
         );
@@ -271,7 +273,7 @@ exports.verifyAuthentication = functions.https.onCall(
         return {verified: false, error: "Verification failed."};
       } catch (e) {
         console.error("Error verifying authentication:", e);
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "internal",
             "Error verifying authentication.",
         );
@@ -279,9 +281,9 @@ exports.verifyAuthentication = functions.https.onCall(
     },
 );
 
-exports.deleteAllUserData = functions.https.onCall(async (data, context) => {
+exports.deleteAllUserData = onCall(async (request) => {
   if (!context.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "unauthenticated",
         "You must be logged in to delete data.",
     );
@@ -307,7 +309,7 @@ exports.deleteAllUserData = functions.https.onCall(async (data, context) => {
     return {success: true, message: "All user data deleted successfully."};
   } catch (error) {
     console.error("Error deleting user data:", error);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "internal",
         "Failed to delete user data.",
     );
@@ -315,10 +317,10 @@ exports.deleteAllUserData = functions.https.onCall(async (data, context) => {
 });
 
 // Push Notification Functions
-exports.sendPushNotification = functions.https.onCall(
-  async (data, context) => {
+exports.sendPushNotification = onCall(
+  async (request) => {
     if (!context.auth) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "unauthenticated",
         "You must be logged in to send notifications."
       );
@@ -327,7 +329,7 @@ exports.sendPushNotification = functions.https.onCall(
     const { title, body, icon, badge, tag, url, userId } = data;
 
     if (!title || !body) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "invalid-argument",
         "Title and body are required."
       );
@@ -339,7 +341,7 @@ exports.sendPushNotification = functions.https.onCall(
       const userData = userDoc.data();
 
       if (!userData || !userData.fcmToken) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
           "failed-precondition",
           "User has not enabled push notifications."
         );
@@ -384,7 +386,7 @@ exports.sendPushNotification = functions.https.onCall(
       return { success: true, messageId: response };
     } catch (error) {
       console.error("Error sending push notification:", error);
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "internal",
         "Failed to send push notification."
       );
@@ -393,10 +395,10 @@ exports.sendPushNotification = functions.https.onCall(
 );
 
 // Update user's FCM token
-exports.updateFCMToken = functions.https.onCall(
-  async (data, context) => {
+exports.updateFCMToken = onCall(
+  async (request) => {
     if (!context.auth) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "unauthenticated",
         "You must be logged in to update FCM token."
       );
@@ -405,7 +407,7 @@ exports.updateFCMToken = functions.https.onCall(
     const { fcmToken } = data;
 
     if (!fcmToken) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "invalid-argument",
         "FCM token is required."
       );
@@ -422,7 +424,7 @@ exports.updateFCMToken = functions.https.onCall(
       return { success: true };
     } catch (error) {
       console.error("Error updating FCM token:", error);
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "internal",
         "Failed to update FCM token."
       );
@@ -430,62 +432,116 @@ exports.updateFCMToken = functions.https.onCall(
   }
 );
 
-// Scheduled function to send reminder notifications (runs daily)
-exports.sendDailyReminders = functions.pubsub
-  .schedule("0 9 * * *") // 9 AM daily
-  .timeZone("America/New_York")
-  .onRun(async (context) => {
+// Background Reminder Notification Function
+// Checks all users' reminders every 5 minutes and sends push notifications
+exports.checkAndSendReminders = onSchedule(
+  {
+    schedule: "*/5 * * * *", // Every 5 minutes
+    timeZone: "UTC", // Use UTC for consistent timezone handling
+  },
+  async (event) => {
     try {
+      console.log("Checking reminders for all users...");
+      
       // Get all users who have enabled notifications
       const usersSnapshot = await db.collection("users")
         .where("notificationsEnabled", "==", true)
         .get();
 
-      const notifications = [];
+      if (usersSnapshot.empty) {
+        console.log("No users with notifications enabled");
+        return null;
+      }
+
+      const now = new Date();
+      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+      let notificationsSent = 0;
 
       for (const userDoc of usersSnapshot.docs) {
         const userData = userDoc.data();
+        const userId = userDoc.id;
 
-        if (userData.fcmToken) {
-          // Check if user has any pending goals or reminders
-          const goalsSnapshot = await db.collection("users")
-            .doc(userDoc.id)
-            .collection("goals")
-            .where("completed", "==", false)
-            .limit(1)
+        if (!userData.fcmToken) {
+          continue; // Skip users without FCM token
+        }
+
+        try {
+          // Get user's reminders from their specific collection
+          const remindersRef = db.collection(`artifacts/${process.env.PROJECT_ID || 'curiosity-pwa'}/users/${userId}/reminders`);
+          const remindersSnapshot = await remindersRef
+            .where("isDeleted", "==", false)
+            .where("notified", "==", false)
             .get();
 
-          if (!goalsSnapshot.empty) {
-            notifications.push({
-              token: userData.fcmToken,
-              notification: {
-                title: "Curiosity",
-                body: "Don't forget to work on your goals today! 💪"
-              },
-              webpush: {
+          for (const reminderDoc of remindersSnapshot.docs) {
+            const reminder = reminderDoc.data();
+            
+            if (!reminder.date) continue;
+
+            const reminderDate = reminder.date.toDate ? reminder.date.toDate() : new Date(reminder.date);
+            
+            // Send notification if reminder is due within the next 5 minutes
+            if (reminderDate >= now && reminderDate <= fiveMinutesFromNow) {
+              const message = {
+                token: userData.fcmToken,
                 notification: {
-                  icon: "/icons/icon-192x192.png",
-                  badge: "/icons/icon-72x72.png",
-                  tag: "daily-reminder",
-                  requireInteraction: false
+                  title: "⏰ Curiosity Reminder",
+                  body: reminder.text || "You have a reminder!",
+                },
+                webpush: {
+                  fcmOptions: {
+                    link: `https://${process.env.WEBAUTHN_RELYING_PARTY_ID || 'curiosity-pwa.web.app'}`
+                  },
+                  notification: {
+                    icon: "/icons/icon-192x192.png",
+                    badge: "/icons/icon-72x72.png",
+                    tag: `reminder-${reminderDoc.id}`,
+                    requireInteraction: false,
+                    vibrate: [200, 100, 200]
+                  }
+                },
+                data: {
+                  type: "reminder",
+                  reminderId: reminderDoc.id,
+                  url: "/"
+                }
+              };
+
+              try {
+                await admin.messaging().send(message);
+                
+                // Mark reminder as notified
+                await reminderDoc.ref.update({
+                  notified: true,
+                  notifiedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                
+                notificationsSent++;
+                console.log(`Sent reminder ${reminderDoc.id} to user ${userId}`);
+              } catch (sendError) {
+                console.error(`Error sending notification for reminder ${reminderDoc.id}:`, sendError);
+                
+                // If token is invalid, remove it
+                if (sendError.code === 'messaging/invalid-registration-token' || 
+                    sendError.code === 'messaging/registration-token-not-registered') {
+                  await db.collection("users").doc(userId).update({
+                    fcmToken: admin.firestore.FieldValue.delete(),
+                    notificationsEnabled: false
+                  });
+                  console.log(`Removed invalid FCM token for user ${userId}`);
                 }
               }
-            });
+            }
           }
+        } catch (userError) {
+          console.error(`Error processing reminders for user ${userId}:`, userError);
         }
       }
 
-      if (notifications.length > 0) {
-        const responses = await Promise.allSettled(
-          notifications.map(notification => admin.messaging().send(notification))
-        );
-
-        console.log(`Sent ${responses.filter(r => r.status === 'fulfilled').length} daily reminder notifications`);
-      }
-
+      console.log(`Reminder check complete. Sent ${notificationsSent} notifications.`);
       return null;
     } catch (error) {
-      console.error("Error sending daily reminders:", error);
+      console.error("Error in checkAndSendReminders:", error);
       return null;
     }
   });

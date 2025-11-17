@@ -1002,8 +1002,38 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
         try {
             const permission = await Notification.requestPermission();
             console.log('Notification permission:', permission);
+            
             if (permission === 'granted') {
-                toast.success("Notifications enabled! You'll receive reminders when the app is open.");
+                // Request FCM token for background notifications
+                try {
+                    const { messaging } = await import('../firebaseConfig.js');
+                    const { getToken } = await import('firebase/messaging');
+                    
+                    const currentToken = await getToken(messaging, {
+                        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+                    });
+                    
+                    if (currentToken && userId) {
+                        // Save FCM token to Firestore for background notifications
+                        const { doc, setDoc } = await import('firebase/firestore');
+                        const { firestoreDb } = await import('../firebaseConfig.js');
+                        
+                        await setDoc(doc(firestoreDb, 'users', userId), {
+                            fcmToken: currentToken,
+                            notificationsEnabled: true,
+                            fcmTokenUpdatedAt: new Date()
+                        }, { merge: true });
+                        
+                        console.log('FCM token saved:', currentToken);
+                        toast.success("Notifications enabled! You'll receive reminders even when the app is closed.");
+                    } else {
+                        console.log('No FCM token available');
+                        toast.success("Notifications enabled! You'll receive reminders when the app is open.");
+                    }
+                } catch (fcmError) {
+                    console.error('Error getting FCM token:', fcmError);
+                    toast.success("Notifications enabled! You'll receive reminders when the app is open.");
+                }
             } else {
                 toast.error('Notification permission was denied.');
             }
@@ -1013,7 +1043,7 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
             toast.error('Error enabling notifications.');
             return Notification?.permission || 'default';
         }
-    }, [toast]);
+    }, [toast, userId]);
     useEffect(() => {
         if (!remindersData || Notification.permission !== 'granted') return;
         const checkReminders = async () => {

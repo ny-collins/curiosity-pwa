@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa' 
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Curiosity - Your Personal Jotter',
         short_name: 'Curiosity',
-        description: 'A personal jotter to document questions, discoveries, goals, and ideas with AI insights.',
+        description: 'A personal jotter to document questions, discoveries, goals, and ideas.',
         theme_color: '#14b8a6', 
         background_color: "#0f172a", 
         display: 'standalone',
@@ -101,5 +101,5 @@ export default defineConfig({
     },
     // Increase chunk size warning limit since we're optimizing
     chunkSizeWarningLimit: 1000,
-  },
+  }
 })
