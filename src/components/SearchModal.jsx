@@ -39,6 +39,7 @@ export default function SearchModal({ isOpen, onClose }) {
     }, [isOpen, onClose]);
 
     const allTags = useMemo(() => {
+        if (!entries) return [];
         const tagSet = new Set();
         entries.forEach(entry => {
             entry.tags?.forEach(tag => tagSet.add(tag));
