@@ -6,7 +6,6 @@ import {
     FileText, Filter, Palette, Type, Zap
 } from 'lucide-react';
 import Logo from './Logo';
-
 const TUTORIAL_STEPS = [
     {
         id: 'welcome',
@@ -139,14 +138,11 @@ const TUTORIAL_STEPS = [
         }
     }
 ];
-
 export default function InteractiveTutorial({ onComplete, onSkip, db, userId, toast }) {
     const [currentStep, setCurrentStep] = useState(0);
     const [isVisible, setIsVisible] = useState(true);
-
     const currentTutorialStep = TUTORIAL_STEPS[currentStep];
     const progress = ((currentStep + 1) / TUTORIAL_STEPS.length) * 100;
-
     const handleNext = () => {
         if (currentStep < TUTORIAL_STEPS.length - 1) {
             setCurrentStep(currentStep + 1);
@@ -154,29 +150,24 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
             handleComplete();
         }
     };
-
     const handleBack = () => {
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         }
     };
-
     const handleComplete = () => {
         setIsVisible(false);
         setTimeout(() => {
             onComplete && onComplete();
         }, 300);
     };
-
     const handleSkip = () => {
         setIsVisible(false);
         setTimeout(() => {
             onSkip && onSkip();
         }, 300);
     };
-
     if (!isVisible) return null;
-
     return (
         <AnimatePresence>
             <motion.div
@@ -191,7 +182,7 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                     exit={{ scale: 0.9, opacity: 0 }}
                     className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
                 >
-                    {/* Header */}
+                    {}
                     <div className="relative p-6 border-b border-slate-200 dark:border-slate-700">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
@@ -212,8 +203,7 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                 <X size={20} className="text-slate-500" />
                             </button>
                         </div>
-
-                        {/* Progress Bar */}
+                        {}
                         <div className="mt-4 w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                             <motion.div
                                 className="h-full rounded-full"
@@ -224,8 +214,7 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                             />
                         </div>
                     </div>
-
-                    {/* Content */}
+                    {}
                     <div className="p-6 overflow-y-auto max-h-[60vh]">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -235,7 +224,7 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                 exit={{ opacity: 0, x: -20 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                {/* Step Header */}
+                                {}
                                 <div className="text-center mb-6">
                                     <motion.div
                                         initial={{ scale: 0.8 }}
@@ -255,8 +244,7 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                         {currentTutorialStep.description}
                                     </p>
                                 </div>
-
-                                {/* Step Content */}
+                                {}
                                 <div className="space-y-6">
                                     {currentTutorialStep.content.features && (
                                         <div>
@@ -279,7 +267,6 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                             </ul>
                                         </div>
                                     )}
-
                                     {currentTutorialStep.content.instructions && (
                                         <div>
                                             <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">
@@ -303,7 +290,6 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                             </ol>
                                         </div>
                                     )}
-
                                     {currentTutorialStep.content.shortcuts && (
                                         <div>
                                             <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">
@@ -327,7 +313,6 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                             </div>
                                         </div>
                                     )}
-
                                     {currentTutorialStep.content.tip && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 10 }}
@@ -347,13 +332,11 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                             </div>
                                         </motion.div>
                                     )}
-
                                 </div>
                             </motion.div>
                         </AnimatePresence>
                     </div>
-
-                    {/* Footer */}
+                    {}
                     <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                         <div className="flex items-center justify-between">
                             <button
@@ -364,7 +347,6 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                 <ChevronLeft size={18} />
                                 <span>Back</span>
                             </button>
-
                             <div className="flex space-x-3">
                                 <button
                                     onClick={handleSkip}
@@ -372,7 +354,6 @@ export default function InteractiveTutorial({ onComplete, onSkip, db, userId, to
                                 >
                                     Skip Tutorial
                                 </button>
-
                                 <motion.button
                                     onClick={handleNext}
                                     whileHover={{ scale: 1.02 }}

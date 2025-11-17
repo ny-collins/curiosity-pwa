@@ -1,22 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing, 
-    LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper, 
+import {
+    X, ArrowLeft, AlertTriangle, Upload, Download, CheckCircle, BellRing,
+    LogIn, User, FileOutput, Sun, Moon, Laptop, CaseLower, CaseUpper,
     Loader2, UserCircle, Palette, Lock, SlidersHorizontal, Database, Fingerprint,
     Bell
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { functions, storage, appId, firestoreDb } from '../firebaseConfig';
-import { collection, query, getDocs, writeBatch } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
+import { functions, storage, appId, firestoreDb, auth } from '../firebaseConfig';
+import { collection, query, getDocs, writeBatch, doc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { deleteUser } from "firebase/auth";
 import { useAppState } from '../contexts/StateProvider';
 import { db } from '../db';
 import DeleteDataModal from './DeleteDataModal';
 import ThemedAvatar from './ThemedAvatar';
 import ExportModal from './ExportModal';
-import { THEME_COLORS, FONT_CATEGORIES, THEME_MODES, FONT_SIZES, LIMITS } from '../constants.js';
-
+import { useNotifications } from './PushNotificationProvider';
+import { THEME_COLORS, FONT_CATEGORIES, THEME_MODES, FONT_SIZES, LIMITS, PIN_STORAGE_KEY, WEBAUTHN_CREDENTIAL_ID_KEY } from '../constants.js';
 const settingsTabs = [
     { id: 'profile', name: 'Profile', icon: UserCircle },
     { id: 'appearance', name: 'Appearance', icon: Palette },
@@ -25,11 +26,9 @@ const settingsTabs = [
     { id: 'application', name: 'Application', icon: SlidersHorizontal },
     { id: 'data', name: 'Data', icon: Database },
 ];
-
 function SettingsPage() {
     const { handleViewChange } = useAppState();
     const [activeTab, setActiveTab] = useState('profile');
-
     const renderActiveTab = () => {
         switch (activeTab) {
             case 'profile':
@@ -48,35 +47,47 @@ function SettingsPage() {
                 return <SettingsProfile />;
         }
     };
-
     return (
-        <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900" style={{ backgroundColor: 'var(--color-bg-base)' }}>
-            {/* Mobile Header - Simplified */}
-            <div className="md:hidden p-4 flex justify-between items-center space-x-2 flex-shrink-0 border-b"
+        <div className="flex flex-col h-full overflow-hidden bg-gradient-to-br from-slate-50 via-purple-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900" style={{ backgroundColor: 'var(--color-bg-base)' }}>
+            {}
+            <motion.div 
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="md:hidden p-4 flex justify-between items-center space-x-2 flex-shrink-0 border-b bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl"
                  style={{
                      borderBottomColor: 'var(--color-border)',
                      backgroundColor: 'var(--color-bg-content)'
                  }}>
-                <button
+                <motion.button
                     onClick={() => handleViewChange('dashboard')}
+                    whileHover={{ scale: 1.1, x: -2 }}
+                    whileTap={{ scale: 0.9 }}
                     className="p-2 -ml-2 rounded-full text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2"
                     style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
                     aria-label="Back to dashboard"
                     title="Back to dashboard"
                 >
                     <ArrowLeft size={22} />
-                </button>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
-                    Settings
-                </h2>
+                </motion.button>
+                <div className="flex items-center space-x-2">
+                    <motion.div
+                        whileHover={{ rotate: 180 }}
+                        transition={{ duration: 0.3 }}
+                        className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500"
+                    >
+                        <SlidersHorizontal size={20} className="text-white" />
+                    </motion.div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
+                        Settings
+                    </h2>
+                </div>
                 <div className="w-8"></div>
-            </div>
-
+            </motion.div>
             <div className="flex-1 flex overflow-hidden">
-                {/* Mobile Content Area - Redesigned for better mobile UX */}
+                {}
                 <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar">
                     <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                        {/* Profile Section */}
+                        {}
                         <MobileSettingsSection
                             title="Profile"
                             icon={UserCircle}
@@ -85,8 +96,7 @@ function SettingsPage() {
                         >
                             <SettingsProfile />
                         </MobileSettingsSection>
-
-                        {/* Appearance Section */}
+                        {}
                         <MobileSettingsSection
                             title="Appearance"
                             icon={Palette}
@@ -95,8 +105,7 @@ function SettingsPage() {
                         >
                             <SettingsAppearance />
                         </MobileSettingsSection>
-
-                        {/* Notifications Section */}
+                        {}
                         <MobileSettingsSection
                             title="Notifications"
                             icon={Bell}
@@ -105,8 +114,7 @@ function SettingsPage() {
                         >
                             <SettingsNotifications />
                         </MobileSettingsSection>
-
-                        {/* Security Section */}
+                        {}
                         <MobileSettingsSection
                             title="Security"
                             icon={Lock}
@@ -115,8 +123,7 @@ function SettingsPage() {
                         >
                             <SettingsSecurity />
                         </MobileSettingsSection>
-
-                        {/* Application Section */}
+                        {}
                         <MobileSettingsSection
                             title="Application"
                             icon={SlidersHorizontal}
@@ -125,8 +132,7 @@ function SettingsPage() {
                         >
                             <SettingsApplication />
                         </MobileSettingsSection>
-
-                        {/* Data Section */}
+                        {}
                         <MobileSettingsSection
                             title="Data"
                             icon={Database}
@@ -137,23 +143,32 @@ function SettingsPage() {
                         </MobileSettingsSection>
                     </div>
                 </div>
-
-                {/* Desktop Layout */}
+                {}
                 <div className="hidden md:flex flex-1 overflow-hidden">
-                    {/* Desktop Sidebar Navigation */}
-                    <nav className="flex flex-col w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4 space-y-1 flex-shrink-0">
-                        {settingsTabs.map(tab => (
-                            <SettingsTabButton
+                    {}
+                    <motion.nav 
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="flex flex-col w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4 space-y-1 flex-shrink-0"
+                    >
+                        {settingsTabs.map((tab, index) => (
+                            <motion.div
                                 key={tab.id}
-                                icon={tab.icon}
-                                label={tab.name}
-                                isActive={activeTab === tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                            />
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2 + index * 0.05 }}
+                            >
+                                <SettingsTabButton
+                                    icon={tab.icon}
+                                    label={tab.name}
+                                    isActive={activeTab === tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                />
+                            </motion.div>
                         ))}
-                    </nav>
-
-                    {/* Desktop Content Area */}
+                    </motion.nav>
+                    {}
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-800">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -172,35 +187,59 @@ function SettingsPage() {
         </div>
     );
 }
-
 const SettingsTabButton = ({ icon, label, isActive, onClick }) => {
     const Icon = icon;
     const activeClass = isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-700';
     
     return (
-        <button
+        <motion.button
             onClick={onClick}
-            className={`flex items-center space-x-3 w-full h-10 px-3 rounded-lg transition-colors duration-150 ${activeClass}`}
-            style={{ 
+            whileHover={{ scale: 1.02, x: isActive ? 0 : 4 }}
+            whileTap={{ scale: 0.98 }}
+            className={`relative flex items-center space-x-3 w-full h-10 px-3 rounded-lg transition-colors duration-150 overflow-hidden ${activeClass}`}
+            style={{
                 color: isActive ? 'var(--color-primary-hex)' : '',
                 backgroundColor: isActive ? 'rgba(var(--color-primary-rgb), 0.1)' : ''
             }}
         >
-            <Icon size={20} className="flex-shrink-0" />
-            <span className="text-sm font-medium truncate">{label}</span>
-        </button>
+            {/* Shine effect on active */}
+            {isActive && (
+                <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                />
+            )}
+            
+            <motion.div
+                animate={isActive ? { rotate: [0, 10, -10, 0] } : {}}
+                transition={{ duration: 0.5 }}
+                className="relative z-10"
+            >
+                <Icon size={20} className="flex-shrink-0" />
+            </motion.div>
+            <span className="text-sm font-medium truncate relative z-10">{label}</span>
+            
+            {/* Active indicator */}
+            {isActive && (
+                <motion.div
+                    layoutId="activeTab"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full"
+                    style={{ backgroundColor: 'var(--color-primary-hex)' }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+            )}
+        </motion.button>
     );
 };
-
 const MobileSettingsTabButton = ({ icon, label, isActive, onClick }) => {
     const Icon = icon;
     const activeClass = isActive ? 'border-primary text-primary' : 'border-transparent text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white';
-    
     return (
         <button
             onClick={onClick}
             className={`flex flex-col items-center justify-center space-y-1 px-4 py-3 border-b-2 transition-colors duration-150 ${activeClass}`}
-            style={{ 
+            style={{
                 color: isActive ? 'var(--color-primary-hex)' : '',
                 borderBottomColor: isActive ? 'var(--color-primary-hex)' : ''
             }}
@@ -210,32 +249,43 @@ const MobileSettingsTabButton = ({ icon, label, isActive, onClick }) => {
         </button>
     );
 };
-
 const SettingsSection = ({ title, children }) => (
-    <section className="space-y-6">
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white" style={{fontFamily: 'var(--font-serif)'}}>
+    <motion.section 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+    >
+        <motion.h3 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl font-semibold text-slate-900 dark:text-white" 
+            style={{fontFamily: 'var(--font-serif)'}}
+        >
             {title}
-        </h3>
-        <div className="space-y-6">
+        </motion.h3>
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-6"
+        >
             {children}
-        </div>
-    </section>
+        </motion.div>
+    </motion.section>
 );
-
 const SettingsProfile = () => {
     const { localSettings, handleSaveSettings, currentUser, isAnonymous, handleLinkAccount, toast } = useAppState();
     const [username, setUsername] = useState('');
     const [profilePicUrl, setProfilePicUrl] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef(null);
-
     useEffect(() => {
         if (localSettings) {
             setUsername(localSettings.username || (currentUser && !isAnonymous ? currentUser.displayName : ''));
             setProfilePicUrl(localSettings.profilePicUrl || (currentUser && !isAnonymous ? currentUser.photoURL : ''));
         }
     }, [localSettings, currentUser, isAnonymous]);
-    
     const handleSave = () => {
         handleSaveSettings({
             settings: { ...localSettings, username, profilePicUrl },
@@ -243,25 +293,22 @@ const SettingsProfile = () => {
         });
         toast.success("Profile saved!");
     };
-    
     const handleImageUpload = async (event) => {
         const file = event.target.files[0];
         if (!file || !currentUser || isAnonymous) {
              if (isAnonymous) toast.error("Please link your account to enable image uploads.");
              return;
         }
-        if (file.size > LIMITS.MAX_FILE_SIZE) { 
+        if (file.size > LIMITS.MAX_FILE_SIZE) {
              toast.error(`File is too large. Please select an image under ${LIMITS.MAX_FILE_SIZE / 1024 / 1024}MB.`);
              return;
         }
-
         setIsUploading(true);
         const storageRef = ref(storage, `artifacts/${appId}/users/${currentUser.uid}/profile.jpg`);
-        
         try {
             const snapshot = await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
-            setProfilePicUrl(downloadURL); 
+            setProfilePicUrl(downloadURL);
             handleSaveSettings({
                 settings: { ...localSettings, username, profilePicUrl: downloadURL },
                 pin: null
@@ -274,24 +321,40 @@ const SettingsProfile = () => {
             setIsUploading(false);
         }
     };
-    
     let accountSection;
     if (isAnonymous) {
         accountSection = (
-            <div className="text-center p-4 bg-slate-100 dark:bg-slate-700 rounded-md">
-                <p className="text-sm text-slate-700 dark:text-gray-300 mb-3">Sync & backup your data by linking your account. This also enables PIN recovery.</p>
-                <button onClick={handleLinkAccount} className="w-full flex items-center justify-center space-x-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-semibold py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200 focus:outline-none focus:ring-2" style={{'--tw-ring-color': 'var(--color-primary-hex)'}}>
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" className="w-5 h-5"/>
-                    <span>Sign in with Google</span>
-                </button>
-            </div>
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center p-5 bg-slate-100 dark:bg-slate-700 rounded-xl"
+            >
+                <p className="text-sm text-slate-700 dark:text-gray-300 mb-4">Sync & backup your data by linking your account. This also enables PIN recovery.</p>
+                <motion.button 
+                    onClick={handleLinkAccount} 
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative w-full flex items-center justify-center space-x-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-semibold py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200 focus:outline-none focus:ring-2 shadow-md overflow-hidden" 
+                    style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
+                >
+                    {/* Shine effect */}
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent"
+                        initial={{ x: '-100%' }}
+                        whileHover={{ x: '100%' }}
+                        transition={{ duration: 0.6 }}
+                    />
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" className="w-5 h-5 relative z-10"/>
+                    <span className="relative z-10">Sign in with Google</span>
+                </motion.button>
+            </motion.div>
         );
     } else if (currentUser) {
          accountSection = (
             <div className="text-left p-4 bg-slate-100 dark:bg-slate-700 rounded-md">
                 <p className="text-sm text-slate-700 dark:text-gray-300 mb-3">You are signed in and your data is synced.</p>
                 <div className="flex items-center space-x-3">
-                    <ThemedAvatar 
+                    <ThemedAvatar
                         profilePicUrl={currentUser.photoURL}
                         username={currentUser.displayName}
                         className="w-10 h-10"
@@ -304,13 +367,11 @@ const SettingsProfile = () => {
             </div>
          );
     }
-    
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <SettingsSection title="Account & Sync">
                 {accountSection}
             </SettingsSection>
-            
             <SettingsSection title="Profile">
                 <div>
                     <label htmlFor="username" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Username</label>
@@ -322,39 +383,67 @@ const SettingsProfile = () => {
                 </div>
                  <div>
                       <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Upload Picture</label>
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept="image/png, image/jpeg"
-                        ref={fileInputRef} 
+                        ref={fileInputRef}
                         onChange={handleImageUpload}
-                        className="hidden" 
+                        className="hidden"
                       />
-                      <button
-                        onClick={() => fileInputRef.current.click()} 
-                        disabled={isUploading || isAnonymous} 
-                        className="w-full flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white font-semibold py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      <motion.button
+                        onClick={() => fileInputRef.current.click()}
+                        disabled={isUploading || isAnonymous}
+                        whileHover={!isUploading && !isAnonymous ? { scale: 1.01 } : {}}
+                        whileTap={!isUploading && !isAnonymous ? { scale: 0.99 } : {}}
+                        className="relative w-full flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white font-semibold py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
                         style={{'--tw-ring-color': 'var(--color-primary-hex)'}}
                       >
-                        {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                        <span>{isUploading ? "Uploading..." : "Upload from Device"}</span>
-                      </button>
+                        {!isUploading && !isAnonymous && (
+                            <motion.div
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                                initial={{ x: '-100%' }}
+                                whileHover={{ x: '100%' }}
+                                transition={{ duration: 0.6 }}
+                            />
+                        )}
+                        <span className="relative z-10 flex items-center">
+                            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                        </span>
+                        <span className="relative z-10">{isUploading ? "Uploading..." : "Upload from Device"}</span>
+                      </motion.button>
                        {isAnonymous && <p className="text-xs text-amber-500 dark:text-amber-400 mt-2">Please link your account to enable image uploads.</p>}
                  </div>
-                 <button
+                 <motion.button
                     onClick={handleSave}
                     disabled={isUploading}
-                    className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
+                    whileHover={!isUploading ? { scale: 1.02, y: -2 } : {}}
+                    whileTap={!isUploading ? { scale: 0.98 } : {}}
+                    className="relative text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 focus:outline-none focus:ring-2 
+                             disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed shadow-lg overflow-hidden"
+                    style={{ 
+                        backgroundColor: 'var(--color-primary-hex)', 
+                        '--tw-ring-color': 'var(--color-primary-hex)',
+                        boxShadow: !isUploading ? '0 10px 25px -5px rgba(var(--color-primary-rgb), 0.3)' : 'none'
+                    }}
                 >
-                    {isUploading ? "Saving..." : "Save Profile"}
-                </button>
+                    {!isUploading && (
+                        <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                            animate={{ x: ['-100%', '100%'] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center">
+                        {isUploading && <Loader2 size={18} className="mr-2 animate-spin" />}
+                        {isUploading ? "Saving..." : "Save Profile"}
+                    </span>
+                </motion.button>
             </SettingsSection>
         </div>
     );
 };
-
 const SettingsAppearance = () => {
-    const { 
+    const {
         localSettings, handleSaveSettings,
         themeMode, setThemeMode,
         themeColor, setThemeColor,
@@ -362,10 +451,9 @@ const SettingsAppearance = () => {
         fontSize, setFontSize,
         toast
     } = useAppState();
-
     const handleSave = () => {
         handleSaveSettings({
-            settings: { 
+            settings: {
                 ...localSettings,
                 themeMode: themeMode,
                 themeColor: themeColor,
@@ -376,66 +464,95 @@ const SettingsAppearance = () => {
         });
         toast.success("Appearance saved!");
     };
-    
     const handleModeChange = (mode) => {
         setThemeMode(mode);
     };
-    
     const handleColorChange = (color) => {
         setThemeColor(color);
     };
-    
     const handleFontChange = (font) => {
         setThemeFont(font);
     };
-    
     const handleFontSizeChange = (size) => {
         setFontSize(size);
     };
-
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <SettingsSection title="Appearance">
                 <div>
                     <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Theme</label>
-                    <div className="flex items-center space-x-2 rounded-lg bg-slate-100 dark:bg-slate-700 p-1">
-                        {THEME_MODES.map(mode => (
-                            <button
+                    <div className="flex items-center space-x-2 rounded-xl bg-slate-100 dark:bg-slate-700 p-1.5">
+                        {THEME_MODES.map((mode, index) => (
+                            <motion.button
                                 key={mode.value}
                                 onClick={() => handleModeChange(mode.value)}
-                                className={`flex-1 flex justify-center items-center space-x-2 py-2 px-3 rounded-md text-sm transition-colors ${
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.05 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`relative flex-1 flex justify-center items-center space-x-2 py-2.5 px-3 rounded-lg text-sm transition-all duration-200 overflow-hidden ${
                                     themeMode === mode.value
-                                        ? 'bg-white dark:bg-slate-900 shadow-sm text-primary font-semibold'
+                                        ? 'bg-white dark:bg-slate-900 shadow-lg text-primary font-semibold'
                                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                 }`}
                                 style={{ color: themeMode === mode.value ? 'var(--color-primary-hex)' : '' }}
                             >
-                                <mode.icon size={16} />
-                                <span>{mode.name}</span>
-                            </button>
+                                {themeMode === mode.value && (
+                                    <motion.div
+                                        layoutId="themeMode"
+                                        className="absolute inset-0 bg-white dark:bg-slate-900 shadow-lg rounded-lg"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    />
+                                )}
+                                <motion.div
+                                    animate={themeMode === mode.value ? { rotate: [0, 360] } : {}}
+                                    transition={{ duration: 0.5 }}
+                                    className="relative z-10"
+                                >
+                                    <mode.icon size={16} />
+                                </motion.div>
+                                <span className="relative z-10">{mode.name}</span>
+                            </motion.button>
                         ))}
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Theme Color</label>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-3">Theme Color</label>
                     <div className="flex flex-wrap gap-3">
-                        {THEME_COLORS.map(color => (
-                            <button
+                        {THEME_COLORS.map((color, index) => (
+                            <motion.button
                                 key={color.hex}
                                 title={color.name}
                                 onClick={() => handleColorChange(color.hex)}
-                                className={`w-8 h-8 rounded-full cursor-pointer focus:outline-none transition-transform duration-100 ${themeColor === color.hex ? 'ring-2 ring-offset-2 scale-110' : 'hover:scale-110'}`}
-                                style={{ 
-                                    backgroundColor: color.hex, 
-                                    '--tw-ring-color': 'var(--color-primary-hex)',
-                                    ringColor: 'var(--color-primary-hex)',
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.03 }}
+                                whileHover={{ scale: 1.15, rotate: 360 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`relative w-10 h-10 rounded-full cursor-pointer focus:outline-none transition-all duration-200 ${
+                                    themeColor === color.hex ? 'ring-4 ring-offset-2 scale-110 shadow-lg' : 'hover:shadow-lg'
+                                }`}
+                                style={{
+                                    backgroundColor: color.hex,
+                                    '--tw-ring-color': color.hex,
+                                    ringColor: color.hex,
                                     ringOffsetColor: 'var(--color-bg-base)'
                                 }}
-                            />
+                            >
+                                {themeColor === color.hex && (
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute inset-0 flex items-center justify-center"
+                                    >
+                                        <CheckCircle size={18} className="text-white drop-shadow-lg" />
+                                    </motion.div>
+                                )}
+                            </motion.button>
                         ))}
                     </div>
                 </div>
-                
                 {FONT_CATEGORIES.map(category => (
                     <div key={category.name}>
                         <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">{category.name}</label>
@@ -445,9 +562,9 @@ const SettingsAppearance = () => {
                                     key={font.value}
                                     onClick={() => handleFontChange(font.value)}
                                     className={`py-1 px-3 rounded-md text-sm transition-colors ${themeFont === font.value ? 'text-white font-semibold' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
-                                    style={{ 
+                                    style={{
                                         fontFamily: font.value,
-                                        backgroundColor: themeFont === font.value ? 'var(--color-primary-hex)' : undefined 
+                                        backgroundColor: themeFont === font.value ? 'var(--color-primary-hex)' : undefined
                                     }}
                                 >
                                     {font.name}
@@ -456,7 +573,6 @@ const SettingsAppearance = () => {
                         </div>
                     </div>
                 ))}
-                
                 <div>
                     <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Font Size</label>
                     <div className="flex items-center space-x-2 rounded-lg bg-slate-100 dark:bg-slate-700 p-1">
@@ -476,24 +592,32 @@ const SettingsAppearance = () => {
                         ))}
                     </div>
                 </div>
-                
-                <button
+                <motion.button
                     onClick={handleSave}
-                    className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2"
-                    style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 focus:outline-none focus:ring-2 shadow-lg overflow-hidden"
+                    style={{ 
+                        backgroundColor: 'var(--color-primary-hex)', 
+                        '--tw-ring-color': 'var(--color-primary-hex)',
+                        boxShadow: '0 10px 25px -5px rgba(var(--color-primary-rgb), 0.3)'
+                    }}
                 >
-                    Save Appearance
-                </button>
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    />
+                    <span className="relative z-10">Save Appearance</span>
+                </motion.button>
             </SettingsSection>
         </div>
     );
 };
-
 const SettingsSecurity = () => {
     const { appPin, handleSaveSettings, handleLockApp, handleRegisterBiometric, handleDisableBiometric, biometricCredentialId, unlockedKey, toast } = useAppState();
     const [enableLock, setEnableLock] = useState(!!appPin);
     const [pin, setPin] = useState('');
-    
     const handleSave = () => {
         let pinToSave = null;
         if (enableLock) {
@@ -515,11 +639,9 @@ const SettingsSecurity = () => {
                 handleDisableBiometric();
             }
         }
-
         handleSaveSettings({ settings: {}, pin: pinToSave });
         setPin('');
     };
-    
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <SettingsSection title="Security">
@@ -534,8 +656,8 @@ const SettingsSecurity = () => {
                         <label htmlFor="pin" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">
                             {appPin ? 'Change 4-Digit PIN' : 'Set 4-Digit PIN'}
                         </label>
-                        <input type="password" id="pin" value={pin} 
-                            onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= LIMITS.PIN_LENGTH) setPin(val); }} 
+                        <input type="password" id="pin" value={pin}
+                            onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= LIMITS.PIN_LENGTH) setPin(val); }}
                             maxLength={LIMITS.PIN_LENGTH}
                             className="themed-input w-full rounded-md tracking-widest"
                             style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
@@ -554,7 +676,6 @@ const SettingsSecurity = () => {
                         </button>
                     </div>
                 )}
-                
                 {appPin && !biometricCredentialId && (
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Enable Biometric Unlock</span>
@@ -567,7 +688,6 @@ const SettingsSecurity = () => {
                         </button>
                     </div>
                 )}
-                
                 {biometricCredentialId && (
                      <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Biometric Unlock</span>
@@ -580,7 +700,6 @@ const SettingsSecurity = () => {
                         </button>
                     </div>
                 )}
-                
                 <button
                     onClick={handleSave}
                     className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2"
@@ -592,52 +711,46 @@ const SettingsSecurity = () => {
         </div>
     );
 };
-
 const SettingsApplication = () => {
-    const { 
+    const {
         handleRequestNotificationPermission,
         handleInstallApp, installPromptEvent, isAppInstalled
     } = useAppState();
     const [notificationStatus, setNotificationStatus] = useState('default');
-
     useEffect(() => {
         if ('Notification' in window) {
             setNotificationStatus(Notification.permission);
         }
     }, []);
-    
     const handleNotificationClick = async () => {
         if (notificationStatus === 'default' || notificationStatus === 'prompt') {
-            try { 
+            try {
                 const newStatus = await handleRequestNotificationPermission();
                 if (newStatus) setNotificationStatus(newStatus);
-            } 
+            }
             catch (err) { console.error("Error requesting notification permission:", err); }
         }
     };
-    
     let notificationButton;
     if (notificationStatus === 'granted') {
         notificationButton = ( <button disabled className={`text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-green-600 text-white cursor-default`}> <BellRing size={14}/> <span>Enabled</span> </button> );
     } else if (notificationStatus === 'denied') {
          notificationButton = ( <button disabled className={`text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-red-700 text-gray-300 cursor-not-allowed`}> <BellRing size={14}/> <span>Blocked</span> </button> );
-    } else { 
+    } else {
          notificationButton = ( <button onClick={handleNotificationClick} className={`text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500`}> <BellRing size={14}/> <span>Enable</span> </button> );
     }
-    
      let installButton;
      if (isAppInstalled) {
          installButton = ( <button disabled className="text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-green-600 text-white cursor-default"> <CheckCircle size={14}/> <span>Installed</span> </button> );
      } else if (installPromptEvent) {
           installButton = ( <button onClick={handleInstallApp} className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500"> <Download size={14}/> <span>Install App</span> </button> );
      } else {
-         installButton = null; 
+         installButton = null;
      }
-     
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <SettingsSection title="Application">
-                {installButton && ( 
+                {installButton && (
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Install App</span>
                         {installButton}
@@ -654,20 +767,16 @@ const SettingsApplication = () => {
         </div>
     );
 };
-
 const SettingsData = () => {
     const { handleExportData, toast, userId } = useAppState();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false); 
+    const [isDeleting, setIsDeleting] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
-
     const handleConfirmDelete = async () => {
         setIsDeleting(true);
         setShowDeleteModal(false);
-        
         let localDataCleared = false;
         let cloudDataCleared = false;
-        
         try {
             try {
                 await db.entries.clear();
@@ -678,21 +787,17 @@ const SettingsData = () => {
                 await db.settings.clear();
                 localStorage.removeItem(PIN_STORAGE_KEY);
                 localStorage.removeItem(WEBAUTHN_CREDENTIAL_ID_KEY);
-                
                 localDataCleared = true;
             } catch (localError) {
                 console.error("Error clearing local data:", localError);
                 throw new Error("Failed to clear local data");
             }
             if (userId && firestoreDb) {
-                
                 try {
                     const collectionsToDelete = ['entries', 'reminders', 'goals', 'tasks', 'vaultItems'];
-                    
                     for (const collectionName of collectionsToDelete) {
                         const collectionRef = collection(firestoreDb, `users/${userId}/${collectionName}`);
                         const snapshot = await getDocs(query(collectionRef));
-                        
                         if (!snapshot.empty) {
                             const batch = writeBatch(firestoreDb);
                             snapshot.docs.forEach(doc => {
@@ -702,36 +807,39 @@ const SettingsData = () => {
                             console.log(`Deleted ${snapshot.docs.length} documents from ${collectionName}`);
                         }
                     }
-                    
+                    const settingsDocRef = doc(firestoreDb, `artifacts/${appId}/users/${userId}/settings/main`);
+                    await deleteDoc(settingsDocRef);
+                    console.log("Deleted settings document");
+                    if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                        try {
+                            await deleteUser(auth.currentUser);
+                            console.log("Deleted Firebase Auth account");
+                        } catch (authError) {
+                            console.warn("Could not delete auth account (may require re-authentication):", authError.message);
+                        }
+                    }
                     cloudDataCleared = true;
                     console.log("Cloud data deleted successfully");
                 } catch (cloudError) {
                     console.warn("Could not delete cloud data (permissions issue):", cloudError.message);
-                    // Don't throw - local data is more important
                 }
             }
-
-            // Show appropriate success message
             if (localDataCleared && cloudDataCleared) {
-                toast.success("All your data has been permanently deleted.");
+                toast.success("All your data and account have been permanently deleted.");
             } else if (localDataCleared && !cloudDataCleared) {
                 toast.success("Local data deleted. Cloud data may require manual deletion from Firebase Console.");
             } else if (localDataCleared) {
                 toast.success("Local data has been permanently deleted.");
             }
-            
-            // Reload the page after a short delay
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
-            
         } catch (error) {
             console.error("Error deleting data:", error);
             toast.error(`Failed to delete data: ${error.message}`);
             setIsDeleting(false);
         }
     };
-    
     return (
         <>
             <div className="max-w-2xl mx-auto space-y-8">
@@ -766,13 +874,11 @@ const SettingsData = () => {
                     </div>
                 </SettingsSection>
             </div>
-            
             <ExportModal
                 show={showExportModal}
                 onClose={() => setShowExportModal(false)}
                 onExport={handleExportData}
             />
-
             {showDeleteModal && (
                 <DeleteDataModal
                     onClose={() => setShowDeleteModal(false)}
@@ -782,9 +888,7 @@ const SettingsData = () => {
         </>
     );
 };
-
 const SettingsNotifications = () => {
-    const { useNotifications } = require('../components/PushNotificationProvider');
     const {
         notificationPermission,
         notificationsEnabled,
@@ -792,12 +896,11 @@ const SettingsNotifications = () => {
         toggleNotifications,
         sendTestNotification
     } = useNotifications();
-
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <SettingsSection title="Push Notifications">
                 <div className="space-y-6">
-                    {/* Notification Status */}
+                    {}
                     <div className="flex items-center justify-between">
                         <div>
                             <h4 className="font-semibold text-slate-800 dark:text-gray-200">Enable Notifications</h4>
@@ -825,8 +928,7 @@ const SettingsNotifications = () => {
                             />
                         </button>
                     </div>
-
-                    {/* Test Notification */}
+                    {}
                     {notificationsEnabled && notificationPermission === 'granted' && (
                         <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
                             <div>
@@ -844,8 +946,7 @@ const SettingsNotifications = () => {
                             </button>
                         </div>
                     )}
-
-                    {/* Permission Instructions */}
+                    {}
                     {notificationPermission === 'denied' && (
                         <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                             <div className="flex">
@@ -862,8 +963,7 @@ const SettingsNotifications = () => {
                             </div>
                         </div>
                     )}
-
-                    {/* Info */}
+                    {}
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <div className="flex">
                             <BellRing className="h-5 w-5 text-blue-400" />
@@ -886,10 +986,8 @@ const SettingsNotifications = () => {
         </div>
     );
 };
-
 const MobileSettingsSection = ({ title, icon, isActive, onClick, children }) => {
     const Icon = icon;
-
     return (
         <div className="bg-white dark:bg-slate-900">
             <button
@@ -928,7 +1026,6 @@ const MobileSettingsSection = ({ title, icon, isActive, onClick, children }) => 
                     />
                 </motion.div>
             </button>
-
             <AnimatePresence>
                 {isActive && (
                     <motion.div
@@ -947,5 +1044,4 @@ const MobileSettingsSection = ({ title, icon, isActive, onClick, children }) => 
         </div>
     );
 };
-
 export default SettingsPage;

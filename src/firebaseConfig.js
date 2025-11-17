@@ -6,7 +6,6 @@ import { getFunctions } from "firebase/functions";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getPerformance } from "firebase/performance";
 import { getMessaging, onMessage, getToken } from "firebase/messaging";
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -16,9 +15,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
-
 export const appId = firebaseConfig.projectId || 'curiosity-pwa';
-
 let app;
 let auth;
 let db;
@@ -27,33 +24,23 @@ let functions;
 let analytics;
 let performance;
 let messaging;
-
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
-  
   db = initializeFirestore(app, {
       localCache: memoryLocalCache({ cacheSizeBytes: 100 * 1024 * 1024 })
   });
-  
   storage = getStorage(app);
   functions = getFunctions(app);
-  
   if (typeof window !== 'undefined') {
-    // Initialize Analytics
     isSupported().then((supported) => {
       if (supported) {
         analytics = getAnalytics(app);
       }
     });
-
-    // Initialize Performance Monitoring
     performance = getPerformance(app);
-
-    // Initialize Firebase Messaging
     messaging = getMessaging(app);
   }
-
 } catch (error) {
   console.error("Error initializing Firebase:", error);
   if (error.code === 'duplicate-app') {
@@ -73,5 +60,4 @@ try {
     }
   }
 }
-
 export { db as firestoreDb, auth, app, functions, storage, analytics, performance, messaging, GoogleAuthProvider };

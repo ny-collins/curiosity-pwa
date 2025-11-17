@@ -412,11 +412,11 @@ exports.updateFCMToken = functions.https.onCall(
     }
 
     try {
-      await db.collection("users").doc(context.auth.uid).update({
+      await db.collection("users").doc(context.auth.uid).set({
         fcmToken: fcmToken,
         notificationsEnabled: true,
         fcmTokenUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+      }, { merge: true });
 
       console.log(`FCM token updated for user ${context.auth.uid}`);
       return { success: true };

@@ -1,7 +1,6 @@
 import React from 'react';
 import { FileText, Archive, FileJson } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody } from './Modal';
-
 const ExportOption = ({ icon: Icon, title, description, onClick }) => (
     <button
         onClick={onClick}
@@ -17,28 +16,23 @@ const ExportOption = ({ icon: Icon, title, description, onClick }) => (
         </div>
     </button>
 );
-
 export default function ExportModal({ show, onClose, onExport }) {
     if (!show) {
         return null;
     }
-
     const handleExport = (format) => {
         onExport(format);
         onClose();
     };
-
     return (
         <Modal isOpen={show} onClose={onClose} className="max-w-lg">
             <ModalHeader>
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Export Your Data</h2>
             </ModalHeader>
-
             <ModalBody>
                 <p className="text-sm text-slate-600 dark:text-gray-300 mb-6">
                     Choose a format to download all your entries, reminders, and settings.
                 </p>
-
                 <div className="space-y-4">
                     <ExportOption
                         icon={Archive}

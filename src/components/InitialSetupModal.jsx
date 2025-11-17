@@ -4,21 +4,17 @@ import { User, Palette, Type, Sparkles, Check, ChevronRight, Sun, Moon, Laptop }
 import Logo from './Logo';
 import ThemedAvatar from './ThemedAvatar';
 import { THEME_COLORS, FONT_CATEGORIES } from '../constants';
-
-// Convert hex to RGB for the accent color
 const hexToRgb = (hex) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result 
+    return result
         ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
         : '59, 130, 246';
 };
-
 const THEME_OPTIONS = [
     { id: 'light', label: 'Light', description: 'Bright and clean', icon: Sun },
     { id: 'dark', label: 'Dark', description: 'Easy on the eyes', icon: Moon },
     { id: 'system', label: 'Auto', description: 'Follows system', icon: Laptop },
 ];
-
 export default function InitialSetupModal({ onComplete }) {
     const [step, setStep] = useState(1);
     const [username, setUsername] = useState('');
@@ -26,15 +22,12 @@ export default function InitialSetupModal({ onComplete }) {
     const [selectedAccent, setSelectedAccent] = useState(THEME_COLORS[0]);
     const [selectedFont, setSelectedFont] = useState(FONT_CATEGORIES[0].fonts[0]);
     const [isCompleting, setIsCompleting] = useState(false);
-
     const totalSteps = 4;
     const progress = (step / totalSteps) * 100;
-
-    // Live preview - Apply selections to the modal itself
     const modalStyle = {
         '--color-primary-hex': selectedAccent.hex,
         '--color-primary-rgb': hexToRgb(selectedAccent.hex),
-        fontFamily: selectedFont.value === 'Inter' ? 'Inter, sans-serif' : 
+        fontFamily: selectedFont.value === 'Inter' ? 'Inter, sans-serif' :
                     selectedFont.value === 'Roboto' ? 'Roboto, sans-serif' :
                     selectedFont.value === 'Lato' ? 'Lato, sans-serif' :
                     selectedFont.value === 'Lora' ? 'Lora, serif' :
@@ -46,7 +39,6 @@ export default function InitialSetupModal({ onComplete }) {
                     selectedFont.value === 'Caveat' ? 'Caveat, cursive' :
                     'Inter, sans-serif'
     };
-
     const handleNext = () => {
         if (step < totalSteps) {
             setStep(step + 1);
@@ -54,16 +46,26 @@ export default function InitialSetupModal({ onComplete }) {
             handleComplete();
         }
     };
-
     const handleBack = () => {
         if (step > 1) {
             setStep(step - 1);
         }
     };
-
+    const handleSkip = async () => {
+        setIsCompleting(true);
+        const settings = {
+            username: 'Guest User',
+            theme: 'system',
+            accentColor: THEME_COLORS[0].hex,
+            accentColorRgb: hexToRgb(THEME_COLORS[0].hex),
+            themeFont: FONT_CATEGORIES[0].fonts[0].value,
+            hasCompletedSetup: true,
+        };
+        await new Promise(resolve => setTimeout(resolve, 500));
+        onComplete(settings);
+    };
     const handleComplete = async () => {
         setIsCompleting(true);
-        
         const settings = {
             username: username.trim() || 'User',
             theme: selectedTheme,
@@ -72,23 +74,20 @@ export default function InitialSetupModal({ onComplete }) {
             themeFont: selectedFont.value,
             hasCompletedSetup: true,
         };
-
         await new Promise(resolve => setTimeout(resolve, 500));
         onComplete(settings);
     };
-
     const canProceed = () => {
         if (step === 1) return username.trim().length > 0;
         return true;
     };
-
     return (
-        <div 
+        <div
             className="fixed inset-0 z-50 bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 overflow-y-auto"
             style={modalStyle}
         >
             <div className="min-h-screen flex flex-col">
-                {/* Header */}
+                {}
                 <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm sticky top-0 z-10">
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
                         <div className="flex items-center justify-between">
@@ -103,9 +102,14 @@ export default function InitialSetupModal({ onComplete }) {
                                     </p>
                                 </div>
                             </div>
-                            <Sparkles className="text-primary hidden sm:block" size={28} style={{ color: selectedAccent.hex }} />
+                            <button
+                                onClick={handleSkip}
+                                disabled={isCompleting}
+                                className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            >
+                                Skip <ChevronRight size={16} />
+                            </button>
                         </div>
-                        
                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-3">
                             <motion.div
                                 className="h-full rounded-full"
@@ -117,8 +121,7 @@ export default function InitialSetupModal({ onComplete }) {
                         </div>
                     </div>
                 </div>
-
-                {/* Content */}
+                {}
                 <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                     <div className="w-full max-w-6xl">
                         <AnimatePresence mode="wait">
@@ -129,10 +132,10 @@ export default function InitialSetupModal({ onComplete }) {
                                 exit={{ opacity: 0, x: -20 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                {/* Step 1: Username */}
+                                {}
                                 {step === 1 && (
                                     <div className="text-center">
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ scale: 0.9 }}
                                             animate={{ scale: 1 }}
                                             className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-4 sm:mb-6"
@@ -179,11 +182,10 @@ export default function InitialSetupModal({ onComplete }) {
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Step 2: Theme */}
+                                {}
                                 {step === 2 && (
                                     <div className="text-center">
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ scale: 0.9 }}
                                             animate={{ scale: 1 }}
                                             className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-4 sm:mb-6"
@@ -239,11 +241,10 @@ export default function InitialSetupModal({ onComplete }) {
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Step 3: Accent Color */}
+                                {}
                                 {step === 3 && (
                                     <div className="text-center">
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ scale: 0.9 }}
                                             animate={{ scale: 1 }}
                                             className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-4 sm:mb-6"
@@ -266,7 +267,7 @@ export default function InitialSetupModal({ onComplete }) {
                                                     whileTap={{ scale: 0.95 }}
                                                     className="group relative"
                                                 >
-                                                    <div 
+                                                    <div
                                                         className="w-full aspect-square rounded-2xl shadow-lg transition-all"
                                                         style={{ backgroundColor: color.hex }}
                                                     >
@@ -290,11 +291,10 @@ export default function InitialSetupModal({ onComplete }) {
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Step 4: Typography */}
+                                {}
                                 {step === 4 && (
                                     <div className="text-center">
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ scale: 0.9 }}
                                             animate={{ scale: 1 }}
                                             className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-4 sm:mb-6"
@@ -357,8 +357,7 @@ export default function InitialSetupModal({ onComplete }) {
                         </AnimatePresence>
                     </div>
                 </div>
-
-                {/* Footer */}
+                {}
                 <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm sticky bottom-0">
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
                         <div className="flex items-center justify-between gap-4">
@@ -369,7 +368,6 @@ export default function InitialSetupModal({ onComplete }) {
                             >
                                 Back
                             </button>
-                            
                             <motion.button
                                 onClick={handleNext}
                                 disabled={!canProceed() || isCompleting}

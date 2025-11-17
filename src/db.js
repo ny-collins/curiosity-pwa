@@ -1,7 +1,5 @@
 import Dexie from 'dexie';
-
 export const db = new Dexie('CuriosityDB_v5');
-
 db.version(1).stores({
   entries: 'id, title, content, type, createdAt, updatedAt, *tags, isSynced, [type+createdAt], [isSynced+updatedAt]',
   reminders: 'id, text, date, createdAt, isSynced, [isSynced+date]',
@@ -10,15 +8,12 @@ db.version(1).stores({
   tasks: 'id, goalId, text, completed, createdAt, isSynced, [goalId+completed]',
   vaultItems: 'id, title, type, encryptedData, createdAt, updatedAt, isSynced, [type+createdAt]'
 });
-
 db.open().catch(err => {
     console.error(`Failed to open Dexie db: ${err.stack || err}`);
 });
-
 export async function getSettings() {
   return await db.settings.get(1);
 }
-
 export async function saveSettings(settings) {
   const settingsToSave = {
     ...settings,
@@ -27,5 +22,4 @@ export async function saveSettings(settings) {
   };
   return await db.settings.put(settingsToSave);
 }
-
 export default db;

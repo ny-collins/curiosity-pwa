@@ -6,9 +6,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { functions } from '../firebaseConfig';
 import { toast } from 'react-hot-toast';
 import logger from '../logger';
-
 const NotificationContext = createContext();
-
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -16,59 +14,45 @@ export const useNotifications = () => {
   }
   return context;
 };
-
 export const NotificationProvider = ({ children }) => {
   const { userId } = useAppState();
   const [notificationPermission, setNotificationPermission] = useState('default');
   const [fcmToken, setFcmToken] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Check notification permission on mount
   useEffect(() => {
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
     }
   }, []);
-
-  // Load user notification preferences
   useEffect(() => {
     if (userId) {
       const savedPreference = localStorage.getItem(`notifications_enabled_${userId}`);
       setNotificationsEnabled(savedPreference === 'true');
+    } else {
+      setNotificationsEnabled(false);
     }
   }, [userId]);
-
-  // Request notification permission
   const requestPermission = async () => {
     try {
       setIsLoading(true);
-
       if (!('Notification' in window)) {
         toast.error('This browser does not support notifications');
         return false;
       }
-
       if (!messaging) {
         toast.error('Firebase messaging is not available');
         return false;
       }
-
       const permission = await Notification.requestPermission();
-
       if (permission === 'granted') {
         setNotificationPermission('granted');
         toast.success('Notification permission granted!');
-
-        // Get FCM token
         const token = await getToken(messaging, {
           vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
         });
-
         if (token) {
           setFcmToken(token);
-          
-          // Save token to Firestore via Firebase Function
           try {
             const updateFCMToken = httpsCallable(functions, 'updateFCMToken');
             await updateFCMToken({ fcmToken: token });
@@ -76,7 +60,6 @@ export const NotificationProvider = ({ children }) => {
             logger.error('Error saving FCM token:', error);
             toast.error('Notification token saved locally but may not persist');
           }
-
           return true;
         } else {
           toast.error('Failed to get notification token');
@@ -95,12 +78,9 @@ export const NotificationProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
-
-  // Enable/disable notifications
   const toggleNotifications = async (enabled) => {
     try {
       setIsLoading(true);
-
       if (enabled) {
         const success = await requestPermission();
         if (success) {
@@ -120,14 +100,11 @@ export const NotificationProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
-
-  // Send test notification
   const sendTestNotification = async () => {
     if (!fcmToken) {
       toast.error('No notification token available');
       return;
     }
-
     try {
       const sendNotification = httpsCallable(functions, 'sendPushNotification');
       const result = await sendNotification({
@@ -136,7 +113,6 @@ export const NotificationProvider = ({ children }) => {
         tag: 'test-notification',
         userId: userId
       });
-
       if (result.data.success) {
         toast.success('Test notification sent! Check your notifications.');
       } else {
@@ -147,18 +123,13 @@ export const NotificationProvider = ({ children }) => {
       toast.error('Failed to send test notification');
     }
   };
-
-  // Handle foreground messages
   useEffect(() => {
     if (messaging && notificationPermission === 'granted') {
       const unsubscribe = onMessage(messaging, (payload) => {
-        // Show toast notification for foreground messages
         toast(payload.notification?.body || 'New notification', {
           icon: '🔔',
           duration: 5000,
         });
-
-        // Also show browser notification if user has granted permission
         if (notificationPermission === 'granted') {
           new Notification(
             payload.notification?.title || 'Curiosity',
@@ -170,12 +141,9 @@ export const NotificationProvider = ({ children }) => {
           );
         }
       });
-
       return () => unsubscribe();
     }
   }, [messaging, notificationPermission]);
-
-  // Register service worker
   useEffect(() => {
     if ('serviceWorker' in navigator && notificationPermission === 'granted') {
       navigator.serviceWorker
@@ -185,7 +153,6 @@ export const NotificationProvider = ({ children }) => {
         });
     }
   }, [notificationPermission]);
-
   const value = {
     notificationPermission,
     fcmToken,
@@ -195,12 +162,10 @@ export const NotificationProvider = ({ children }) => {
     toggleNotifications,
     sendTestNotification
   };
-
   return (
     <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );
 };
-
 export default NotificationProvider;

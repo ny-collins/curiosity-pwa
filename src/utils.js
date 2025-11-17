@@ -4,22 +4,16 @@ import { twMerge } from 'tailwind-merge';
 import { hash, compare } from 'bcrypt-ts';
 import CryptoJS from 'crypto-js';
 import { getPerformance, trace } from 'firebase/performance';
-
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
-
 export function formatTimestamp(ts, short = false) {
     if (!ts) return '';
-    
     try {
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        
-        // Validate the date
         if (isNaN(date.getTime())) {
             return '';
         }
-        
         if (short) {
             if (isToday(date)) {
                 return format(date, 'p');
@@ -29,7 +23,6 @@ export function formatTimestamp(ts, short = false) {
             }
             return format(date, 'MMM d, yyyy');
         }
-        
         if (isToday(date)) {
             return `Today at ${format(date, 'p')}`;
         }
@@ -42,7 +35,6 @@ export function formatTimestamp(ts, short = false) {
         return '';
     }
 }
-
 export function dateToKey(date) {
     if (!date) return null;
     try {
@@ -52,17 +44,14 @@ export function dateToKey(date) {
         return null;
     }
 }
-
 export async function hashPin(pin) {
     const saltRounds = 10;
     return await hash(pin, saltRounds);
 }
-
 export async function comparePin(pin, hash) {
     if (!pin || !hash) return false;
     return await compare(pin, hash);
 }
-
 export function stripMarkdown(markdown) {
     if (!markdown) return '';
     return markdown
@@ -73,13 +62,11 @@ export function stripMarkdown(markdown) {
         .replace(/\n/g, ' ')
         .trim();
 }
-
 export function encryptData(data, key) {
     if (!data || !key) {
         console.error("Encryption failed: Missing data or key");
         return null;
     }
-    
     try {
         return CryptoJS.AES.encrypt(JSON.stringify(data), key).toString();
     } catch (error) {
@@ -87,32 +74,25 @@ export function encryptData(data, key) {
         return null;
     }
 }
-
 export function decryptData(ciphertext, key) {
     if (!ciphertext || !key) {
         console.error("Decryption failed: Missing ciphertext or key");
         return null;
     }
-    
     try {
         const bytes = CryptoJS.AES.decrypt(ciphertext, key);
         const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
-        
         if (!decryptedData) {
             console.error("Decryption failed: Empty result");
             return null;
         }
-        
         return JSON.parse(decryptedData);
     } catch (error) {
         console.error("Decryption failed:", error);
         return null;
     }
 }
-
-// Performance Monitoring Utilities
 let perf = null;
-
 export function initPerformanceMonitoring() {
     if (typeof window !== 'undefined') {
         try {
@@ -122,7 +102,6 @@ export function initPerformanceMonitoring() {
         }
     }
 }
-
 export function startTrace(name) {
     if (perf && typeof window !== 'undefined') {
         try {
@@ -133,7 +112,6 @@ export function startTrace(name) {
     }
     return null;
 }
-
 export function stopTrace(trace) {
     if (trace) {
         try {
@@ -143,8 +121,6 @@ export function stopTrace(trace) {
         }
     }
 }
-
-// Performance wrapper for async functions
 export function withPerformanceTrace(name, fn) {
     return async (...args) => {
         const trace = startTrace(name);

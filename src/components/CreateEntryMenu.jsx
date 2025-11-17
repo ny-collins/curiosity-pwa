@@ -4,18 +4,15 @@ import { ChevronDown, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppState } from '../contexts/StateProvider';
 import { REGULAR_ENTRY_TYPES } from '../constants.js';
-
-const menuItems = REGULAR_ENTRY_TYPES; // Only show regular entries, not vault items
-
+const menuItems = REGULAR_ENTRY_TYPES;
 export default function CreateEntryMenu({ isExpanded }) {
     const { handleCreateEntry } = useAppState();
-
     if (!isExpanded) {
         return (
             <Popover className="relative">
                 {({ open }) => (
                     <div className="relative">
-                        <Popover.Button 
+                        <Popover.Button
                             className="p-3 rounded-full text-white focus:outline-none focus:ring-2"
                             style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
                             title="Create new"
@@ -28,12 +25,11 @@ export default function CreateEntryMenu({ isExpanded }) {
             </Popover>
         );
     }
-    
     return (
          <Popover className="relative w-full">
             {({ open }) => (
                 <div className="relative w-full">
-                    <Popover.Button 
+                    <Popover.Button
                         className={`w-full flex items-center justify-between text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 ${open ? 'ring-2' : ''}`}
                         style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
                     >
@@ -46,10 +42,8 @@ export default function CreateEntryMenu({ isExpanded }) {
         </Popover>
     );
 }
-
 const CreateMenuPanel = ({ open, handleCreateEntry }) => {
     const [hoveredItem, setHoveredItem] = useState(null);
-
     return (
         <Transition
             show={open}
@@ -80,15 +74,14 @@ const CreateMenuPanel = ({ open, handleCreateEntry }) => {
                                 transition={{ delay: index * 0.03, duration: 0.2 }}
                                 className="w-full text-left flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200 group relative overflow-hidden"
                             >
-                                {/* Hover background effect */}
+                                {}
                                 <motion.div
                                     className="absolute inset-0 opacity-0"
                                     style={{ backgroundColor: item.color }}
                                     animate={{ opacity: hoveredItem === item.value ? 0.08 : 0 }}
                                     transition={{ duration: 0.2 }}
                                 />
-                                
-                                {/* Icon with color on hover */}
+                                {}
                                 <motion.div
                                     className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mr-3 relative"
                                     style={{ backgroundColor: `${item.color}15` }}
@@ -97,8 +90,7 @@ const CreateMenuPanel = ({ open, handleCreateEntry }) => {
                                 >
                                     <TypeIcon size={16} style={{ color: item.color }} />
                                 </motion.div>
-                                
-                                {/* Text content */}
+                                {}
                                 <div className="flex-1 relative z-10">
                                     <div className="flex items-center space-x-2">
                                         <span className="font-medium">{item.emoji}</span>
@@ -108,13 +100,12 @@ const CreateMenuPanel = ({ open, handleCreateEntry }) => {
                                         {item.description}
                                     </p>
                                 </div>
-
-                                {/* Hover indicator */}
+                                {}
                                 <motion.div
                                     className="w-1 h-8 rounded-full absolute right-2"
                                     style={{ backgroundColor: item.color }}
                                     initial={{ opacity: 0, scale: 0 }}
-                                    animate={{ 
+                                    animate={{
                                         opacity: hoveredItem === item.value ? 1 : 0,
                                         scale: hoveredItem === item.value ? 1 : 0
                                     }}

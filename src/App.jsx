@@ -20,25 +20,23 @@ import OnboardingModal from './components/OnboardingModal';
 import InitialSetupModal from './components/InitialSetupModal';
 import InteractiveTutorial from './components/InteractiveTutorial';
 import OfflineIndicator from './components/OfflineIndicator';
+import SearchModal from './components/SearchModal';
+import KeyboardShortcutsPanel from './components/KeyboardShortcutsPanel';
 import { db } from './db.js';
-
 const viewVariants = {
     initial: { opacity: 0, x: 10 },
     in: { opacity: 1, x: 0 },
     out: { opacity: 0, x: -10 }
 };
-
 const viewTransition = {
     type: 'tween',
     ease: 'easeInOut',
     duration: 0.2
 };
-
 const MobileHeader = ({ currentView, onMenuClick }) => {
     if (currentView === 'settings' || currentView === 'editor' || currentView === 'dashboard') {
         return null;
     }
-
     return (
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center md:hidden flex-shrink-0 bg-white dark:bg-slate-900 z-10 fixed top-0 left-0 right-0">
             <button
@@ -56,63 +54,67 @@ const MobileHeader = ({ currentView, onMenuClick }) => {
         </div>
     );
 };
-
 export default function App() {
     const {
-        checkingPin, isLocked, handleForgotPin, setIsLocked, checkPin, 
-        currentView, isSidebarExpanded, showOnboarding, themeFont, fontSize, isAppFocusMode, 
+        checkingPin, isLocked, handleForgotPin, setIsLocked, checkPin,
+        currentView, isSidebarExpanded, showOnboarding, themeFont, fontSize, isAppFocusMode,
         isCreating, activeEntryId, activeEntry, newEntryType, handleEditorSaveComplete, forceEditorSave,
         handleOnboardingComplete, handleInitialSetup, handleModalSave, handleModalDiscard, handleModalCancel, localSettings, showUnsavedModal,
-        handleToggleSidebar
+        handleToggleSidebar, userId, toast
     } = useAppState();
-
     const [minSplashTimeElapsed, setMinSplashTimeElapsed] = useState(false);
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
+    const [showSearch, setShowSearch] = useState(false);
+    const [showShortcuts, setShowShortcuts] = useState(false);
+    
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
-
+    
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setShowSearch(true);
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+                e.preventDefault();
+                setShowShortcuts(true);
+            }
+        };
+        
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
     useEffect(() => {
         const timer = setTimeout(() => {
             setMinSplashTimeElapsed(true);
         }, 2000);
-        
         return () => clearTimeout(timer);
     }, []);
-
-    // Check if user should see tutorial (first time after setup)
-    // Only initialize after localSettings is loaded to avoid race condition
     const [showTutorial, setShowTutorial] = useState(false);
-    
     useEffect(() => {
         if (localSettings && localSettings.hasCompletedSetup) {
             const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
             setShowTutorial(!hasSeenTutorial);
         }
     }, [localSettings]);
-
     const handleTutorialComplete = () => {
         setShowTutorial(false);
         localStorage.setItem('hasSeenTutorial', 'true');
     };
-
     const handleTutorialSkip = () => {
         setShowTutorial(false);
         localStorage.setItem('hasSeenTutorial', 'true');
     };
-
     if (checkingPin || localSettings === null || !minSplashTimeElapsed) {
         return <SplashScreen />;
     }
-
-    // Show initial setup for new users
     if (!localSettings || !localSettings.hasCompletedSetup) {
         return <InitialSetupModal onComplete={handleInitialSetup} />;
     }
-    
     if (isLocked) {
         return <PinLockScreen
                   onUnlock={() => setIsLocked(false)}
@@ -120,11 +122,9 @@ export default function App() {
                   checkPin={checkPin}
                />;
     }
-
     if (showOnboarding) {
         return <OnboardingModal onComplete={handleOnboardingComplete} />;
     }
-    
     if (showTutorial) {
         return <InteractiveTutorial
             onComplete={handleTutorialComplete}
@@ -134,25 +134,23 @@ export default function App() {
             toast={toast}
         />;
     }
-    
     let effectiveView = currentView;
     if (isCreating || activeEntryId) {
         effectiveView = 'editor';
     }
-
     let mainContent;
     if (effectiveView === 'editor') {
         mainContent = (
-            <motion.div 
-                key="editor" 
+            <motion.div
+                key="editor"
                 className="h-full"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
-                <ModernEditor 
+                <ModernEditor
                     entry={activeEntry}
                     isCreating={isCreating}
                     newEntryType={newEntryType}
@@ -163,13 +161,13 @@ export default function App() {
         );
     } else if (effectiveView === 'settings') {
          mainContent = (
-            <motion.div 
-                key="settings" 
+            <motion.div
+                key="settings"
                 className="flex flex-col flex-grow h-full pb-16 md:pb-0"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
                 <SettingsPage />
@@ -177,13 +175,13 @@ export default function App() {
          );
     } else if (effectiveView === 'list') {
         mainContent = (
-             <motion.div 
-                key="list" 
+             <motion.div
+                key="list"
                 className="flex flex-col flex-grow h-full pb-16 md:pb-0"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
                 <EntryList />
@@ -191,13 +189,13 @@ export default function App() {
         );
     } else if (effectiveView === 'calendar') {
         mainContent = (
-             <motion.div 
-                key="calendar" 
+             <motion.div
+                key="calendar"
                 className="flex flex-col flex-grow h-full pb-16 md:pb-0"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
                  <CalendarView />
@@ -205,13 +203,13 @@ export default function App() {
         );
     } else if (effectiveView === 'goals') {
         mainContent = (
-             <motion.div 
-                key="goals" 
+             <motion.div
+                key="goals"
                 className="flex flex-col flex-grow h-full pb-16 md:pb-0"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
                  <GoalsView />
@@ -219,13 +217,13 @@ export default function App() {
         );
     } else if (effectiveView === 'vault') {
         mainContent = (
-             <motion.div 
-                key="vault" 
+             <motion.div
+                key="vault"
                 className="flex flex-col flex-grow h-full pb-16 md:pb-0"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
                  <VaultView />
@@ -233,13 +231,13 @@ export default function App() {
         );
     } else if (effectiveView === 'reminders') {
         mainContent = (
-             <motion.div 
-                key="reminders" 
+             <motion.div
+                key="reminders"
                 className="flex flex-col flex-grow h-full pb-16 md:pb-0"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
                  <RemindersView />
@@ -247,50 +245,46 @@ export default function App() {
         );
     } else {
          mainContent = (
-             <motion.div 
-                key="dashboard" 
+             <motion.div
+                key="dashboard"
                 className="flex flex-col flex-grow h-full pb-16 md:pb-0"
-                variants={viewVariants} 
-                initial="initial" 
-                animate="in" 
-                exit="out" 
+                variants={viewVariants}
+                initial="initial"
+                animate="in"
+                exit="out"
                 transition={viewTransition}
             >
                 <Dashboard />
              </motion.div>
         );
     }
-
     return (
         <>
             <div className="h-full relative flex md:flex-row overflow-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200" style={{ fontFamily: themeFont, fontSize: fontSize }}>
                  {!isAppFocusMode && (
                     <>
-                        {/* Desktop Sidebar */}
+                        {}
                         <div className="hidden md:block fixed top-0 left-0 h-full z-30">
-                            <Sidebar />
+                            <Sidebar onSearchClick={() => setShowSearch(true)} onShortcutsClick={() => setShowShortcuts(true)} />
                         </div>
-                        
-                        {/* Mobile Sidebar Overlay */}
+                        {}
                         {isSidebarExpanded && (
                             <>
-                                {/* Backdrop */}
-                                <div 
+                                {}
+                                <div
                                     className="fixed inset-0 bg-black/50 z-40 md:hidden"
                                     onClick={handleToggleSidebar}
                                 />
-                                {/* Sidebar */}
+                                {}
                                 <div className="fixed top-0 left-0 h-full z-50 md:hidden">
-                                    <Sidebar />
+                                    <Sidebar onSearchClick={() => setShowSearch(true)} onShortcutsClick={() => setShowShortcuts(true)} />
                                 </div>
                             </>
                         )}
                     </>
                  )}
-                
                 {!isAppFocusMode && <MobileHeader currentView={effectiveView} onMenuClick={handleToggleSidebar} />}
-
-                <main 
+                <main
                     className={`flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out ${effectiveView === 'settings' || effectiveView === 'editor' ? 'flex flex-col' : ''} ${effectiveView === 'dashboard' ? 'pt-0 md:pt-0' : effectiveView !== 'editor' && effectiveView !== 'settings' ? 'pt-12 md:pt-0' : ''} md:ml-0`}
                     style={{
                         paddingLeft: windowWidth >= 768 ? (isAppFocusMode ? '0' : (isSidebarExpanded ? '256px' : '64px')) : '0'
@@ -301,17 +295,17 @@ export default function App() {
                     </AnimatePresence>
                 </main>
             </div>
-            
-             <ReloadPrompt />
-             <OfflineIndicator />
-             
-             {showUnsavedModal && (
+            <ReloadPrompt />
+            <OfflineIndicator />
+            <SearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
+            <KeyboardShortcutsPanel isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+            {showUnsavedModal && (
                 <UnsavedChangesModal
                     onSave={handleModalSave}
                     onDiscard={handleModalDiscard}
                     onCancel={handleModalCancel}
                 />
-             )}
+            )}
         </>
     );
 }

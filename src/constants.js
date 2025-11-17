@@ -1,134 +1,123 @@
-import { 
+import {
     BookOpen, CheckSquare, Brain, Sun, Moon, Laptop, CaseLower, CaseUpper,
-    StickyNote, BookHeart, Lightbulb, Target, Flag, HelpCircle, 
+    StickyNote, BookHeart, Lightbulb, Target, Flag, HelpCircle,
     Sparkles, Briefcase, Key, Lock, CreditCard, FileText, Edit3
 } from 'lucide-react';
-
-// Entry types aligned with "Second Brain" concept
 export const ENTRY_TYPES = [
-    // Quick Capture - For immediate thoughts
-    { 
-        value: 'note', 
-        label: 'Quick Note', 
-        icon: StickyNote, 
+    {
+        value: 'note',
+        label: 'Quick Note',
+        icon: StickyNote,
         emoji: '📝',
         description: 'Capture a quick thought',
-        color: '#f59e0b', // amber
-        template: '' 
+        color: '#f59e0b',
+        template: ''
     },
-    { 
-        value: 'journal', 
-        label: 'Journal Entry', 
-        icon: BookHeart, 
+    {
+        value: 'journal',
+        label: 'Journal Entry',
+        icon: BookHeart,
         emoji: '📔',
         description: 'Document your day',
-        color: '#8b5cf6', // violet
-        template: '## 🌅 What happened today?\n\n\n## 💭 How do I feel?\n\n\n## 🙏 What am I grateful for?\n\n' 
+        color: '#8b5cf6',
+        template: '## 🌅 What happened today?\n\n\n## 💭 How do I feel?\n\n\n## 🙏 What am I grateful for?\n\n'
     },
-    { 
-        value: 'idea', 
-        label: 'Idea', 
-        icon: Lightbulb, 
+    {
+        value: 'idea',
+        label: 'Idea',
+        icon: Lightbulb,
         emoji: '💡',
         description: 'Capture a spark of inspiration',
-        color: '#eab308', // yellow
-        template: '## 💡 The Big Idea\n\n\n## 🤔 Why This Matters\n\n\n## 🎯 Next Steps\n\n' 
+        color: '#eab308',
+        template: '## 💡 The Big Idea\n\n\n## 🤔 Why This Matters\n\n\n## 🎯 Next Steps\n\n'
     },
-    
-    // Goals & Progress - Track achievements
-    { 
-        value: 'goal', 
-        label: 'Goal', 
-        icon: Target, 
+    {
+        value: 'goal',
+        label: 'Goal',
+        icon: Target,
         emoji: '🎯',
         description: 'Set a new goal',
-        color: '#22c55e', // green
-        template: '## 🎯 My Goal\n\n\n## 🔥 Why This Matters\n\n\n## ✅ Success Criteria\n\n\n## 📅 Deadline\n\n' 
+        color: '#22c55e',
+        template: '## 🎯 My Goal\n\n\n## 🔥 Why This Matters\n\n\n## ✅ Success Criteria\n\n\n## 📅 Deadline\n\n'
     },
-    { 
-        value: 'milestone', 
-        label: 'Milestone', 
-        icon: Flag, 
+    {
+        value: 'milestone',
+        label: 'Milestone',
+        icon: Flag,
         emoji: '🏁',
         description: 'Celebrate an achievement',
-        color: '#10b981', // emerald
-        template: '## 🏁 Milestone Achieved\n\n\n## 🎉 What I Accomplished\n\n\n## 📈 Impact\n\n' 
+        color: '#10b981',
+        template: '## 🏁 Milestone Achieved\n\n\n## 🎉 What I Accomplished\n\n\n## 📈 Impact\n\n'
     },
-    
-    // Learning & Discovery - Knowledge building
-    { 
-        value: 'article', 
-        label: 'Study Notes', 
-        icon: BookOpen, 
+    {
+        value: 'article',
+        label: 'Study Notes',
+        icon: BookOpen,
         emoji: '📚',
         description: 'Notes from reading or study',
-        color: '#3b82f6', // blue
-        template: '## 📚 Source\n\n\n## 🔑 Key Points\n\n- \n- \n- \n\n## 💭 My Thoughts\n\n\n## 🔗 Related Ideas\n\n' 
+        color: '#3b82f6',
+        template: '## 📚 Source\n\n\n## 🔑 Key Points\n\n- \n- \n- \n\n## 💭 My Thoughts\n\n\n## 🔗 Related Ideas\n\n'
     },
-    { 
-        value: 'question', 
-        label: 'Question', 
-        icon: HelpCircle, 
+    {
+        value: 'question',
+        label: 'Question',
+        icon: HelpCircle,
         emoji: '❓',
         description: 'Something you\'re curious about',
-        color: '#06b6d4', // cyan
-        template: '## ❓ The Question\n\n\n## 🧩 Context & Background\n\n\n## 💡 Possible Answers\n\n' 
+        color: '#06b6d4',
+        template: '## ❓ The Question\n\n\n## 🧩 Context & Background\n\n\n## 💡 Possible Answers\n\n'
     },
-    { 
-        value: 'discovery', 
-        label: 'Discovery', 
-        icon: Sparkles, 
+    {
+        value: 'discovery',
+        label: 'Discovery',
+        icon: Sparkles,
         emoji: '✨',
         description: 'Something new you learned',
-        color: '#ec4899', // pink
-        template: '## ✨ What I Discovered\n\n\n## 🚀 Why It\'s Exciting\n\n\n## 📝 How I\'ll Use This\n\n' 
+        color: '#ec4899',
+        template: '## ✨ What I Discovered\n\n\n## 🚀 Why It\'s Exciting\n\n\n## 📝 How I\'ll Use This\n\n'
     },
-    
-    // Organization & Tasks - Get things done
-    { 
-        value: 'task', 
-        label: 'Task List', 
-        icon: CheckSquare, 
+    {
+        value: 'task',
+        label: 'Task List',
+        icon: CheckSquare,
         emoji: '✅',
         description: 'Tasks and to-dos',
-        color: '#14b8a6', // teal
-        template: '## ✅ Tasks\n\n- [ ] \n- [ ] \n- [ ] \n\n## 📌 Priority\n\n' 
+        color: '#14b8a6',
+        template: '## ✅ Tasks\n\n- [ ] \n- [ ] \n- [ ] \n\n## 📌 Priority\n\n'
     },
-    { 
-        value: 'project', 
-        label: 'Project', 
-        icon: Briefcase, 
+    {
+        value: 'project',
+        label: 'Project',
+        icon: Briefcase,
         emoji: '📁',
         description: 'Plan a project',
-        color: '#6366f1', // indigo
-        template: '## 📁 Project Overview\n\n\n## 🎯 Goals\n\n\n## 📋 Tasks\n\n- [ ] \n- [ ] \n\n## 📅 Timeline\n\n' 
+        color: '#6366f1',
+        template: '## 📁 Project Overview\n\n\n## 🎯 Goals\n\n\n## 📋 Tasks\n\n- [ ] \n- [ ] \n\n## 📅 Timeline\n\n'
     },
-    
-    // Vault Items - Secure storage (handled separately in Vault view)
-    { 
-        value: 'vault-password', 
-        label: 'Password', 
-        icon: Key, 
+    {
+        value: 'vault-password',
+        label: 'Password',
+        icon: Key,
         emoji: '🔑',
         description: 'Store login credentials',
-        color: '#ef4444', // red
-        secure: true,
-        template: null // Vault items don't use markdown templates
-    },
-    { 
-        value: 'vault-note', 
-        label: 'Secure Note', 
-        icon: Lock, 
-        emoji: '🔒',
-        description: 'Private encrypted note',
-        color: '#dc2626', // red
+        color: '#ef4444',
         secure: true,
         template: null
     },
-    { 
-        value: 'vault-card', 
-        label: 'Card/Account', 
-        icon: CreditCard, 
+    {
+        value: 'vault-note',
+        label: 'Secure Note',
+        icon: Lock,
+        emoji: '🔒',
+        description: 'Private encrypted note',
+        color: '#dc2626',
+        secure: true,
+        template: null
+    },
+    {
+        value: 'vault-card',
+        label: 'Card/Account',
+        icon: CreditCard,
         emoji: '💳',
         description: 'Credit card or account info',
         color: '#b91c1c',
@@ -136,24 +125,14 @@ export const ENTRY_TYPES = [
         template: null
     },
 ];
-
 const ENTRY_TYPE_MAP = new Map(ENTRY_TYPES.map(type => [type.value, type]));
-
 export const getEntryType = (value) => {
     return ENTRY_TYPE_MAP.get(value) || ENTRY_TYPES[0];
 };
-
-// Filter for regular entries (non-vault)
 export const REGULAR_ENTRY_TYPES = ENTRY_TYPES.filter(t => !t.secure);
-
-// Filter for vault items only
 export const VAULT_ITEM_TYPES = ENTRY_TYPES.filter(t => t.secure);
-
 export const STORAGE_KEYS = {
-  // ... existing keys
 };
-
-// Animation configurations
 export const ANIMATIONS = {
   fadeIn: {
     initial: { opacity: 0 },
@@ -176,24 +155,19 @@ export const ANIMATIONS = {
     exit: { opacity: 0, scale: 0.9 }
   }
 };
-
-// Common transition settings
 export const TRANSITIONS = {
   fast: { duration: 0.15 },
   normal: { duration: 0.2 },
   slow: { duration: 0.3 },
   spring: { type: "spring", stiffness: 300, damping: 30 }
 };
-
 export const PIN_STORAGE_KEY = STORAGE_KEYS.PIN;
 export const WEBAUTHN_CREDENTIAL_ID_KEY = STORAGE_KEYS.WEBAUTHN_CREDENTIAL_ID;
-
 export const THEME_MODES = [
   { name: 'Light', value: 'light', icon: Sun },
   { name: 'Dark', value: 'dark', icon: Moon },
   { name: 'System', value: 'system', icon: Laptop },
 ];
-
 export const THEME_COLORS = [
   { name: 'Teal', hex: '#14b8a6' },
   { name: 'Rose', hex: '#e11d48' },
@@ -208,7 +182,6 @@ export const THEME_COLORS = [
   { name: 'Slate', hex: '#64748b' },
   { name: 'Red', hex: '#ef4444' },
 ];
-
 export const FONT_CATEGORIES = [
     {
         name: 'Sans Serif',
@@ -241,15 +214,12 @@ export const FONT_CATEGORIES = [
         ]
     }
 ];
-
 export const FONT_OPTIONS = FONT_CATEGORIES.flatMap(c => c.fonts);
-
 export const FONT_SIZES = [
     { name: 'Small', value: '14px', icon: CaseLower },
     { name: 'Medium', value: '16px', icon: CaseUpper },
     { name: 'Large', value: '18px', icon: CaseUpper },
 ];
-
 export const LIMITS = {
     MAX_FILE_SIZE: 5 * 1024 * 1024,
     PIN_LENGTH: 4,

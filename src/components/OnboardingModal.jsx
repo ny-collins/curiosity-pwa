@@ -2,94 +2,117 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { THEME_COLORS } from '../constants.js';
 import Logo from './Logo';
-import { User, Palette, Sparkles, Check, Heart, BookOpen } from 'lucide-react';
+import { User, Palette, Sparkles, Check, Heart, BookOpen, Zap, Lock, Cloud } from 'lucide-react';
+
+const FloatingParticle = ({ delay }) => (
+    <motion.div
+        className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 opacity-20"
+        style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+        }}
+        animate={{
+            y: [0, -30, 0],
+            x: [0, Math.random() * 20 - 10, 0],
+            scale: [1, 1.5, 1],
+            opacity: [0.2, 0.4, 0.2]
+        }}
+        transition={{
+            duration: 3 + Math.random() * 2,
+            repeat: Infinity,
+            delay: delay
+        }}
+    />
+);
 
 export default function OnboardingModal({ onComplete }) {
     const [username, setUsername] = useState('');
     const [selectedColor, setSelectedColor] = useState(THEME_COLORS[0].hex);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (username.trim()) {
             setIsSubmitting(true);
-            // Add a small delay for better UX
             await new Promise(resolve => setTimeout(resolve, 800));
             onComplete(username.trim(), selectedColor);
         }
     };
-
     const isValid = username.trim().length > 0;
-
     return (
-        <div className="fixed inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/90 to-slate-900/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+            {/* Animated background particles */}
+            {[...Array(8)].map((_, i) => (
+                <FloatingParticle key={i} delay={i * 0.3} />
+            ))}
+            
             <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                initial={{ scale: 0.8, opacity: 0, y: 30 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 md:p-8 max-w-md w-full relative overflow-hidden"
+                transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-8 md:p-10 max-w-lg w-full relative overflow-hidden"
             >
-                {/* Decorative background elements */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-purple-500/10 rounded-full blur-2xl" />
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-pink-500/10 to-orange-500/10 rounded-full blur-2xl" />
-
+                {/* Gradient orbs */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-500/20 to-purple-500/20 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-pink-500/20 to-orange-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+                
                 <div className="relative z-10 flex flex-col items-center text-center">
-                    {/* Animated logo */}
+                    {/* Logo with enhanced animation */}
                     <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                        className="mb-4"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 15 }}
+                        className="mb-6"
                     >
-                        <Logo className="w-16 h-16" />
+                        <Logo className="w-20 h-20" />
                     </motion.div>
-
+                    
                     <motion.h1
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
                         style={{ fontFamily: 'var(--font-logo)' }}
-                        className="text-4xl text-slate-900 dark:text-white mb-2"
+                        className="text-4xl md:text-5xl text-slate-900 dark:text-white mb-3 font-bold"
                     >
-                        Welcome Back! 🎉
+                        Welcome to Curiosity! 🎉
                     </motion.h1>
-
+                    
                     <motion.p
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="text-lg mb-6 text-slate-600 dark:text-gray-300"
+                        className="text-lg mb-8 text-slate-600 dark:text-gray-300 max-w-md"
                     >
-                        Let's personalize your experience
+                        Your personal space for ideas, thoughts, and discoveries
                     </motion.p>
-
-                    {/* Feature highlights */}
+                    
+                    {/* Feature badges with staggered animation */}
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
                         className="flex flex-wrap justify-center gap-3 mb-8"
                     >
                         {[
-                            { icon: BookOpen, text: "Rich Editor" },
-                            { icon: Heart, text: "Personal Space" },
-                            { icon: Sparkles, text: "Beautiful Design" }
+                            { icon: BookOpen, text: "Rich Editor", color: "from-blue-500 to-blue-600" },
+                            { icon: Lock, text: "Secure & Private", color: "from-green-500 to-green-600" },
+                            { icon: Cloud, text: "Cloud Sync", color: "from-purple-500 to-purple-600" },
+                            { icon: Sparkles, text: "Beautiful UI", color: "from-pink-500 to-pink-600" }
                         ].map((feature, index) => (
                             <motion.div
                                 key={feature.text}
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.6 + index * 0.1, type: "spring" }}
-                                className="flex items-center space-x-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-full"
+                                initial={{ scale: 0, rotate: -10 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                transition={{ delay: 0.6 + index * 0.1, type: "spring", stiffness: 200 }}
+                                whileHover={{ scale: 1.05, y: -2 }}
+                                className={`flex items-center space-x-2 px-4 py-2 bg-gradient-to-r ${feature.color} rounded-full shadow-lg`}
                             >
-                                <feature.icon size={14} className="text-slate-600 dark:text-slate-400" />
-                                <span className="text-sm text-slate-700 dark:text-slate-300">{feature.text}</span>
+                                <feature.icon size={16} className="text-white" />
+                                <span className="text-sm font-medium text-white">{feature.text}</span>
                             </motion.div>
                         ))}
                     </motion.div>
                 </div>
-
                 <motion.form
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -133,7 +156,6 @@ export default function OnboardingModal({ onComplete }) {
                             </motion.p>
                         )}
                     </div>
-
                     <div>
                         <label className="flex items-center text-sm font-medium text-slate-700 dark:text-gray-300 mb-3">
                             <Palette size={16} className="mr-2" />
@@ -175,34 +197,42 @@ export default function OnboardingModal({ onComplete }) {
                             This color will be used throughout your jotter
                         </p>
                     </div>
-
                     <motion.button
                         type="submit"
                         disabled={!isValid || isSubmitting}
-                        className="w-full text-white font-semibold py-4 px-4 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg"
+                        className="w-full text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-2xl relative overflow-hidden"
                         style={{
                             backgroundColor: isValid ? selectedColor : '#cbd5e1',
-                            '--tw-ring-color': selectedColor
+                            '--tw-ring-color': `${selectedColor}40`
                         }}
-                        whileHover={isValid ? { scale: 1.02 } : {}}
+                        whileHover={isValid ? { scale: 1.02, y: -2 } : {}}
                         whileTap={isValid ? { scale: 0.98 } : {}}
                     >
+                        {/* Shimmer effect */}
+                        {isValid && !isSubmitting && (
+                            <motion.div
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                                animate={{ x: ['-100%', '200%'] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            />
+                        )}
+                        
                         <AnimatePresence mode="wait">
                             {isSubmitting ? (
                                 <motion.div
                                     key="loading"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="flex items-center space-x-2"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    className="flex items-center space-x-3"
                                 >
                                     <motion.div
                                         animate={{ rotate: 360 }}
                                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                                     >
-                                        <Sparkles size={20} />
+                                        <Sparkles size={22} />
                                     </motion.div>
-                                    <span>Setting up your jotter...</span>
+                                    <span className="text-lg">Setting up your jotter...</span>
                                 </motion.div>
                             ) : (
                                 <motion.div
@@ -224,8 +254,7 @@ export default function OnboardingModal({ onComplete }) {
                         </AnimatePresence>
                     </motion.button>
                 </motion.form>
-
-                {/* Subtle hint */}
+                {}
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

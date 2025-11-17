@@ -5,14 +5,12 @@ import { useAppState } from '../contexts/StateProvider';
 import { decryptData, formatTimestamp } from '../utils.js';
 import { LIMITS } from '../constants.js';
 import { useToaster } from './NotificationProvider.jsx';
-
 const VaultPinScreen = ({ onUnlock }) => {
     const { checkPin } = useAppState();
     const toast = useToaster();
     const [pin, setPin] = useState('');
     const [error, setError] = useState(false);
     const [isUnlocking, setIsUnlocking] = useState(false);
-
     useEffect(() => {
         if (pin.length === LIMITS.PIN_LENGTH) {
             handleSubmit();
@@ -21,12 +19,10 @@ const VaultPinScreen = ({ onUnlock }) => {
             setError(false);
         }
     }, [pin]);
-
     const handleSubmit = async () => {
         setIsUnlocking(true);
         const isValid = await checkPin(pin);
         if (isValid) {
-            // Smooth unlock animation
             setTimeout(() => {
                 onUnlock();
                 toast.success("Vault unlocked! 🔓");
@@ -38,119 +34,202 @@ const VaultPinScreen = ({ onUnlock }) => {
             setTimeout(() => setPin(''), 500);
         }
     };
-
     const handleKeyClick = (value) => {
         if (pin.length < LIMITS.PIN_LENGTH && !isUnlocking) {
             setPin(pin + value);
         }
     };
-    
     return (
-        <div className="flex flex-col items-center justify-center h-full p-4">
-            {/* Animated Lock Icon */}
+        <div className="flex flex-col items-center justify-center h-full p-4 relative overflow-hidden">
+            {/* Animated background particles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {[...Array(8)].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        className="absolute w-2 h-2 bg-violet-500/20 dark:bg-violet-400/20 rounded-full"
+                        style={{
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                        }}
+                        animate={{
+                            y: [0, -30, 0],
+                            x: [0, Math.random() * 40 - 20, 0],
+                            opacity: [0.2, 0.5, 0.2],
+                            scale: [1, 1.5, 1],
+                        }}
+                        transition={{
+                            duration: 3 + Math.random() * 2,
+                            repeat: Infinity,
+                            delay: Math.random() * 2,
+                            ease: "easeInOut"
+                        }}
+                    />
+                ))}
+            </div>
+            
+            {}
             <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ 
-                    scale: isUnlocking ? 1.2 : 1, 
+                animate={{
+                    scale: isUnlocking ? 1.2 : 1,
                     opacity: 1,
                     rotate: isUnlocking ? 360 : 0
                 }}
-                transition={{ 
+                transition={{
                     scale: { type: "spring", stiffness: 300, damping: 20 },
                     rotate: { duration: 0.5 }
                 }}
-                className="relative mb-6"
+                className="relative mb-6 z-10"
             >
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 dark:from-violet-500/30 dark:to-fuchsia-500/30 rounded-full blur-2xl" />
-                <div className="relative bg-white dark:bg-slate-800 p-6 rounded-full shadow-xl border-2 border-violet-200 dark:border-violet-500/30">
+                <motion.div 
+                    className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 dark:from-violet-500/30 dark:to-fuchsia-500/30 rounded-full blur-2xl"
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0.5, 0.8, 0.5]
+                    }}
+                    transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                />
+                <motion.div 
+                    className="relative bg-white dark:bg-slate-800 p-6 rounded-full shadow-xl border-2 border-violet-200 dark:border-violet-500/30"
+                    whileHover={{ scale: 1.05 }}
+                >
                     {isUnlocking ? (
-                        <Unlock size={48} className="text-violet-600 dark:text-violet-400" />
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        >
+                            <Unlock size={48} className="text-violet-600 dark:text-violet-400" />
+                        </motion.div>
                     ) : (
                         <Lock size={48} className="text-violet-600 dark:text-violet-400" />
                     )}
-                </div>
+                </motion.div>
             </motion.div>
-
-            <motion.h2 
+            
+            <motion.h2
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1 }}
-                className="text-2xl font-semibold text-slate-900 dark:text-white mb-2"
+                className="text-2xl font-semibold text-slate-900 dark:text-white mb-2 z-10"
             >
                 {isUnlocking ? 'Unlocking...' : 'Vault Locked'}
             </motion.h2>
-            <motion.p 
+            <motion.p
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="text-slate-600 dark:text-gray-400 mb-8 text-center max-w-xs"
+                className="text-slate-600 dark:text-gray-400 mb-8 text-center max-w-xs z-10"
             >
                 {isUnlocking ? 'Decrypting your secure items...' : 'Enter your PIN to decrypt and view items'}
             </motion.p>
             
-            {/* PIN Dots */}
+            {}
             <motion.div
                 animate={{ x: error ? [-5, 5, -5, 5, 0] : 0 }}
                 transition={{ duration: 0.3 }}
-                className="flex space-x-4 my-8"
+                className="flex space-x-4 my-8 z-10"
             >
                 {Array.from({ length: LIMITS.PIN_LENGTH }).map((_, i) => (
                     <motion.div
                         key={i}
-                        initial={{ scale: 0 }}
-                        animate={{ 
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{
                             scale: i < pin.length ? 1 : 0.8,
-                            backgroundColor: error 
-                                ? '#ef4444' 
-                                : i < pin.length 
-                                    ? 'rgb(124, 58, 237)' 
+                            rotate: 0,
+                            backgroundColor: error
+                                ? '#ef4444'
+                                : i < pin.length
+                                    ? 'rgb(124, 58, 237)'
                                     : 'rgb(148, 163, 184)'
                         }}
-                        transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                        transition={{ 
+                            type: "spring", 
+                            stiffness: 500, 
+                            damping: 20,
+                            delay: i * 0.05
+                        }}
                         className="w-4 h-4 rounded-full shadow-lg"
-                    />
+                    >
+                        {i < pin.length && (
+                            <motion.div
+                                className="absolute inset-0 rounded-full bg-white/30"
+                                initial={{ scale: 1, opacity: 0.5 }}
+                                animate={{ scale: 2, opacity: 0 }}
+                                transition={{ duration: 0.6 }}
+                            />
+                        )}
+                    </motion.div>
                 ))}
             </motion.div>
-
-            {/* Numpad */}
-            <motion.div 
+            {}
+            <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="grid grid-cols-3 gap-4"
+                className="grid grid-cols-3 gap-3 sm:gap-4 z-10 max-w-sm mx-auto"
             >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, -1, 0, 'del'].map((val, idx) => (
                     <motion.button
                         key={val}
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 20,
+                            delay: 0.4 + idx * 0.03
+                        }}
                         onClick={() => val === 'del' ? setPin(p => p.slice(0, -1)) : (val === -1 ? null : handleKeyClick(val.toString()))}
                         disabled={val === -1 || isUnlocking}
-                        whileHover={val !== -1 && !isUnlocking ? { scale: 1.05, backgroundColor: 'rgb(241, 245, 249)' } : {}}
+                        whileHover={val !== -1 && !isUnlocking ? { 
+                            scale: 1.08, 
+                            y: -2,
+                            boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.3)"
+                        } : {}}
                         whileTap={val !== -1 && !isUnlocking ? { scale: 0.95 } : {}}
-                        className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-2xl font-semibold 
+                        className="relative w-full aspect-square min-h-[60px] max-h-[80px] rounded-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-2xl font-semibold
                                    flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-700
                                    focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-0
-                                   transition-colors duration-200"
+                                   transition-colors duration-200 overflow-hidden group"
                     >
-                        {val === 'del' ? <Trash2 size={24} className="text-slate-600 dark:text-slate-400" /> : (val === -1 ? '' : val)}
+                        {/* Shine effect */}
+                        <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/10 to-transparent"
+                            initial={{ x: '-100%' }}
+                            whileHover={{ x: '100%' }}
+                            transition={{ duration: 0.6 }}
+                        />
+                        
+                        <span className="relative z-10">
+                            {val === 'del' ? (
+                                <motion.div
+                                    whileHover={{ rotate: [0, -10, 10, 0] }}
+                                    transition={{ duration: 0.4 }}
+                                >
+                                    <Trash2 size={24} className="text-slate-600 dark:text-slate-400" />
+                                </motion.div>
+                            ) : (val === -1 ? '' : val)}
+                        </span>
                     </motion.button>
                 ))}
             </motion.div>
         </div>
     );
 };
-
 const VaultItem = ({ item, decryptedData, onDelete, index }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [copiedKey, setCopiedKey] = useState(null);
     const toast = useToaster();
-
     const copyToClipboard = (text, key) => {
         navigator.clipboard.writeText(text);
         setCopiedKey(key);
         toast.success(`${key} copied! 📋`);
         setTimeout(() => setCopiedKey(null), 2000);
     };
-
     const getTypeIcon = (type) => {
         switch (type) {
             case 'password': return <Key className="text-violet-600 dark:text-violet-400" size={20} />;
@@ -159,7 +238,6 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
             default: return <Shield className="text-slate-600 dark:text-slate-400" size={20} />;
         }
     };
-
     const getTypeColor = (type) => {
         switch (type) {
             case 'password': return 'from-violet-500/10 to-fuchsia-500/10 dark:from-violet-500/20 dark:to-fuchsia-500/20';
@@ -168,7 +246,6 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
             default: return 'from-slate-500/10 to-slate-500/10 dark:from-slate-500/20 dark:to-slate-500/20';
         }
     };
-
     const renderData = () => {
         if (!decryptedData) {
             return (
@@ -178,19 +255,17 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                 </div>
             );
         }
-        
         const fields = Object.entries(decryptedData);
-        
         return (
-            <motion.div 
+            <motion.div
                 className="space-y-3"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
             >
                 {fields.map(([key, value], idx) => (
-                    <motion.div 
-                        key={key} 
+                    <motion.div
+                        key={key}
                         initial={{ x: -10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         transition={{ delay: 0.1 * idx }}
@@ -200,9 +275,9 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                             <span className="block text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                                 {key}
                             </span>
-                            <motion.span 
-                                animate={{ 
-                                    filter: !isVisible && item.type === 'password' ? 'blur(6px)' : 'blur(0px)' 
+                            <motion.span
+                                animate={{
+                                    filter: !isVisible && item.type === 'password' ? 'blur(6px)' : 'blur(0px)'
                                 }}
                                 transition={{ duration: 0.2 }}
                                 className="block text-sm font-medium text-slate-900 dark:text-white truncate"
@@ -210,20 +285,35 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                                 {value}
                             </motion.span>
                         </div>
-                        <motion.button 
-                            onClick={() => copyToClipboard(value, key)} 
+                        <motion.button
+                            onClick={() => copyToClipboard(value, key)}
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
-                            className="ml-3 flex-shrink-0 p-2 rounded-lg text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 
-                                     hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all opacity-0 group-hover:opacity-100"
+                            className="relative ml-3 flex-shrink-0 p-2 rounded-lg text-slate-400 hover:text-violet-600 dark:hover:text-violet-400
+                                     hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all opacity-0 group-hover:opacity-100 overflow-hidden"
                         >
+                            {/* Ripple effect on copy */}
+                            <AnimatePresence>
+                                {copiedKey === key && (
+                                    <motion.div
+                                        className="absolute inset-0 bg-green-500/30 rounded-lg"
+                                        initial={{ scale: 0, opacity: 1 }}
+                                        animate={{ scale: 2, opacity: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.5 }}
+                                    />
+                                )}
+                            </AnimatePresence>
+                            
                             <AnimatePresence mode="wait">
                                 {copiedKey === key ? (
                                     <motion.div
                                         key="check"
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1, rotate: 360 }}
-                                        exit={{ scale: 0 }}
+                                        initial={{ scale: 0, rotate: -180 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        exit={{ scale: 0, rotate: 180 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                        className="relative z-10"
                                     >
                                         <Check size={16} className="text-green-500" />
                                     </motion.div>
@@ -233,6 +323,7 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
                                         exit={{ scale: 0 }}
+                                        className="relative z-10"
                                     >
                                         <Copy size={16} />
                                     </motion.div>
@@ -244,28 +335,38 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
             </motion.div>
         );
     };
-
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ delay: index * 0.05 }}
+            transition={{ 
+                type: "spring",
+                stiffness: 300,
+                damping: 20,
+                delay: index * 0.05 
+            }}
             className="group relative"
         >
-            {/* Gradient Background */}
+            {}
             <div className={`absolute inset-0 bg-gradient-to-br ${getTypeColor(item.type)} rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-            
-            {/* Card */}
-            <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 
+            {}
+            <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700
                           hover:shadow-xl hover:border-violet-300 dark:hover:border-violet-500/50 transition-all duration-300 overflow-hidden">
+                {/* Shine effect overlay */}
+                <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '100%' }}
+                    transition={{ duration: 0.6 }}
+                />
                 
-                {/* Header */}
+                {}
                 <div className="flex justify-between items-start p-5 pb-4 border-b border-slate-100 dark:border-slate-700/50">
                     <div className="flex items-start space-x-3 flex-1 min-w-0">
-                        <motion.div 
-                            whileHover={{ rotate: 360 }}
-                            transition={{ duration: 0.5 }}
+                        <motion.div
+                            whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
+                            transition={{ duration: 0.4 }}
                             className="flex-shrink-0 p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50"
                         >
                             {getTypeIcon(item.type)}
@@ -284,13 +385,21 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                     </div>
                     <div className="flex items-center space-x-1 ml-2">
                         {item.type === 'password' && (
-                            <motion.button 
-                                onClick={() => setIsVisible(!isVisible)} 
+                            <motion.button
+                                onClick={() => setIsVisible(!isVisible)}
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
-                                className="p-2 rounded-lg text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 
-                                         hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all"
+                                className="relative p-2 rounded-lg text-slate-400 hover:text-violet-600 dark:hover:text-violet-400
+                                         hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all overflow-hidden"
                             >
+                                {/* Shine effect */}
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/20 to-transparent"
+                                    initial={{ x: '-100%' }}
+                                    whileHover={{ x: '100%' }}
+                                    transition={{ duration: 0.6 }}
+                                />
+                                
                                 <AnimatePresence mode="wait">
                                     {isVisible ? (
                                         <motion.div
@@ -299,6 +408,7 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                                             animate={{ rotate: 0, opacity: 1 }}
                                             exit={{ rotate: 90, opacity: 0 }}
                                             transition={{ duration: 0.2 }}
+                                            className="relative z-10"
                                         >
                                             <EyeOff size={16} />
                                         </motion.div>
@@ -309,6 +419,7 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                                             animate={{ rotate: 0, opacity: 1 }}
                                             exit={{ rotate: 90, opacity: 0 }}
                                             transition={{ duration: 0.2 }}
+                                            className="relative z-10"
                                         >
                                             <Eye size={16} />
                                         </motion.div>
@@ -316,19 +427,29 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
                                 </AnimatePresence>
                             </motion.button>
                         )}
-                        <motion.button 
+                        <motion.button
                             onClick={onDelete}
-                            whileHover={{ scale: 1.1 }}
+                            whileHover={{ 
+                                scale: 1.1,
+                                rotate: [0, -5, 5, -5, 0],
+                                transition: { rotate: { repeat: Infinity, duration: 0.5 } }
+                            }}
                             whileTap={{ scale: 0.9 }}
-                            className="p-2 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 
-                                     hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                            className="relative p-2 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400
+                                     hover:bg-red-50 dark:hover:bg-red-500/10 transition-all overflow-hidden"
                         >
-                            <Trash2 size={16} />
+                            {/* Shine effect */}
+                            <motion.div
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/20 to-transparent"
+                                initial={{ x: '-100%' }}
+                                whileHover={{ x: '100%' }}
+                                transition={{ duration: 0.6 }}
+                            />
+                            <Trash2 size={16} className="relative z-10" />
                         </motion.button>
                     </div>
                 </div>
-                
-                {/* Content */}
+                {}
                 <div className="p-5 pt-4">
                     {renderData()}
                 </div>
@@ -336,12 +457,10 @@ const VaultItem = ({ item, decryptedData, onDelete, index }) => {
         </motion.div>
     );
 };
-
 const AddVaultItemModal = ({ onClose, onSave }) => {
     const [title, setTitle] = useState('');
     const [type, setType] = useState('password');
     const [fields, setFields] = useState([{ key: 'username', value: '' }, { key: 'password', value: '' }]);
-
     const handleTypeChange = (e) => {
         const newType = e.target.value;
         setType(newType);
@@ -353,23 +472,19 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
             setFields([{ key: 'note', value: '' }]);
         }
     };
-
     const handleFieldChange = (index, keyOrValue, value) => {
         const newFields = [...fields];
         newFields[index][keyOrValue] = value;
         setFields(newFields);
     };
-    
     const handleAddField = () => {
         setFields([...fields, { key: '', value: '' }]);
     };
-
     const handleRemoveField = (index) => {
         if (fields.length > 1) {
             setFields(fields.filter((_, i) => i !== index));
         }
     };
-
     const handleSave = () => {
         if (!title.trim()) return;
         const dataToEncrypt = fields.reduce((acc, field) => {
@@ -381,7 +496,6 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
         onSave(title, type, dataToEncrypt);
         onClose();
     };
-
     const getTypeIcon = (type) => {
         switch (type) {
             case 'password': return <Key size={20} />;
@@ -390,16 +504,15 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
             default: return <Shield size={20} />;
         }
     };
-
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={onClose}
         >
-            <motion.div 
+            <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -407,8 +520,8 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
                 onClick={(e) => e.stopPropagation()}
                 className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
-                {/* Header */}
-                <motion.div 
+                {}
+                <motion.div
                     initial={{ y: -10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
@@ -422,14 +535,13 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
                         <p className="text-sm text-slate-600 dark:text-slate-400">Securely store sensitive information</p>
                     </div>
                 </motion.div>
-                
-                <motion.div 
+                <motion.div
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
                     className="space-y-5"
                 >
-                    {/* Title Input */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Title
@@ -439,67 +551,93 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
                             placeholder="e.g., Google Account, Work Email..."
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600 
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600
                                      rounded-xl text-slate-900 dark:text-white placeholder-slate-400
                                      focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
                                      transition-all duration-200"
                         />
                     </div>
-
-                    {/* Type Selector */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Type
                         </label>
                         <div className="grid grid-cols-3 gap-3">
                             {[
-                                { value: 'password', label: 'Password', icon: <Key size={18} /> },
-                                { value: 'contact', label: 'Contact', icon: <User size={18} /> },
-                                { value: 'note', label: 'Note', icon: <StickyNote size={18} /> }
+                                { value: 'password', label: 'Password', icon: <Key size={18} />, color: 'violet' },
+                                { value: 'contact', label: 'Contact', icon: <User size={18} />, color: 'blue' },
+                                { value: 'note', label: 'Note', icon: <StickyNote size={18} />, color: 'amber' }
                             ].map((option) => (
                                 <motion.button
                                     key={option.value}
                                     type="button"
                                     onClick={() => handleTypeChange({ target: { value: option.value } })}
-                                    whileHover={{ scale: 1.02 }}
+                                    whileHover={{ scale: 1.05, y: -2 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200
-                                        ${type === option.value 
-                                            ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' 
+                                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 overflow-hidden
+                                        ${type === option.value
+                                            ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 shadow-lg shadow-violet-500/20'
                                             : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 hover:border-violet-300'
                                         }`}
                                 >
-                                    {option.icon}
-                                    <span className="text-xs font-medium mt-1">{option.label}</span>
+                                    {/* Shine effect on selected */}
+                                    {type === option.value && (
+                                        <motion.div
+                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/10 to-transparent"
+                                            animate={{ x: ['-100%', '100%'] }}
+                                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                        />
+                                    )}
+                                    
+                                    <motion.div
+                                        animate={type === option.value ? { 
+                                            scale: [1, 1.2, 1],
+                                            rotate: [0, 10, -10, 0]
+                                        } : {}}
+                                        transition={{ duration: 0.5 }}
+                                        className="relative z-10"
+                                    >
+                                        {option.icon}
+                                    </motion.div>
+                                    <span className="text-xs font-medium mt-1 relative z-10">{option.label}</span>
                                 </motion.button>
                             ))}
                         </div>
                     </div>
-                    
-                    {/* Fields */}
+                    {}
                     <div>
                         <div className="flex items-center justify-between mb-3">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Fields
                             </label>
-                            <motion.button 
+                            <motion.button
                                 onClick={handleAddField}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 flex items-center space-x-1"
+                                className="relative text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 flex items-center space-x-1 overflow-hidden px-2 py-1 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors"
                             >
-                                <Plus size={14} />
+                                <motion.div
+                                    whileHover={{ rotate: 90 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <Plus size={14} />
+                                </motion.div>
                                 <span>Add Field</span>
                             </motion.button>
                         </div>
                         <AnimatePresence>
                             {fields.map((field, index) => (
-                                <motion.div 
+                                <motion.div
                                     key={index}
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    transition={{ duration: 0.2 }}
+                                    initial={{ opacity: 0, x: -20, height: 0 }}
+                                    animate={{ opacity: 1, x: 0, height: 'auto' }}
+                                    exit={{ opacity: 0, x: 20, height: 0 }}
+                                    transition={{ 
+                                        type: "spring",
+                                        stiffness: 300,
+                                        damping: 25,
+                                        delay: index * 0.05 
+                                    }}
                                     className="flex space-x-2 mb-3"
                                 >
                                     <input
@@ -507,25 +645,31 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
                                         placeholder="Field name"
                                         value={field.key}
                                         onChange={(e) => handleFieldChange(index, 'key', e.target.value)}
-                                        className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600 
+                                        className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600
                                                  rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400
-                                                 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                                 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+                                                 transition-all duration-200"
                                     />
                                     <input
                                         type={field.key.toLowerCase().includes('password') ? 'password' : 'text'}
                                         placeholder="Value"
                                         value={field.value}
                                         onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
-                                        className="flex-[2] px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600 
+                                        className="flex-[2] px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600
                                                  rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400
-                                                 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                                 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+                                                 transition-all duration-200"
                                     />
                                     {fields.length > 1 && (
                                         <motion.button
                                             onClick={() => handleRemoveField(index)}
-                                            whileHover={{ scale: 1.1, rotate: 90 }}
+                                            whileHover={{ 
+                                                scale: 1.1, 
+                                                rotate: [0, -10, 10, -10, 0],
+                                                transition: { rotate: { duration: 0.5 } }
+                                            }}
                                             whileTap={{ scale: 0.9 }}
-                                            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                         >
                                             <Trash2 size={16} />
                                         </motion.button>
@@ -535,9 +679,8 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
                         </AnimatePresence>
                     </div>
                 </motion.div>
-                
-                {/* Actions */}
-                <motion.div 
+                {}
+                <motion.div
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
@@ -547,35 +690,48 @@ const AddVaultItemModal = ({ onClose, onSave }) => {
                         onClick={onClose}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-gray-300 
+                        className="relative px-5 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-gray-300
                                  bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600
-                                 transition-colors duration-200"
+                                 transition-colors duration-200 overflow-hidden"
                     >
-                        Cancel
+                        <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                            initial={{ x: '-100%' }}
+                            whileHover={{ x: '100%' }}
+                            transition={{ duration: 0.6 }}
+                        />
+                        <span className="relative z-10">Cancel</span>
                     </motion.button>
                     <motion.button
                         onClick={handleSave}
                         disabled={!title.trim()}
                         whileHover={title.trim() ? { scale: 1.02 } : {}}
                         whileTap={title.trim() ? { scale: 0.98 } : {}}
-                        className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700
-                                 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-violet-500/30"
+                        className="relative px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700
+                                 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-violet-500/30 overflow-hidden"
                     >
-                        Save Securely
+                        {/* Shimmer effect */}
+                        <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                            animate={title.trim() ? { x: ['-100%', '100%'] } : {}}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        />
+                        <span className="relative z-10 flex items-center space-x-1.5">
+                            <Shield size={16} />
+                            <span>Save Securely</span>
+                        </span>
                     </motion.button>
                 </motion.div>
             </motion.div>
         </motion.div>
     );
 };
-
 export default function VaultView() {
     const { vaultItems, handleAddVaultItem, handleDeleteVaultItem, appPin, unlockedKey, setUnlockedKey, checkPin } = useAppState();
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true);
-
     const decryptedItems = useMemo(() => {
         if (!unlockedKey || !vaultItems) return [];
         return vaultItems
@@ -585,27 +741,18 @@ export default function VaultView() {
             }))
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }, [vaultItems, unlockedKey]);
-
-    // Filter and search items
     const filteredItems = useMemo(() => {
         let items = decryptedItems;
-        
-        // Filter by type
         if (filterType !== 'all') {
             items = items.filter(item => item.type === filterType);
         }
-        
-        // Search by title
         if (searchQuery.trim()) {
-            items = items.filter(item => 
+            items = items.filter(item =>
                 item.title.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
-        
         return items;
     }, [decryptedItems, filterType, searchQuery]);
-
-    // Statistics
     const stats = useMemo(() => {
         return {
             total: decryptedItems.length,
@@ -614,7 +761,6 @@ export default function VaultView() {
             notes: decryptedItems.filter(i => i.type === 'note').length
         };
     }, [decryptedItems]);
-    
     if (!appPin) {
          return (
              <div className="flex flex-col items-center justify-center h-full p-4 text-center">
@@ -634,28 +780,25 @@ export default function VaultView() {
             </div>
          );
     }
-
-    // Only show PIN screen if user has set up a PIN
     if (!unlockedKey && appPin) {
         return <VaultPinScreen onUnlock={() => setUnlockedKey(true)} />;
     }
-
     return (
         <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-violet-50/30 to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-            {/* Header */}
-            <motion.div 
+            {}
+            <motion.div
                 className="flex-shrink-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700"
-                animate={{ 
+                animate={{
                     paddingTop: isHeaderCollapsed ? '12px' : '24px',
                     paddingBottom: isHeaderCollapsed ? '12px' : '24px'
                 }}
                 transition={{ duration: 0.3 }}
             >
                 <div className="px-6">
-                    {/* Title and Add Button */}
+                    {}
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                            {/* Collapse Toggle Button */}
+                            {}
                             <motion.button
                                 onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
                                 whileHover={{ scale: 1.1 }}
@@ -670,7 +813,6 @@ export default function VaultView() {
                                     <ChevronUp size={20} />
                                 </motion.div>
                             </motion.button>
-                            
                             <motion.div
                                 initial={{ x: -20, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
@@ -682,7 +824,7 @@ export default function VaultView() {
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Secure Vault</h2>
                                     {!isHeaderCollapsed && (
-                                        <motion.p 
+                                        <motion.p
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
@@ -698,17 +840,22 @@ export default function VaultView() {
                             onClick={() => setShowAddModal(true)}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="flex items-center space-x-2 px-5 py-3 rounded-xl text-white font-semibold
+                            className="relative flex items-center space-x-2 px-5 py-3 rounded-xl text-white font-semibold
                                      bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700
-                                     shadow-lg shadow-violet-500/30 transition-all duration-200"
+                                     shadow-lg shadow-violet-500/30 transition-all duration-200 overflow-hidden"
                         >
-                            <Plus size={20} />
-                            <span>Add Item</span>
+                            {/* Shimmer effect */}
+                            <motion.div
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                                animate={{ x: ['-100%', '100%'] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            />
+                            <Plus size={20} className="relative z-10" />
+                            <span className="relative z-10">Add Item</span>
                         </motion.button>
                     </div>
                 </div>
-
-                {/* Collapsible Content */}
+                {}
                 <AnimatePresence>
                     {!isHeaderCollapsed && (
                         <motion.div
@@ -719,8 +866,8 @@ export default function VaultView() {
                             className="overflow-hidden"
                         >
                             <div className="px-6 pt-6">
-                                {/* Statistics Cards */}
-                                <motion.div 
+                                {}
+                                <motion.div
                                     initial={{ y: 20, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
                                     transition={{ delay: 0.1 }}
@@ -736,32 +883,55 @@ export default function VaultView() {
                                 key={stat.label}
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: 0.1 + index * 0.05 }}
-                                whileHover={{ scale: 1.02, y: -2 }}
-                                className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm"
+                                transition={{ 
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 20,
+                                    delay: 0.1 + index * 0.05 
+                                }}
+                                whileHover={{ scale: 1.05, y: -4 }}
+                                className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm group"
                             >
                                 <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-5`} />
+                                
+                                {/* Shine effect */}
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                                    initial={{ x: '-100%' }}
+                                    whileHover={{ x: '100%' }}
+                                    transition={{ duration: 0.6 }}
+                                />
+                                
                                 <div className="relative flex items-center justify-between">
                                     <div>
                                         <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{stat.label}</p>
-                                        <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{stat.value}</p>
+                                        <motion.p 
+                                            className="text-2xl font-bold text-slate-900 dark:text-white mt-1"
+                                            animate={{ scale: [1, 1.05, 1] }}
+                                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
+                                        >
+                                            {stat.value}
+                                        </motion.p>
                                     </div>
-                                    <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.gradient} opacity-10`}>
+                                    <motion.div 
+                                        className={`p-2 rounded-lg bg-gradient-to-br ${stat.gradient} opacity-10`}
+                                        whileHover={{ rotate: 360, opacity: 0.2 }}
+                                        transition={{ duration: 0.5 }}
+                                    >
                                         <stat.icon size={20} className={`text-${stat.color}-600`} />
-                                    </div>
+                                    </motion.div>
                                 </div>
                             </motion.div>
                         ))}
                     </motion.div>
-
-                    {/* Search and Filter */}
-                    <motion.div 
+                    {}
+                    <motion.div
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.2 }}
                         className="flex flex-col md:flex-row gap-4"
                     >
-                        {/* Search */}
+                        {}
                         <div className="flex-1 relative">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
                             <input
@@ -775,8 +945,7 @@ export default function VaultView() {
                                          transition-all duration-200"
                             />
                         </div>
-
-                        {/* Filter */}
+                        {}
                         <div className="flex space-x-2">
                             {[
                                 { value: 'all', label: 'All', icon: Shield },
@@ -787,16 +956,31 @@ export default function VaultView() {
                                 <motion.button
                                     key={filter.value}
                                     onClick={() => setFilterType(filter.value)}
-                                    whileHover={{ scale: 1.05 }}
+                                    whileHover={{ scale: 1.05, y: -2 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className={`flex items-center space-x-2 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200
+                                    className={`relative flex items-center space-x-2 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 overflow-hidden
                                         ${filterType === filter.value
                                             ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/30'
                                             : 'bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                                         }`}
                                 >
-                                    <filter.icon size={16} />
-                                    <span className="hidden md:inline">{filter.label}</span>
+                                    {/* Shine effect on active */}
+                                    {filterType === filter.value && (
+                                        <motion.div
+                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                                            animate={{ x: ['-100%', '100%'] }}
+                                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                        />
+                                    )}
+                                    
+                                    <motion.div
+                                        animate={filterType === filter.value ? { rotate: [0, 10, -10, 0] } : {}}
+                                        transition={{ duration: 0.5 }}
+                                        className="relative z-10"
+                                    >
+                                        <filter.icon size={16} />
+                                    </motion.div>
+                                    <span className="hidden md:inline relative z-10">{filter.label}</span>
                                 </motion.button>
                             ))}
                         </div>
@@ -806,38 +990,37 @@ export default function VaultView() {
         )}
     </AnimatePresence>
 </motion.div>
-            
-            {/* Content */}
+            {}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                 <AnimatePresence mode="popLayout">
                     {filteredItems.length > 0 ? (
-                        <motion.div 
+                        <motion.div
                             layout
                             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
                         >
                             {filteredItems.map((item, index) => (
-                                <VaultItem 
-                                    key={item.id} 
+                                <VaultItem
+                                    key={item.id}
                                     item={item}
                                     index={index}
-                                    decryptedData={item.decryptedData} 
+                                    decryptedData={item.decryptedData}
                                     onDelete={() => handleDeleteVaultItem(item.id)}
                                 />
                             ))}
                         </motion.div>
                     ) : (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
                             className="flex flex-col items-center justify-center h-full text-center py-20"
                         >
                             <motion.div
-                                animate={{ 
+                                animate={{
                                     rotate: [0, 10, -10, 0],
                                     scale: [1, 1.05, 1]
                                 }}
-                                transition={{ 
+                                transition={{
                                     duration: 2,
                                     repeat: Infinity,
                                     repeatDelay: 3
@@ -851,8 +1034,8 @@ export default function VaultView() {
                                 )}
                             </motion.div>
                             <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">
-                                {searchQuery || filterType !== 'all' 
-                                    ? 'No items found' 
+                                {searchQuery || filterType !== 'all'
+                                    ? 'No items found'
                                     : 'Your vault is empty'
                                 }
                             </h3>
@@ -866,11 +1049,10 @@ export default function VaultView() {
                     )}
                 </AnimatePresence>
             </div>
-            
-            {/* Add Modal */}
+            {}
             <AnimatePresence>
                 {showAddModal && (
-                    <AddVaultItemModal 
+                    <AddVaultItemModal
                         onClose={() => setShowAddModal(false)}
                         onSave={handleAddVaultItem}
                     />

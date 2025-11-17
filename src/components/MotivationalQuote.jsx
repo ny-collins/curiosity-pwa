@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-
 const quotes = [
     "The only way to do great work is to love what you do.",
     "The best way to predict the future is to create it.",
@@ -13,14 +11,11 @@ const quotes = [
     "I am not a product of my circumstances. I am a product of my decisions.",
     "When you have a dream, you've got to grab it and never let go."
 ];
-
 export default function MotivationalQuote() {
     const [quote, setQuote] = useState('');
-
     useEffect(() => {
         setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
     }, []);
-
     return (
         <p className="text-sm text-slate-500 dark:text-gray-400 italic">
             &ldquo;{quote}&rdquo;

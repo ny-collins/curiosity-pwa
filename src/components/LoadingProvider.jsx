@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-
 const LoadingContext = createContext();
-
 export const useLoading = () => {
   const context = useContext(LoadingContext);
   if (!context) {
@@ -11,14 +9,11 @@ export const useLoading = () => {
   }
   return context;
 };
-
 export const LoadingProvider = ({ children }) => {
   const [loadingStates, setLoadingStates] = useState({});
-
   const startLoading = useCallback((key, message = 'Loading...') => {
     setLoadingStates(prev => ({ ...prev, [key]: { active: true, message } }));
   }, []);
-
   const stopLoading = useCallback((key) => {
     setLoadingStates(prev => {
       const newState = { ...prev };
@@ -26,23 +21,18 @@ export const LoadingProvider = ({ children }) => {
       return newState;
     });
   }, []);
-
   const isLoading = useCallback((key) => {
     return loadingStates[key]?.active || false;
   }, [loadingStates]);
-
   const getLoadingMessage = useCallback((key) => {
     return loadingStates[key]?.message || '';
   }, [loadingStates]);
-
   const globalLoading = Object.keys(loadingStates).length > 0;
   const globalMessage = Object.values(loadingStates)[0]?.message || 'Loading...';
-
   return (
     <LoadingContext.Provider value={{ startLoading, stopLoading, isLoading, getLoadingMessage, globalLoading }}>
       {children}
-      
-      {/* Global loading indicator */}
+      {}
       <AnimatePresence>
         {globalLoading && (
           <motion.div
@@ -61,5 +51,4 @@ export const LoadingProvider = ({ children }) => {
     </LoadingContext.Provider>
   );
 };
-
 export default LoadingProvider;

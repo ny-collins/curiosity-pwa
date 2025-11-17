@@ -3,20 +3,16 @@ import { AlertTriangle } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
 import { Button } from './Button';
-
 export default function DeleteDataModal({ onClose, onConfirmDelete }) {
     const [isLoading, setIsLoading] = useState(false);
     const [confirmText, setConfirmText] = useState("");
-
     const canDelete = confirmText === "DELETE";
-
     const handleConfirm = () => {
         if (canDelete) {
             setIsLoading(true);
             onConfirmDelete();
         }
     };
-
     return (
         <Modal isOpen={true} onClose={onClose} className="max-w-md">
             <ModalHeader>
@@ -30,17 +26,14 @@ export default function DeleteDataModal({ onClose, onConfirmDelete }) {
                     </div>
                 </div>
             </ModalHeader>
-
             <ModalBody>
                 <div className="space-y-3">
                     <p className="text-sm text-slate-700 dark:text-gray-300">
                         You are about to permanently delete all your entries, reminders, and settings from the cloud. This cannot be undone.
                     </p>
-
                     <p className="text-sm text-slate-700 dark:text-gray-300">
                         To confirm, please type <strong>DELETE</strong> in the box below.
                     </p>
-
                     <input
                         type="text"
                         value={confirmText}
@@ -51,7 +44,6 @@ export default function DeleteDataModal({ onClose, onConfirmDelete }) {
                     />
                 </div>
             </ModalBody>
-
             <ModalFooter>
                 <Button variant="secondary" onClick={onClose}>
                     Cancel

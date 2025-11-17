@@ -4,7 +4,6 @@ import {
     Edit3, Search, Tag, Bell, Lock, Palette,
     X, ChevronRight, Sparkles, Star, FileText
 } from 'lucide-react';
-
 const FEATURE_HIGHLIGHTS = [
     {
         id: 'rich-editor',
@@ -61,7 +60,6 @@ const FEATURE_HIGHLIGHTS = [
         actionType: 'settings'
     }
 ];
-
 export default function FeatureHighlights({
     onDismiss,
     onAction,
@@ -70,16 +68,13 @@ export default function FeatureHighlights({
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isVisible, setIsVisible] = useState(true);
-
     const currentHighlight = FEATURE_HIGHLIGHTS.find(h => h.id === visibleHighlights[currentIndex]);
-
     useEffect(() => {
         if (visibleHighlights.length === 0) {
             setIsVisible(false);
             onDismiss && onDismiss();
         }
     }, [visibleHighlights, onDismiss]);
-
     const handleNext = () => {
         if (currentIndex < visibleHighlights.length - 1) {
             setCurrentIndex(currentIndex + 1);
@@ -87,28 +82,23 @@ export default function FeatureHighlights({
             handleDismiss();
         }
     };
-
     const handleDismiss = () => {
         setIsVisible(false);
         setTimeout(() => {
             onDismiss && onDismiss();
         }, 300);
     };
-
     const handleAction = (actionType) => {
         onAction && onAction(actionType);
         handleNext();
     };
-
     const handleSkipHighlight = () => {
         if (currentHighlight) {
             onHighlightDismiss && onHighlightDismiss(currentHighlight.id);
             handleNext();
         }
     };
-
     if (!isVisible || !currentHighlight) return null;
-
     return (
         <AnimatePresence>
             <motion.div
@@ -123,7 +113,7 @@ export default function FeatureHighlights({
                     exit={{ scale: 0.9, opacity: 0 }}
                     className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
                 >
-                    {/* Header */}
+                    {}
                     <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
                         <div className="flex items-center space-x-3">
                             <div
@@ -151,13 +141,11 @@ export default function FeatureHighlights({
                             <X size={16} className="text-slate-500" />
                         </button>
                     </div>
-
-                    {/* Content */}
+                    {}
                     <div className="p-4">
                         <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
                             {currentHighlight.description}
                         </p>
-
                         <div className="flex items-center justify-between">
                             <button
                                 onClick={() => handleAction(currentHighlight.actionType)}
@@ -167,7 +155,6 @@ export default function FeatureHighlights({
                                 <span>{currentHighlight.action}</span>
                                 <ChevronRight size={14} />
                             </button>
-
                             <button
                                 onClick={handleSkipHighlight}
                                 className="px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
@@ -176,8 +163,7 @@ export default function FeatureHighlights({
                             </button>
                         </div>
                     </div>
-
-                    {/* Progress Indicator */}
+                    {}
                     <div className="px-4 pb-3">
                         <div className="flex space-x-1">
                             {visibleHighlights.map((_, index) => (
@@ -199,36 +185,27 @@ export default function FeatureHighlights({
         </AnimatePresence>
     );
 }
-
-// Hook for managing feature highlights
 export const useFeatureHighlights = () => {
     const [dismissedHighlights, setDismissedHighlights] = useState(() => {
         const stored = localStorage.getItem('dismissedHighlights');
         return stored ? JSON.parse(stored) : [];
     });
-
     const [visibleHighlights, setVisibleHighlights] = useState([]);
-
     useEffect(() => {
-        // Show highlights that haven't been dismissed
         const availableHighlights = FEATURE_HIGHLIGHTS
             .filter(highlight => !dismissedHighlights.includes(highlight.id))
             .map(highlight => highlight.id);
-
         setVisibleHighlights(availableHighlights);
     }, [dismissedHighlights]);
-
     const dismissHighlight = (highlightId) => {
         const newDismissed = [...dismissedHighlights, highlightId];
         setDismissedHighlights(newDismissed);
         localStorage.setItem('dismissedHighlights', JSON.stringify(newDismissed));
     };
-
     const resetHighlights = () => {
         setDismissedHighlights([]);
         localStorage.removeItem('dismissedHighlights');
     };
-
     return {
         visibleHighlights,
         dismissHighlight,
