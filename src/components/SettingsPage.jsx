@@ -374,12 +374,12 @@ const SettingsProfile = () => {
             </SettingsSection>
             <SettingsSection title="Profile">
                 <div>
-                    <label htmlFor="username" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Username</label>
-                    <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value)} className="themed-input w-full rounded-md" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }} placeholder="Your Name" />
+                    <label htmlFor="username-profile" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Username</label>
+                    <input type="text" id="username-profile" value={username} onChange={(e) => setUsername(e.target.value)} className="themed-input w-full rounded-md" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }} placeholder="Your Name" />
                 </div>
                 <div>
-                    <label htmlFor="profilePicUrl" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Profile Picture URL</label>
-                    <input type="text" id="profilePicUrl" value={profilePicUrl} onChange={(e) => setProfilePicUrl(e.target.value)} className="themed-input w-full rounded-md" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }} placeholder="https://your-image-url.com/pic.png" />
+                    <label htmlFor="profilePicUrl-profile" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Profile Picture URL</label>
+                    <input type="text" id="profilePicUrl-profile" value={profilePicUrl} onChange={(e) => setProfilePicUrl(e.target.value)} className="themed-input w-full rounded-md" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }} placeholder="https://your-image-url.com/pic.png" />
                 </div>
                  <div>
                       <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Upload Picture</label>
@@ -645,68 +645,84 @@ const SettingsSecurity = () => {
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <SettingsSection title="Security">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Enable App Lock (PIN)</span>
-                    <button onClick={() => setEnableLock(!enableLock)} className={`${enableLock ? 'bg-primary' : 'bg-slate-400 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2`} style={{backgroundColor: enableLock ? 'var(--color-primary-hex)' : '', '--tw-ring-color': 'var(--color-primary-hex)'}}>
-                        <span className={`${enableLock ? 'translate-x-5' : 'translate-x-0'} inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} />
+                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                    {/* Hidden username field for accessibility - password managers expect username fields in forms with passwords */}
+                    <input 
+                        type="text" 
+                        name="username" 
+                        autoComplete="username" 
+                        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden' }} 
+                        tabIndex="-1" 
+                        aria-hidden="true" 
+                    />
+                    
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Enable App Lock (PIN)</span>
+                        <button type="button" onClick={() => setEnableLock(!enableLock)} className={`${enableLock ? 'bg-primary' : 'bg-slate-400 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2`} style={{backgroundColor: enableLock ? 'var(--color-primary-hex)' : '', '--tw-ring-color': 'var(--color-primary-hex)'}}>
+                            <span className={`${enableLock ? 'translate-x-5' : 'translate-x-0'} inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} />
+                        </button>
+                    </div>
+                    {enableLock && (
+                        <div>
+                            <label htmlFor="pin-security" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">
+                                {appPin ? 'Change 4-Digit PIN' : 'Set 4-Digit PIN'}
+                            </label>
+                            <input type="password" id="pin-security" value={pin}
+                                onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= LIMITS.PIN_LENGTH) setPin(val); }}
+                                maxLength={LIMITS.PIN_LENGTH}
+                                className="themed-input w-full rounded-md tracking-widest"
+                                style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
+                                placeholder={appPin ? 'Enter new PIN' : '••••'}
+                                autoComplete="new-password" />
+                        </div>
+                    )}
+                    {appPin && (
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Lock App Now</span>
+                            <button
+                                type="button"
+                                onClick={handleLockApp}
+                                className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500"
+                            >
+                                <Lock size={14}/>
+                                <span>Lock</span>
+                            </button>
+                        </div>
+                    )}
+                    {appPin && !biometricCredentialId && (
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Enable Biometric Unlock</span>
+                            <button
+                                type="button"
+                                onClick={handleRegisterBiometric}
+                                className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
+                            >
+                                <Fingerprint size={14}/>
+                                <span>Enable</span>
+                            </button>
+                        </div>
+                    )}
+                    {biometricCredentialId && (
+                         <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Biometric Unlock</span>
+                            <button
+                                type="button"
+                                onClick={handleDisableBiometric}
+                                className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white focus:ring-red-500"
+                            >
+                                <Fingerprint size={14}/>
+                                <span>Disable</span>
+                            </button>
+                        </div>
+                    )}
+                    <button
+                        type="submit"
+                        className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2"
+                        style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
+                    >
+                        Save Security Settings
                     </button>
-                </div>
-                {enableLock && (
-                    <div>
-                        <label htmlFor="pin" className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">
-                            {appPin ? 'Change 4-Digit PIN' : 'Set 4-Digit PIN'}
-                        </label>
-                        <input type="password" id="pin" value={pin}
-                            onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= LIMITS.PIN_LENGTH) setPin(val); }}
-                            maxLength={LIMITS.PIN_LENGTH}
-                            className="themed-input w-full rounded-md tracking-widest"
-                            style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
-                            placeholder={appPin ? 'Enter new PIN' : '••••'} />
-                    </div>
-                )}
-                {appPin && (
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Lock App Now</span>
-                        <button
-                            onClick={handleLockApp}
-                            className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500"
-                        >
-                            <Lock size={14}/>
-                            <span>Lock</span>
-                        </button>
-                    </div>
-                )}
-                {appPin && !biometricCredentialId && (
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Enable Biometric Unlock</span>
-                        <button
-                            onClick={handleRegisterBiometric}
-                            className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
-                        >
-                            <Fingerprint size={14}/>
-                            <span>Enable</span>
-                        </button>
-                    </div>
-                )}
-                {biometricCredentialId && (
-                     <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Biometric Unlock</span>
-                        <button
-                            onClick={handleDisableBiometric}
-                            className="text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white focus:ring-red-500"
-                        >
-                            <Fingerprint size={14}/>
-                            <span>Disable</span>
-                        </button>
-                    </div>
-                )}
-                <button
-                    onClick={handleSave}
-                    className="text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2"
-                    style={{ backgroundColor: 'var(--color-primary-hex)', '--tw-ring-color': 'var(--color-primary-hex)' }}
-                >
-                    Save Security Settings
-                </button>
+                </form>
             </SettingsSection>
         </div>
     );
@@ -716,28 +732,80 @@ const SettingsApplication = () => {
         handleRequestNotificationPermission,
         handleInstallApp, installPromptEvent, isAppInstalled
     } = useAppState();
+    const { notificationsEnabled, toggleNotifications, isLoading: notificationsLoading } = useNotifications();
     const [notificationStatus, setNotificationStatus] = useState('default');
+    
     useEffect(() => {
         if ('Notification' in window) {
             setNotificationStatus(Notification.permission);
         }
     }, []);
-    const handleNotificationClick = async () => {
+    
+    const handleNotificationToggle = async () => {
+        if (notificationStatus === 'denied') {
+            return; // Can't toggle if permission is denied
+        }
+        
         if (notificationStatus === 'default' || notificationStatus === 'prompt') {
+            // Need to request permission first
             try {
                 const newStatus = await handleRequestNotificationPermission();
                 if (newStatus) setNotificationStatus(newStatus);
+            } catch (err) {
+                console.error("Error requesting notification permission:", err);
             }
-            catch (err) { console.error("Error requesting notification permission:", err); }
+        } else if (notificationStatus === 'granted') {
+            // Toggle the notification state
+            await toggleNotifications(!notificationsEnabled);
         }
     };
+    
     let notificationButton;
     if (notificationStatus === 'granted') {
-        notificationButton = ( <button disabled className={`text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-green-600 text-white cursor-default`}> <BellRing size={14}/> <span>Enabled</span> </button> );
+        if (notificationsEnabled) {
+            notificationButton = (
+                <button 
+                    onClick={handleNotificationToggle}
+                    disabled={notificationsLoading}
+                    className={`text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 ${notificationsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                    {notificationsLoading ? <Loader2 size={14} className="animate-spin" /> : <BellRing size={14}/>}
+                    <span>Enabled</span>
+                </button>
+            );
+        } else {
+            notificationButton = (
+                <button 
+                    onClick={handleNotificationToggle}
+                    disabled={notificationsLoading}
+                    className={`text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-slate-500 hover:bg-slate-600 text-white focus:ring-slate-500 ${notificationsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                    {notificationsLoading ? <Loader2 size={14} className="animate-spin" /> : <BellRing size={14}/>}
+                    <span>Disabled</span>
+                </button>
+            );
+        }
     } else if (notificationStatus === 'denied') {
-         notificationButton = ( <button disabled className={`text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-red-700 text-gray-300 cursor-not-allowed`}> <BellRing size={14}/> <span>Blocked</span> </button> );
+        notificationButton = (
+            <button 
+                disabled 
+                className={`text-sm font-semibold py-1 px-3 rounded flex items-center space-x-1 bg-red-700 text-gray-300 cursor-not-allowed`}
+            >
+                <BellRing size={14}/>
+                <span>Blocked</span>
+            </button>
+        );
     } else {
-         notificationButton = ( <button onClick={handleNotificationClick} className={`text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500`}> <BellRing size={14}/> <span>Enable</span> </button> );
+        notificationButton = (
+            <button 
+                onClick={handleNotificationToggle}
+                disabled={notificationsLoading}
+                className={`text-sm font-semibold py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors duration-200 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 ${notificationsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+                {notificationsLoading ? <Loader2 size={14} className="animate-spin" /> : <BellRing size={14}/>}
+                <span>Enable</span>
+            </button>
+        );
     }
      let installButton;
      if (isAppInstalled) {
@@ -760,6 +828,12 @@ const SettingsApplication = () => {
                     <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Reminder Notifications</span>
                     {notificationButton}
                 </div>
+                {notificationStatus === 'granted' && notificationsEnabled && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400">You'll receive notifications for upcoming reminders even when the app is closed.</p>
+                )}
+                {notificationStatus === 'granted' && !notificationsEnabled && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">Notifications are disabled. Enable them to receive reminder alerts.</p>
+                )}
                 {notificationStatus === 'denied' && (
                     <p className="text-xs text-red-500 dark:text-red-400">You have blocked notifications. Please enable them in your browser settings.</p>
                 )}

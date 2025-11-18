@@ -1,33 +1,23 @@
-// Firebase Messaging Service Worker
-// This file handles push notifications when the app is in the background
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// NOTE: This config needs to match your Firebase project
-// Copy these values from your .env file (without the VITE_ prefix)
-// Or better yet, update with your actual Firebase config values
-const firebaseConfig = __FIREBASE_CONFIG__;
+  const firebaseConfig = __FIREBASE_CONFIG__;
 
-console.log('Firebase Messaging Service Worker initialized');
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
-// Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('Received background message:', payload);
-
   const notificationTitle = payload.notification?.title || 'Curiosity';
   const notificationOptions = {
-    body: payload.notification?.body || 'You have a new notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    tag: payload.data?.tag || 'curiosity-notification',
-    requireInteraction: false,
-    silent: false,
-    data: payload.data || {},
+      body: payload.notification?.body || 'You have a new notification',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      tag: payload.data?.tag || 'curiosity-notification',
+      requireInteraction: false,
+      silent: false,
+      data: payload.data || {},
     actions: [
       {
         action: 'view',
@@ -41,12 +31,8 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-// Handle notification click
+});// Handle notification click
 self.addEventListener('notificationclick', (event) => {
-  console.log('Notification click received:', event);
-
   event.notification.close();
 
   if (event.action === 'dismiss') {
@@ -75,12 +61,8 @@ self.addEventListener('notificationclick', (event) => {
 
 // Handle push messages (fallback for when onBackgroundMessage doesn't work)
 self.addEventListener('push', (event) => {
-  console.log('Push received:', event);
-
   if (event.data) {
     const data = event.data.json();
-    console.log('Push data:', data);
-
     const title = data.notification?.title || 'Curiosity';
     const options = {
       body: data.notification?.body || 'You have a new notification',
@@ -102,3 +84,8 @@ self.addEventListener('push', (event) => {
     );
   }
 });
+
+} catch (error) {
+  console.warn('Firebase Messaging Service Worker initialization failed:', error.message);
+  // Service worker will still be registered but won't handle push notifications
+}

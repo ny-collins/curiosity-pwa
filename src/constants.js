@@ -132,6 +132,12 @@ export const getEntryType = (value) => {
 export const REGULAR_ENTRY_TYPES = ENTRY_TYPES.filter(t => !t.secure);
 export const VAULT_ITEM_TYPES = ENTRY_TYPES.filter(t => t.secure);
 export const STORAGE_KEYS = {
+    THEME_MODE: 'curiosity-theme-mode',
+    THEME_COLOR: 'curiosity-theme-color',
+    THEME_FONT: 'curiosity-theme-font',
+    FONT_SIZE: 'curiosity-font-size',
+    PIN: 'curiosity-app-pin',
+    WEBAUTHN_CREDENTIAL_ID: 'curiosity-webauthn-credential-id',
 };
 export const ANIMATIONS = {
   fadeIn: {

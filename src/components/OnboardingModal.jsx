@@ -130,7 +130,7 @@ export default function OnboardingModal({ onComplete }) {
                         </label>
                         <motion.input
                             type="text"
-                            id="username"
+                            id="username-onboarding"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             className="themed-input w-full rounded-xl px-4 py-3 text-lg transition-all duration-200 focus:ring-2"

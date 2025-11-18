@@ -1,0 +1,11 @@
+# Robots.txt for Curiosity PWA
+User-agent: *
+Allow: /
+
+# Disallow service worker files
+Disallow: /sw.js
+Disallow: /firebase-messaging-sw.js
+Disallow: /workbox-*.js
+
+# Sitemap
+Sitemap: https://curiosity-pwa.web.app/sitemap.xml

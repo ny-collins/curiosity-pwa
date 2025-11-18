@@ -20,6 +20,25 @@ export const NotificationProvider = ({ children }) => {
   const [fcmToken, setFcmToken] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [swRegistered, setSwRegistered] = useState(false);
+  
+  // Function to ensure service worker is registered
+  const ensureServiceWorkerRegistered = async () => {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { 
+          scope: '/firebase-cloud-messaging-push-scope' 
+        });
+        setSwRegistered(true);
+        return registration;
+      } catch (error) {
+        logger.error('Failed to register Firebase Messaging Service Worker:', error);
+        throw error;
+      }
+    }
+    throw new Error('Service workers not supported');
+  };
+  
   useEffect(() => {
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
@@ -44,12 +63,27 @@ export const NotificationProvider = ({ children }) => {
         toast.error('Firebase messaging is not available');
         return false;
       }
+      
+      // Ensure service worker is registered first
+      await ensureServiceWorkerRegistered();
+      
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         setNotificationPermission('granted');
         toast.success('Notification permission granted!');
+        
+        // Get the Firebase Messaging service worker registration
+        const registration = await navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope');
+        
+        if (!registration) {
+          logger.error('Firebase Messaging service worker not registered');
+          toast.error('Notification service worker not found. Please refresh the page.');
+          return false;
+        }
+        
         const token = await getToken(messaging, {
-          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+          serviceWorkerRegistration: registration
         });
         if (token) {
           setFcmToken(token);
@@ -145,18 +179,18 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [messaging, notificationPermission]);
   
-  // Register Firebase Messaging Service Worker immediately on mount
+  // Register Firebase Messaging Service Worker on mount (for foreground messages)
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/firebase-messaging-sw.js', { scope: '/firebase-cloud-messaging-push-scope' })
-        .then((registration) => {
-          logger.info('Firebase Messaging Service Worker registered:', registration);
-        })
-        .catch((error) => {
-          logger.error('Firebase Messaging Service Worker registration failed:', error);
-        });
-    }
+    ensureServiceWorkerRegistered()
+      .then(() => {
+        logger.info('Firebase Messaging Service Worker registered successfully');
+      })
+      .catch((error) => {
+        // Silently handle registration failures to avoid console warnings
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Firebase Messaging SW registration skipped:', error.message);
+        }
+      });
   }, []); // Run once on mount
 
   const value = {

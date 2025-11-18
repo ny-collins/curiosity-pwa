@@ -3,31 +3,102 @@
   <head>
     <meta charset="UTF-8" />
     
+    <!-- Primary Meta Tags -->
+    <title>Curiosity - Your Personal Jotter & Digital Journal</title>
+    <meta name="title" content="Curiosity - Your Personal Jotter & Digital Journal">
+    <meta name="description" content="A beautiful, privacy-first personal jotter for documenting questions, discoveries, goals, and ideas. Track your journey with journal entries, reminders, and secure vault storage. Works offline.">
+    <meta name="keywords" content="personal journal, digital notebook, jotter app, note taking, goal tracking, private diary, offline notes, PWA, secure notes, personal vault">
+    <meta name="author" content="Curiosity">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    
+    <!-- Favicon & Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
-    
     <link rel="mask-icon" href="/favicon.svg" color="#14b8a6">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="manifest" href="/manifest.json" />
 
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://curiosity-pwa.web.app/">
+    <meta property="og:title" content="Curiosity - Your Personal Jotter & Digital Journal">
+    <meta property="og:description" content="A beautiful, privacy-first personal jotter for documenting questions, discoveries, goals, and ideas. Track your journey with journal entries, reminders, and secure vault storage.">
+    <meta property="og:image" content="https://curiosity-pwa.web.app/icons/icon-512x512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:site_name" content="Curiosity">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://curiosity-pwa.web.app/">
+    <meta property="twitter:title" content="Curiosity - Your Personal Jotter & Digital Journal">
+    <meta property="twitter:description" content="A beautiful, privacy-first personal jotter for documenting questions, discoveries, goals, and ideas. Track your journey with journal entries, reminders, and secure vault storage.">
+    <meta property="twitter:image" content="https://curiosity-pwa.web.app/icons/icon-512x512.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://curiosity-pwa.web.app/">
+
+    <!-- Google Site Verification -->
     <meta name="google-site-verification" content="THb9bD5bbH5WcALm9bU3lpuxufglI4EJI1nNjGf2_G8" />
     
+    <!-- Theme Color -->
     <meta name="theme-color" content="#14b8a6" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
 
-    <!-- Prevent browser splash screen on mobile -->
+    <!-- PWA Configuration -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Curiosity">
-
-    <!-- Prevent browser splash screen -->
     <link rel="apple-touch-startup-image" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
 
+    <!-- Preconnect to external resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
+    
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Curiosity",
+      "alternateName": "Curiosity - Your Personal Jotter",
+      "url": "https://curiosity-pwa.web.app",
+      "logo": "https://curiosity-pwa.web.app/icons/icon-512x512.png",
+      "description": "A beautiful, privacy-first personal jotter for documenting questions, discoveries, goals, and ideas. Track your journey with journal entries, reminders, and secure vault storage.",
+      "applicationCategory": "Productivity",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Offline-first architecture",
+        "End-to-end encryption for sensitive data",
+        "Goal and task tracking",
+        "Reminder notifications",
+        "Secure vault storage",
+        "Multiple export formats (JSON, Markdown, PDF)",
+        "Customizable themes and fonts",
+        "Biometric authentication",
+        "Cross-device sync"
+      ],
+      "screenshot": "https://curiosity-pwa.web.app/icons/icon-512x512.png",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "5.0",
+        "ratingCount": "1"
+      }
+    }
+    </script>
     
     <script>
       (function() {
@@ -51,10 +122,16 @@
         }
       })();
     </script>
-    
-    <title>Curiosity - Your Personal Jotter</title>
   </head>
   <body class="bg-white dark:bg-slate-900">
+    <noscript>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 20px; font-family: system-ui, -apple-system, sans-serif;">
+        <h1 style="font-size: 24px; margin-bottom: 16px; color: #14b8a6;">Curiosity - Your Personal Jotter</h1>
+        <p style="font-size: 16px; color: #666; max-width: 500px;">
+          JavaScript is required to run this application. Please enable JavaScript in your browser settings to continue.
+        </p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -3,17 +3,16 @@ import { db, saveSettings as dbSaveSettings, getSettings as dbGetSettings } from
 import { useLiveQuery } from 'dexie-react-hooks';
 import { nanoid } from 'nanoid';
 import { onAuthStateChanged, signInAnonymously, linkWithPopup, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth, app, functions, storage, appId, firestoreDb } from '../firebaseConfig.js';
+import { auth, app, functions, storage, appId, firestoreDb, messaging } from '../firebaseConfig.js';
 import { httpsCallable } from "firebase/functions";
+import { getToken } from 'firebase/messaging';
 import {
     doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
     collection, query, serverTimestamp, getDocs, where, writeBatch,
-    Timestamp, runTransaction
+    Timestamp, runTransaction, getDoc
 } from "firebase/firestore";
 import { dateToKey, hashPin, comparePin, encryptData, decryptData } from '../utils.js';
 import JSZip from 'jszip';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 import { useToaster } from '../components/NotificationProvider.jsx';
 import { parseISO } from 'date-fns';
@@ -1006,9 +1005,6 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
             if (permission === 'granted') {
                 // Request FCM token for background notifications
                 try {
-                    const { messaging } = await import('../firebaseConfig.js');
-                    const { getToken } = await import('firebase/messaging');
-                    
                     // Get the service worker registration for Firebase Messaging
                     const registration = await navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope');
                     
@@ -1025,9 +1021,6 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
                     
                     if (currentToken && userId) {
                         // Save FCM token to Firestore for background notifications
-                        const { doc, setDoc, getDoc } = await import('firebase/firestore');
-                        const { firestoreDb } = await import('../firebaseConfig.js');
-                        
                         // Check if token has actually changed to avoid unnecessary updates
                         const userDocRef = doc(firestoreDb, 'users', userId);
                         const userDocSnap = await getDoc(userDocRef);
