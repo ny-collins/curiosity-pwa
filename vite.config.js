@@ -45,7 +45,8 @@ export default defineConfig({
         globIgnores: [
           '**/node_modules/**', 
           'sw.js', 
-          'workbox-*.js'
+          'workbox-*.js',
+          'firebase-messaging-sw.js'  // Don't cache the Firebase messaging SW
         ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [

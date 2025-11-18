@@ -1009,22 +1009,42 @@ id: ${goal.id}\nstatus: ${goal.status}\ncreatedAt: ${goal.createdAt ? new Date(g
                     const { messaging } = await import('../firebaseConfig.js');
                     const { getToken } = await import('firebase/messaging');
                     
+                    // Get the service worker registration for Firebase Messaging
+                    const registration = await navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope');
+                    
+                    if (!registration) {
+                        console.error('Firebase Messaging service worker not registered');
+                        toast.success("Notifications enabled! You'll receive reminders when the app is open.");
+                        return permission;
+                    }
+                    
                     const currentToken = await getToken(messaging, {
-                        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+                        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+                        serviceWorkerRegistration: registration
                     });
                     
                     if (currentToken && userId) {
                         // Save FCM token to Firestore for background notifications
-                        const { doc, setDoc } = await import('firebase/firestore');
+                        const { doc, setDoc, getDoc } = await import('firebase/firestore');
                         const { firestoreDb } = await import('../firebaseConfig.js');
                         
-                        await setDoc(doc(firestoreDb, 'users', userId), {
-                            fcmToken: currentToken,
-                            notificationsEnabled: true,
-                            fcmTokenUpdatedAt: new Date()
-                        }, { merge: true });
+                        // Check if token has actually changed to avoid unnecessary updates
+                        const userDocRef = doc(firestoreDb, 'users', userId);
+                        const userDocSnap = await getDoc(userDocRef);
+                        const existingToken = userDocSnap.data()?.fcmToken;
                         
-                        console.log('FCM token saved:', currentToken);
+                        if (existingToken !== currentToken) {
+                            await setDoc(userDocRef, {
+                                fcmToken: currentToken,
+                                notificationsEnabled: true,
+                                fcmTokenUpdatedAt: new Date()
+                            }, { merge: true });
+                            
+                            console.log('FCM token saved:', currentToken);
+                        } else {
+                            console.log('FCM token unchanged, skipping update');
+                        }
+                        
                         toast.success("Notifications enabled! You'll receive reminders even when the app is closed.");
                     } else {
                         console.log('No FCM token available');

@@ -144,15 +144,21 @@ export const NotificationProvider = ({ children }) => {
       return () => unsubscribe();
     }
   }, [messaging, notificationPermission]);
+  
+  // Register Firebase Messaging Service Worker immediately on mount
   useEffect(() => {
-    if ('serviceWorker' in navigator && notificationPermission === 'granted') {
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
+        .register('/firebase-messaging-sw.js', { scope: '/firebase-cloud-messaging-push-scope' })
+        .then((registration) => {
+          logger.info('Firebase Messaging Service Worker registered:', registration);
+        })
         .catch((error) => {
-          logger.error('Service Worker registration failed:', error);
+          logger.error('Firebase Messaging Service Worker registration failed:', error);
         });
     }
-  }, [notificationPermission]);
+  }, []); // Run once on mount
+
   const value = {
     notificationPermission,
     fcmToken,

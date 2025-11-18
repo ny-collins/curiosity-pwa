@@ -433,9 +433,9 @@ exports.updateFCMToken = functions.https.onCall(
 );
 
 // Background Reminder Notification Function
-// Checks all users' reminders every 5 minutes and sends push notifications
+// Checks all users' reminders every minute and sends push notifications
 exports.checkAndSendReminders = functions.pubsub
-  .schedule("*/5 * * * *") // Every 5 minutes
+  .schedule("* * * * *") // Every minute
   .timeZone("UTC") // Use UTC for consistent timezone handling
   .onRun(async (context) => {
     try {
@@ -454,7 +454,7 @@ exports.checkAndSendReminders = functions.pubsub
       console.log(`Found ${usersSnapshot.docs.length} users with notifications enabled`);
 
       const now = new Date();
-      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+      const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000); // Check 2-minute window
       let notificationsSent = 0;
 
       for (const userDoc of usersSnapshot.docs) {
@@ -485,10 +485,10 @@ exports.checkAndSendReminders = functions.pubsub
             if (!reminder.date) continue;
 
             const reminderDate = reminder.date.toDate ? reminder.date.toDate() : new Date(reminder.date);
-            console.log(`Reminder ${reminderDoc.id}: ${reminder.text}, due at ${reminderDate.toISOString()}, now=${now.toISOString()}, window=${fiveMinutesFromNow.toISOString()}`);
+            console.log(`Reminder ${reminderDoc.id}: ${reminder.text}, due at ${reminderDate.toISOString()}, now=${now.toISOString()}, window=${twoMinutesFromNow.toISOString()}`);
             
-            // Send notification if reminder is due within the next 5 minutes
-            if (reminderDate >= now && reminderDate <= fiveMinutesFromNow) {
+            // Send notification if reminder is due within the next 2 minutes
+            if (reminderDate >= now && reminderDate <= twoMinutesFromNow) {
               const message = {
                 token: userData.fcmToken,
                 notification: {
